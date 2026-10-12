@@ -63,4 +63,4 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
 
 ## Findings from former Research
 
-- **Note:** Existing items from the Earnie backlog (*User-defined tariffs — T1…T4/T4b*) describe the same work from the Earnie side. When Edbert becomes the implementation, the Earnie backlog should keep one integration item ("use Edbert for tariffs") and refer here.
+- **Note:** The Earnie backlog keeps a single item, *Edbert integration — use Edbert for tariffs*, that refers here. Engine, editor, catalog and publishers are tracked in this backlog; Earnie-side integration (replacing its own tariff resolution, embedding the editor, packaging) is tracked in the Earnie backlog.
