@@ -17,7 +17,9 @@ from edbert._fields import (
     get_str,
     invalid,
     missing,
+    parse_date,
 )
+from edbert.context import PricingContext
 from edbert.errors import EdbertError, ErrorCode
 
 MODE_ABSOLUTE = "absolute_cent"
@@ -32,6 +34,11 @@ RULE_FIELDS = (
     "id", "label", "valid_from", "valid_to", "months", "weekdays", "time",
     "effect", "when_market_cent_kwh", "requires",
 )  # fmt: skip
+GRID_RULE_FIELDS = (
+    *(name for name in RULE_FIELDS if name != "when_market_cent_kwh"), "status", "source", "note",
+)  # fmt: skip
+HOLIDAY_MODES = ("sunday", "weekday", "own")
+STATUSES = ("verordnet", "entwurf", "illustrativ")
 
 _DAY_NAMES = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
 _DAY_GROUPS = {"weekday": {0, 1, 2, 3, 4}, "weekend": {5, 6}}
@@ -42,7 +49,7 @@ _HHMM = re.compile(r"^(\d{1,2}):(\d{2})$")
 @dataclass(frozen=True)
 class Effect:
     mode: str
-    value: float
+    value: float | None  # None only in grid-fee catalog rules whose value is not known yet
 
 
 @dataclass(frozen=True)
@@ -67,6 +74,9 @@ class Rule:
     market_below: float | None
     market_above: float | None
     requires: tuple[str, ...]
+    status: str | None = None  # grid-fee rules only
+    source: str | None = None
+    note: str | None = None
 
     @property
     def has_holiday_token(self) -> bool:
@@ -138,7 +148,7 @@ def _parse_weekdays(raw: object, path: str) -> frozenset[int | str] | None:
     return frozenset(tokens)
 
 
-def _parse_effect(raw: object, path: str) -> Effect:
+def _parse_effect(raw: object, path: str, *, allow_null: bool = False) -> Effect:
     if raw is None:
         raise missing(path)
     data = as_dict(raw, path)
@@ -146,9 +156,10 @@ def _parse_effect(raw: object, path: str) -> Effect:
     mode = data.get("mode")
     if mode not in MODES:
         raise invalid(f"{path}.mode", mode)
-    value = get_number(data, "value", path, required=True)
-    assert value is not None
-    if (mode == MODE_ABSOLUTE and value < 0) or (mode == MODE_PERCENT_OFF and not 0 <= value <= 100):
+    value = get_number(data, "value", path, required=not allow_null)
+    if value is not None and (
+        (mode == MODE_ABSOLUTE and value < 0) or (mode == MODE_PERCENT_OFF and not 0 <= value <= 100)
+    ):
         raise invalid(f"{path}.value", value)
     return Effect(mode, value)
 
@@ -165,14 +176,26 @@ def _parse_market(raw: object, path: str) -> tuple[float | None, float | None]:
     return below, above
 
 
-def parse_rule(raw: object, tariff_id: str, index: int) -> Rule:
-    """Validate one rule. Unknown fields and bad values are coded errors."""
-    path = f"{tariff_id}.rules[{index}]"
+def _parse_status(data: Mapping[str, Any], path: str) -> str | None:
+    status = get_str(data, "status", path)
+    if status is not None and status not in STATUSES:
+        raise invalid(f"{path}.status", status)
+    return status
+
+
+def parse_rule(raw: object, owner_id: str, index: int, *, grid: bool = False) -> Rule:
+    """Validate one rule. Unknown fields and bad values are coded errors.
+
+    ``grid=True`` is for grid-fee rules: optional ``status``/``source``/``note`` and an effect
+    whose value may still be unknown (``null``).
+    """
+    path = f"{owner_id}.rules[{index}]"
     data = as_dict(raw, path)
     rule_id = get_str(data, "id", path, required=True)
     assert rule_id is not None
-    check_known(data, RULE_FIELDS, path, ErrorCode.RULE_UNKNOWN_FIELD, rule_id=rule_id)
-    path = f"{tariff_id}.rules[{rule_id}]"
+    allowed = GRID_RULE_FIELDS if grid else RULE_FIELDS
+    check_known(data, allowed, path, ErrorCode.RULE_UNKNOWN_FIELD, rule_id=rule_id)
+    path = f"{owner_id}.rules[{rule_id}]"
     start, end = _parse_time(data.get("time"), f"{path}.time")
     valid_from, valid_to = get_date(data, "valid_from", path), get_date(data, "valid_to", path)
     if valid_from and valid_to and valid_to < valid_from:
@@ -187,23 +210,26 @@ def parse_rule(raw: object, tariff_id: str, index: int) -> Rule:
         weekdays=_parse_weekdays(data.get("weekdays"), f"{path}.weekdays"),
         from_min=start,
         to_min=end,
-        effect=_parse_effect(data.get("effect"), f"{path}.effect"),
+        effect=_parse_effect(data.get("effect"), f"{path}.effect", allow_null=grid),
         market_below=below,
         market_above=above,
         requires=get_choice_list(data, "requires", path, REQUIRES),
+        status=_parse_status(data, path) if grid else None,
+        source=get_str(data, "source", path) if grid else None,
+        note=get_str(data, "note", path) if grid else None,
     )
 
 
-def parse_rules(raw: object, tariff_id: str) -> tuple[Rule, ...]:
+def parse_rules(raw: object, owner_id: str, *, grid: bool = False) -> tuple[Rule, ...]:
     if raw is None:
         return ()
     if not isinstance(raw, list):
-        raise invalid(f"{tariff_id}.rules", raw)
-    rules = tuple(parse_rule(item, tariff_id, index) for index, item in enumerate(raw))
+        raise invalid(f"{owner_id}.rules", raw)
+    rules = tuple(parse_rule(item, owner_id, index, grid=grid) for index, item in enumerate(raw))
     ids = [rule.id for rule in rules]
     for rule_id in ids:
         if ids.count(rule_id) > 1:
-            raise invalid(f"{tariff_id}.rules[{rule_id}].id", rule_id)
+            raise invalid(f"{owner_id}.rules[{rule_id}].id", rule_id)
     return rules
 
 
@@ -277,7 +303,11 @@ def matching_rule(
     return None
 
 
-def apply_effect(base_cent: float, effect: Effect) -> float:
+def apply_effect(base_cent: float, effect: Effect, rule_id: str = "?") -> float:
+    if effect.value is None:
+        raise EdbertError(
+            ErrorCode.RULE_VALUE_MISSING, f"Rule '{rule_id}' has no value (effect.value is null).", rule_id=rule_id
+        )
     if effect.mode == MODE_ABSOLUTE:
         return effect.value
     if effect.mode == MODE_ADD:
@@ -288,3 +318,48 @@ def apply_effect(base_cent: float, effect: Effect) -> float:
 def unmet_requirements(requires: tuple[str, ...], capabilities: Mapping[str, Any] | set[str]) -> list[str]:
     """Requirements not in ``capabilities`` (a warning for the caller, never an error here)."""
     return [item for item in requires if item not in capabilities]
+
+
+def needs_calendar(rules: tuple[Rule, ...], holiday_mode: str) -> bool:
+    """True if holidays can change a result: a weekday filter with holidays not ignored, or a holiday token."""
+    filtered = [rule for rule in rules if rule.weekdays is not None]
+    if any(rule.has_holiday_token for rule in filtered):
+        return True
+    return bool(filtered) and holiday_mode != "weekday"
+
+
+def day_info(
+    rules: tuple[Rule, ...],
+    holiday_mode: str,
+    extra_dates: frozenset[date],
+    local: datetime,
+    ctx: PricingContext,
+) -> DayInfo:
+    """Weekday and holiday flag for ``local``; the calendar is only built when it can matter."""
+    weekday = local.weekday()
+    if not needs_calendar(rules, holiday_mode):
+        return DayInfo(weekday, False)
+    is_holiday = ctx.calendar_for(extra_dates).is_holiday(local.date())
+    if is_holiday and holiday_mode == "sunday":
+        weekday = 6
+    return DayInfo(weekday, is_holiday)
+
+
+def parse_holiday_mode(raw: object, path: str) -> str:
+    """``{"treat_as": "sunday" | "weekday" | "own"}``; default ``sunday``."""
+    if raw is None:
+        return "sunday"
+    data = as_dict(raw, path)
+    check_known(data, ("treat_as",), path)
+    mode = data.get("treat_as", "sunday")
+    if mode not in HOLIDAY_MODES:
+        raise invalid(f"{path}.treat_as", mode)
+    return mode
+
+
+def parse_extra_dates(raw: object, path: str) -> frozenset[date]:
+    if raw is None:
+        return frozenset()
+    if not isinstance(raw, list):
+        raise invalid(path, raw)
+    return frozenset(parse_date(item, path) for item in raw)

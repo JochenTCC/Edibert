@@ -6,6 +6,8 @@ The UI never shows ``str(error)`` to the user. It translates ``error.<code>`` vi
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
@@ -19,6 +21,8 @@ class ErrorCode(StrEnum):
     FIELD_MISSING = "FIELD_MISSING"  # params: field
     VALUE_INVALID = "VALUE_INVALID"  # params: field, value
     UNSUPPORTED_FEATURE = "UNSUPPORTED_FEATURE"  # params: feature, tariff_id
+    RULE_VALUE_MISSING = "RULE_VALUE_MISSING"  # params: rule_id
+    GRID_AREA_UNKNOWN = "GRID_AREA_UNKNOWN"  # params: area_id
     # Files and identifiers
     FILE_INVALID = "FILE_INVALID"  # params: path
     ID_COLLISION = "ID_COLLISION"  # params: tariff_id
@@ -41,3 +45,21 @@ class EdbertError(Exception):
         super().__init__(message)
         self.code = code
         self.params = params
+
+
+class WarningCode(StrEnum):
+    """Non-fatal findings. Every code needs ``warning.<CODE>`` in all catalogs."""
+
+    WINDOW_NOT_HOUR_ALIGNED = "WINDOW_NOT_HOUR_ALIGNED"  # params: tariff_id, rule_id
+    REQUIREMENT_UNMET = "REQUIREMENT_UNMET"  # params: tariff_id, requirement
+    GRID_RULE_SKIPPED_STATUS = "GRID_RULE_SKIPPED_STATUS"  # params: rule_id, status
+    GRID_RULE_SKIPPED_NO_QUARTER_HOUR_METER = "GRID_RULE_SKIPPED_NO_QUARTER_HOUR_METER"  # params: rule_id
+
+
+@dataclass(frozen=True)
+class EdbertWarning:
+    """A finding that does not stop evaluation; the UI shows ``warning.<code>``."""
+
+    code: WarningCode
+    message: str  # English, for logs
+    params: Mapping[str, Any] = field(default_factory=dict)

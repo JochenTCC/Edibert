@@ -2,6 +2,18 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Engine P2 — grid fee and price series (0.1.b, 2026-10-12)
+
+- [x] **0.1.b — Engine P2** (`src/edbert/`: `gridfee.py`, `series.py`, `checks.py`; extensions in `rules.py`, `tariff.py`, `cli.py`)
+  - Grid fee (`netznutzung`) in Earnie's shape: catalog areas (`grid_fees.json`), metering type, `quarter_hour_meter`, rule status and `include_status`, own rules without a catalog area (section 14a module 3 levels), holiday handling; included rule without a value is an error
+  - Grid fee added in `evaluate` before VAT (import only); `PriceResult` carries grid fee and rule
+  - `tariff_price_series`: horizon, resolution 15/30/60 min, UTC slot stepping (DST days 92/100 slots), market prices per slot with strict missing-price errors, hour-mean for hourly settled spot tariffs, components (supplier, grid, VAT), quality `exact`/`forecast`, JSON output
+  - Warnings (coded, translated): hour-misaligned windows in hourly tariffs, unmet requirements, skipped grid rules
+  - Command line: `price` with `--grid-fee`/`--grid-catalog`, new `series` (market CSV, table or JSON), `--has` for house capabilities
+  - Verified against Earnie `main` (`data/grid_fees.py`, `tariff_pricing.py`): 45,136 grid-fee comparisons over 14 areas and 180 configurations and 6,300 tariff-plus-grid-fee comparisons without a difference; both raise in the same 56 configurations (included rule without value)
+  - 126 tests, 96 % line coverage, ruff and vulture clean
+  - Open for the quality gate `0.1.r`: `rules.py` (365 lines) and `tariff.py` (303) are above the 300-line target (below the hard limit); `schema._tariff_properties` is 53 lines; JSON Schema for the `netznutzung` field is not generated yet
+
 ### Engine P1 — rule engine, user tariffs, holidays (0.1.a, 2026-10-12)
 
 - [x] **0.1.a — Engine P1** (`src/edbert/`: `rules.py`, `tariff.py`, `context.py`, `store.py`, `schema.py`, `cli.py`)

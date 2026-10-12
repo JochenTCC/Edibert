@@ -1,6 +1,6 @@
 import pytest
 
-from edbert.errors import ErrorCode
+from edbert.errors import ErrorCode, WarningCode
 from edbert.i18n import SOURCE_LANGUAGE, SUPPORTED_LANGUAGES, load_catalog, placeholders
 
 OTHER_LANGUAGES = [lang for lang in SUPPORTED_LANGUAGES if lang != SOURCE_LANGUAGE]
@@ -37,3 +37,10 @@ def test_every_error_code_has_a_text(language):
     catalog = load_catalog(language)
     for code in ErrorCode:
         assert f"error.{code.value}" in catalog, f"error.{code.value} missing ({language})"
+
+
+@pytest.mark.parametrize("language", SUPPORTED_LANGUAGES)
+def test_every_warning_code_has_a_text(language):
+    catalog = load_catalog(language)
+    for code in WarningCode:
+        assert f"warning.{code.value}" in catalog, f"warning.{code.value} missing ({language})"

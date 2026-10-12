@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from edbert._fields import (
     as_dict,
@@ -17,18 +17,23 @@ from edbert._fields import (
     get_str,
     invalid,
     missing,
-    parse_date,
 )
 from edbert.context import PricingContext
 from edbert.errors import EdbertError, ErrorCode
 from edbert.rules import (
     REQUIRES,
-    DayInfo,
     Rule,
     apply_effect,
+    day_info,
     matching_rule,
+    needs_calendar,
+    parse_extra_dates,
+    parse_holiday_mode,
     parse_rules,
 )
+
+if TYPE_CHECKING:
+    from edbert.gridfee import GridFee
 
 IMPORT = "import"
 EXPORT = "export"
@@ -37,7 +42,6 @@ IMPORT_TYPES = ("fixed_cent", "spot_hourly", "ex_post_spot", "monthly_market", "
 EXPORT_TYPES = ("fixed", "spot_hourly", "ex_post_spot", "monthly_table")
 SPOT_IMPORT_TYPES = ("spot_hourly", "ex_post_spot", "monthly_market")
 SPOT_EXPORT_TYPES = ("spot_hourly", "ex_post_spot")
-HOLIDAY_MODES = ("sunday", "weekday", "own")
 
 FEE_FIELDS = ("monthly_fee_eur", "grid_monthly_fee_eur", "metering_monthly_fee_eur", "other_monthly_fee_eur")
 TARIFF_FIELDS = (
@@ -86,21 +90,29 @@ class Tariff:
     @property
     def needs_calendar(self) -> bool:
         """True if holidays can change a result (weekday filters present, holidays not ignored)."""
-        filtered = [rule for rule in self.rules if rule.weekdays is not None]
-        if any(rule.has_holiday_token for rule in filtered):
-            return True
-        return bool(filtered) and self.holiday_mode != "weekday"
+        return needs_calendar(self.rules, self.holiday_mode)
+
+    @property
+    def is_spot(self) -> bool:
+        return self.type in (SPOT_IMPORT_TYPES if self.direction == IMPORT else SPOT_EXPORT_TYPES)
+
+    @property
+    def uses_market_price(self) -> bool:
+        """True if a slot price needs the market price (spot type or a rule filtering on it)."""
+        return self.is_spot or any(rule.uses_market_price for rule in self.rules)
 
 
 @dataclass(frozen=True)
 class PriceResult:
-    """Price of one slot with the intermediate steps (cent/kWh, supplier part)."""
+    """Price of one slot with the intermediate steps (cent/kWh)."""
 
     base_cent: float
     rule_id: str | None
     after_rule_cent: float
-    after_limits_cent: float
-    cent: float  # final, rounded to 4 decimals, after VAT
+    after_limits_cent: float  # supplier part after rules and floor/cap, before grid fee and VAT
+    cent: float  # final, rounded to 4 decimals: (supplier part + grid fee) incl. VAT
+    grid_cent: float = 0.0
+    grid_rule_id: str | None = None
 
 
 def _parse_monthly_rates(raw: object, path: str) -> dict[tuple[int, int], float]:
@@ -122,25 +134,6 @@ def _parse_monthly_rates(raw: object, path: str) -> dict[tuple[int, int], float]
         assert value is not None
         table[(year, month)] = value
     return table
-
-
-def _parse_holidays(raw: object, path: str) -> str:
-    if raw is None:
-        return "sunday"
-    data = as_dict(raw, path)
-    check_known(data, ("treat_as",), path)
-    mode = data.get("treat_as", "sunday")
-    if mode not in HOLIDAY_MODES:
-        raise invalid(f"{path}.treat_as", mode)
-    return mode
-
-
-def _parse_extra_dates(raw: object, path: str) -> frozenset[date]:
-    if raw is None:
-        return frozenset()
-    if not isinstance(raw, list):
-        raise invalid(path, raw)
-    return frozenset(parse_date(item, path) for item in raw)
 
 
 def _reject_unsupported(raw: Mapping[str, Any], tariff_id: str) -> None:
@@ -218,8 +211,8 @@ def _build(raw: Mapping[str, Any], direction: str, tariff_type: str, tid: str) -
         behavior_notes=get_str(raw, "behavior_notes", tid),
         source=get_str(raw, "source", tid),
         last_verified=get_date(raw, "last_verified", tid),
-        holiday_mode=_parse_holidays(raw.get("holidays"), f"{tid}.holidays"),
-        extra_holiday_dates=_parse_extra_dates(raw.get("extra_holiday_dates"), f"{tid}.extra_holiday_dates"),
+        holiday_mode=parse_holiday_mode(raw.get("holidays"), f"{tid}.holidays"),
+        extra_holiday_dates=parse_extra_dates(raw.get("extra_holiday_dates"), f"{tid}.extra_holiday_dates"),
         individual=get_bool(raw, "individual", tid, False),
     )
 
@@ -258,16 +251,6 @@ def _base_cent(tariff: Tariff, local: datetime, epex_cent: float | None) -> floa
     return fixed
 
 
-def _day_info(tariff: Tariff, local: datetime, ctx: PricingContext) -> DayInfo:
-    weekday = local.weekday()
-    if not tariff.needs_calendar:
-        return DayInfo(weekday, False)
-    is_holiday = ctx.calendar_for(tariff.extra_holiday_dates).is_holiday(local.date())
-    if is_holiday and tariff.holiday_mode == "sunday":
-        weekday = 6
-    return DayInfo(weekday, is_holiday)
-
-
 def _clamp(value: float, tariff: Tariff) -> float:
     if tariff.price_floor_cent_kwh is not None:
         value = max(value, tariff.price_floor_cent_kwh)
@@ -281,28 +264,40 @@ def evaluate(
     slot_start: datetime,
     ctx: PricingContext,
     epex_cent: float | None = None,
+    grid_fee: GridFee | None = None,
 ) -> PriceResult:
     """Price (cent/kWh) of the slot starting at ``slot_start``, with intermediate steps.
 
-    Order: base price, first matching rule, floor/cap, VAT. Grid fees are added by the
-    caller of the grid-fee part (later step); this is the supplier part.
+    Order: base price, first matching rule, floor/cap, grid fee (import only, optional), VAT.
     """
     local = ctx.to_local(slot_start)
     base = _base_cent(tariff, local, epex_cent)
     rule = matching_rule(
         tariff.rules,
         local,
-        _day_info(tariff, local, ctx),
+        day_info(tariff.rules, tariff.holiday_mode, tariff.extra_holiday_dates, local, ctx),
         holiday_mode=tariff.holiday_mode,
         epex_cent=epex_cent,
         tariff_id=tariff.id,
     )
-    after_rule = apply_effect(base, rule.effect) if rule else base
+    after_rule = apply_effect(base, rule.effect, rule.id) if rule else base
     limited = _clamp(after_rule, tariff)
-    gross = limited if tariff.prices_include_vat else limited * (1.0 + tariff.vat_percent / 100.0)
-    return PriceResult(base, rule.id if rule else None, after_rule, limited, round(gross, 4))
+    grid_cent, grid_rule = (0.0, None)
+    if grid_fee is not None and tariff.direction == IMPORT:
+        grid_cent, grid_rule = grid_fee.work_cent(local, ctx)
+    net = limited + grid_cent
+    gross = net if tariff.prices_include_vat else net * (1.0 + tariff.vat_percent / 100.0)
+    return PriceResult(
+        base, rule.id if rule else None, after_rule, limited, round(gross, 4), grid_cent, grid_rule
+    )
 
 
-def price_cent(tariff: Tariff, slot_start: datetime, ctx: PricingContext, epex_cent: float | None = None) -> float:
+def price_cent(
+    tariff: Tariff,
+    slot_start: datetime,
+    ctx: PricingContext,
+    epex_cent: float | None = None,
+    grid_fee: GridFee | None = None,
+) -> float:
     """Final price in cent/kWh for one slot."""
-    return evaluate(tariff, slot_start, ctx, epex_cent).cent
+    return evaluate(tariff, slot_start, ctx, epex_cent, grid_fee).cent

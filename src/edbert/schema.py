@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from edbert.rules import MODES, REQUIRES, RULE_FIELDS
-from edbert.tariff import EXPORT_TYPES, HOLIDAY_MODES, IMPORT_TYPES, TARIFF_FIELDS
+from edbert.rules import HOLIDAY_MODES, MODES, REQUIRES, RULE_FIELDS
+from edbert.tariff import EXPORT_TYPES, IMPORT_TYPES, TARIFF_FIELDS
 
 _NUMBER: dict[str, Any] = {"type": "number"}
 _NON_NEGATIVE: dict[str, Any] = {"type": "number", "minimum": 0}

@@ -15,7 +15,7 @@ from collections.abc import Mapping
 from functools import cache
 from importlib import resources
 
-from edbert.errors import EdbertError
+from edbert.errors import EdbertError, EdbertWarning
 
 SOURCE_LANGUAGE = "en"
 SUPPORTED_LANGUAGES = ("en", "de")
@@ -91,3 +91,10 @@ class Translator:
     def error(self, err: EdbertError) -> str:
         """Localized text for a coded error."""
         return self.t(f"error.{err.code.value}", **err.params)
+
+    def warning(self, warning: EdbertWarning) -> str:
+        """Localized text for a warning; a ``requirement`` parameter is translated as well."""
+        params = dict(warning.params)
+        if "requirement" in params:
+            params["requirement"] = self.t(f"requirement.{params['requirement']}")
+        return self.t(f"warning.{warning.code.value}", **params)

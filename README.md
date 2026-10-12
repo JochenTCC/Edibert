@@ -4,7 +4,7 @@
 
 **Edbert** is a tariff editor and price service for smart-home systems. You describe your electricity tariff once (fixed, market-indexed, or time-variable with windows, weekdays and holidays) and Edbert delivers the resulting prices as a time series to your smart-home backend: as a Home Assistant sensor or over MQTT.
 
-> **Status: draft.** The rule engine (step `0.1.a`) works: tariffs with time rules, holidays, floor/cap and VAT can be loaded and priced per slot, with a command-line check. The editor, price series and publishers (Home Assistant, MQTT) do not exist yet. See the [roadmap](#roadmap).
+> **Status: draft.** The rule engine (`0.1.a`) and the price series with grid fee (`0.1.b`) work: tariffs with time rules, holidays, floor/cap, VAT and grid fee can be loaded and priced per slot or over a time range, with a command-line check. The editor and the publishers (Home Assistant, MQTT) do not exist yet. See the [roadmap](#roadmap).
 
 ## Try it
 
@@ -16,6 +16,15 @@ python -m pytest
 ```
 
 The first command prints the price of one slot with the steps (base price, applied rule, floor/cap, VAT). Tariffs with weekday rules need `--land` and `--region`, because holidays can change the result; without them the command stops with an error instead of guessing. `python -m edbert schema` prints the JSON Schema of a tariff.
+
+```bash
+python -m edbert series --tariff examples/spot_evening_surcharge_cap.json \
+    --grid-fee examples/grid_fee_modul3_example.json \
+    --from 2026-12-15T00:00 --to 2026-12-16T00:00 --tz Europe/Vienna \
+    --market-csv tests/fixtures/market_2026-12-15.csv --resolution 60
+```
+
+`series` prints prices over a time range (15, 30 or 60 minutes) from day-ahead prices in a CSV (`timestamp,cent_kwh` per quarter hour), optionally with a grid fee. Missing market prices stop the command with an error. Warnings go to stderr.
 
 ## Why?
 

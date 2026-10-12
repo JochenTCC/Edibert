@@ -32,5 +32,19 @@
   "cli.after_limits": "After floor/cap: {cent} ct/kWh",
   "cli.price": "Price: {cent} ct/kWh",
   "cli.price_incl_vat": "Price incl. {vat} % VAT: {cent} ct/kWh",
-  "cli.error": "Error: {message}"
+  "cli.error": "Error: {message}",
+  "error.RULE_VALUE_MISSING": "Rule \"{rule_id}\" has no value yet; remove its status from the included statuses or add the value.",
+  "error.GRID_AREA_UNKNOWN": "Unknown grid area \"{area_id}\".",
+  "warning.WINDOW_NOT_HOUR_ALIGNED": "Rule \"{rule_id}\" of tariff \"{tariff_id}\" does not start and end on a full hour, but the tariff is settled hourly.",
+  "warning.REQUIREMENT_UNMET": "Tariff \"{tariff_id}\" requires: {requirement}.",
+  "warning.GRID_RULE_SKIPPED_STATUS": "Grid rule \"{rule_id}\" is not applied (status \"{status}\" is not included).",
+  "warning.GRID_RULE_SKIPPED_NO_QUARTER_HOUR_METER": "Grid rule \"{rule_id}\" is not applied (no quarter-hour meter).",
+  "requirement.smart_meter": "smart meter",
+  "requirement.quarter_hour_meter": "quarter-hour meter",
+  "requirement.separate_meter": "separate meter",
+  "requirement.controllable_device": "controllable device (section 14a EnWG)",
+  "cli.grid": "Grid fee: {cent} ct/kWh",
+  "cli.grid_rule": "Grid rule applied: {rule}",
+  "cli.series_title": "Price series: {tariff_id}, {resolution} min, {count} values",
+  "cli.series_row": "{start}  {cent} ct/kWh  [{quality}]"
 }

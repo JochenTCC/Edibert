@@ -4,7 +4,7 @@
 
 **Edbert** ist ein Tarif-Editor und Preisdienst für Smart-Home-Systeme. Du beschreibst deinen Stromtarif einmal (fest, börsengebunden oder zeitvariabel mit Fenstern, Wochentagen, Feiertagen) und Edbert liefert die daraus berechneten Preise als Zeitreihe an dein Smart-Home-Backend: als Home-Assistant-Sensor oder per MQTT.
 
-> **Status: Entwurf.** Die Regel-Engine (Schritt `0.1.a`) funktioniert: Tarife mit Zeitregeln, Feiertagen, Boden/Deckel und USt lassen sich laden und je Zeitabschnitt berechnen, dazu gibt es eine Kommandozeilen-Prüfung. Editor, Preisreihe und Ausgabe (Home Assistant, MQTT) gibt es noch nicht. Siehe [Roadmap](#roadmap).
+> **Status: Entwurf.** Die Regel-Engine (`0.1.a`) und die Preisreihe mit Netzentgelt (`0.1.b`) funktionieren: Tarife mit Zeitregeln, Feiertagen, Boden/Deckel, USt und Netzentgelt lassen sich laden und je Zeitabschnitt oder über einen Zeitraum berechnen, dazu gibt es eine Kommandozeilen-Prüfung. Editor und Ausgabe (Home Assistant, MQTT) gibt es noch nicht. Siehe [Roadmap](#roadmap).
 
 ## Ausprobieren
 
@@ -16,6 +16,15 @@ python -m pytest
 ```
 
 Der erste Befehl zeigt den Preis eines Zeitabschnitts mit allen Schritten (Basispreis, angewendete Regel, Boden/Deckel, USt). Tarife mit Wochentagsregeln brauchen `--land` und `--region`, weil Feiertage das Ergebnis ändern können; ohne diese Angaben bricht der Befehl mit einem Fehler ab, statt zu raten. `python -m edbert schema` gibt das JSON-Schema eines Tarifs aus.
+
+```bash
+python -m edbert --lang de series --tariff examples/spot_evening_surcharge_cap.json \
+    --grid-fee examples/grid_fee_modul3_example.json \
+    --from 2026-12-15T00:00 --to 2026-12-16T00:00 --tz Europe/Vienna \
+    --market-csv tests/fixtures/market_2026-12-15.csv --resolution 60
+```
+
+`series` gibt Preise über einen Zeitraum aus (15, 30 oder 60 Minuten), berechnet aus Day-Ahead-Preisen in einer CSV (`timestamp,cent_kwh` je Viertelstunde), auf Wunsch mit Netzentgelt. Fehlt ein Börsenpreis, bricht der Befehl mit einem Fehler ab. Warnungen gehen nach stderr.
 
 ## Wozu?
 

@@ -22,13 +22,7 @@ Spec: [`docs/spec/tariff-format.md`](../docs/spec/tariff-format.md). Internal de
 
 Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T4/T4b = `0.1.d`.
 
-- [ ] **0.1.b — Engine P2: grid-fee rules and `tariff_price_series`** *(0.1.a done)*
-  - Rules for `netznutzung` when no catalog area is used (§14a Modul 3 HT/ST/NT)
-  - `tariff_price_series(tariff, slots, epex, house)` as the single interface: import and export, horizon and resolution 15/30/60 min, components and quality flags
-  - Slot-level rules for 60-minute settlement tariffs with a warning when a window is not hour-aligned
-  - Fixture: Westnetz §14a Modul 3 shape (`examples/grid_fee_modul3_example.json`), plus the grid-fee step (step 4 of the evaluation order) in `evaluate`
-  - Follow-up of 0.1.a: compare against the Earnie grid-fee results (SNAP) when the Earnie integration starts
-- [ ] **0.1.c — Editor: form model, preview, import** *(after 0.1.b)*
+- [ ] **0.1.c — Editor: form model, preview, import** *(0.1.b done)*
   - Editor P1: form model, validation, preview data without UI (price curve for weekday/weekend, price at a date, shadowed-rule warning, plausibility checks, invoice check)
   - Editor P2: Streamlit front end with stepwise disclosure (base price, time windows, further costs, advanced)
   - Editor P2 also covers: language selector (en/de), one `Translator` per session, language-independent widget keys, localized weekday/month names and number format
@@ -37,7 +31,7 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
   - Catalog P1: opt-in upload with payload preview per tariff, `individual` flag, no free text and no personal data; GitHub-issue route first
   - Catalog P2: signed catalog package with validity date, manual import; credit for accepted contributions or small one-time fee
   - Catalog P3 (later): automatic updates / yearly subscription
-- [ ] **0.1.e — Publish: Home Assistant sensor and MQTT** *(after 0.1.b)*
+- [ ] **0.1.e — Publish: Home Assistant sensor and MQTT** *(0.1.b done)*
   - Publish P1: HA sensor with `raw_today` / `raw_tomorrow` and `forecast`, action `get_rates(start, end, resolution)`
   - Publish P2: MQTT (retained, HA discovery)
 - [ ] **0.1.c also: user manual** — `docs/user/en/` (authoritative) and `docs/user/de/`, written together with the editor; translation test must stay green

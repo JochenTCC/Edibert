@@ -32,5 +32,19 @@
   "cli.after_limits": "Nach Boden/Deckel: {cent} ct/kWh",
   "cli.price": "Preis: {cent} ct/kWh",
   "cli.price_incl_vat": "Preis inkl. {vat} % USt: {cent} ct/kWh",
-  "cli.error": "Fehler: {message}"
+  "cli.error": "Fehler: {message}",
+  "error.RULE_VALUE_MISSING": "Die Regel „{rule_id}“ hat noch keinen Wert; den Status aus den einbezogenen Status entfernen oder den Wert ergänzen.",
+  "error.GRID_AREA_UNKNOWN": "Unbekannter Netzbereich „{area_id}“.",
+  "warning.WINDOW_NOT_HOUR_ALIGNED": "Die Regel „{rule_id}“ des Tarifs „{tariff_id}“ beginnt oder endet nicht zur vollen Stunde, der Tarif wird aber stündlich abgerechnet.",
+  "warning.REQUIREMENT_UNMET": "Der Tarif „{tariff_id}“ setzt voraus: {requirement}.",
+  "warning.GRID_RULE_SKIPPED_STATUS": "Netzregel „{rule_id}“ wird nicht angewendet (Status „{status}“ ist nicht einbezogen).",
+  "warning.GRID_RULE_SKIPPED_NO_QUARTER_HOUR_METER": "Netzregel „{rule_id}“ wird nicht angewendet (kein Viertelstundenzähler).",
+  "requirement.smart_meter": "Smart Meter",
+  "requirement.quarter_hour_meter": "Viertelstundenzähler",
+  "requirement.separate_meter": "separater Zähler",
+  "requirement.controllable_device": "steuerbare Verbrauchseinrichtung (§14a EnWG)",
+  "cli.grid": "Netzentgelt: {cent} ct/kWh",
+  "cli.grid_rule": "Angewendete Netzregel: {rule}",
+  "cli.series_title": "Preisreihe: {tariff_id}, {resolution} min, {count} Werte",
+  "cli.series_row": "{start}  {cent} ct/kWh  [{quality}]"
 }

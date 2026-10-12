@@ -33,7 +33,7 @@ IDs in `user_tariffs.json` start with `user_`. An ID may exist in only one file;
 
 Export tariffs use the same steps 1 to 3 and 5 (no grid fee). Spot export base: `EPEX - feed_in_fee_factor * abs(EPEX) - settlement_fee_cent_kwh + feed_in_fix_cent`.
 
-Implemented so far: steps 1, 2, 3 and 5 (supplier part, `edbert.tariff.evaluate`); the final price is rounded to 4 decimals. Step 4 follows with the grid-fee rules.
+All steps are implemented in `edbert.tariff.evaluate`; the final price is rounded to 4 decimals. The grid fee (step 4) applies to import tariffs only and is passed in as `grid_fee`; export tariffs ignore it.
 
 **Differences from Earnie:** a missing month in a `monthly_table` is an error (`PRICE_MISSING`), not a silent carry-over from the prior year or month. Fields Edbert does not know are errors, not ignored.
 
@@ -69,6 +69,22 @@ Fields of the existing Earnie catalog (`type`, `fix_cent_kwh`, `k_push_cent`, `m
 
 Rules act on the 15-minute slot, also for tariffs with `settlement_mtu: 60min` (the spot component remains the hourly mean). Local time of the house profile applies.
 
+## 5a. Grid fee (`netznutzung`)
+
+The grid-fee work price (Netznutzungsentgelt, net, cent/kWh) is a field of the house profile, not of a tariff. Its shape follows the Earnie profile field, so both price identically (verified against Earnie on all 14 catalog areas).
+
+| Field | Meaning |
+|---|---|
+| `area_id` | grid area from a catalog (`grid_fees.json`, Earnie shape); `null` = own values |
+| `power_metering` | `unmetered_power` (default) or `metered_power`; selects the catalog base price |
+| `quarter_hour_meter` | quarter-hour smart meter available; rules that require it are skipped otherwise |
+| `base_cent_kwh` | own base price, only used without `area_id` |
+| `include_status` | rule statuses in effect, default `["verordnet"]` (`entwurf`, `illustrativ` must be included on purpose) |
+| `rules[]` | own time rules, only allowed without `area_id`; same fields as tariff rules except `when_market_cent_kwh`, plus optional `status`, `source`, `note` |
+| `holidays`, `extra_holiday_dates` | as for tariffs (section 6) |
+
+With a catalog area the base price and the rule set come from the catalog. Rules whose `status` is not included or whose `quarter_hour_meter` requirement is not met are skipped and reported as warnings. An included rule without a value (`effect.value` is `null`) is an error (`RULE_VALUE_MISSING`). First matching rule wins. Section 14a EnWG module 3 (low/standard/high level) is modeled as base price = standard level plus one rule per other level (see `examples/grid_fee_modul3_example.json`).
+
 ## 6. Holidays
 
 Holidays come from the `holidays` package (MIT, offline), category `PUBLIC`, by country (`AT`, `DE`, `CH`) and region (federal state or canton). The pricing context needs `land` and `region` whenever holidays can change a result; a missing region is an error (`HOLIDAY_REGION_MISSING`), an unknown one too (`HOLIDAY_REGION_UNKNOWN`).
@@ -91,14 +107,21 @@ Holidays come from the `holidays` package (MIT, offline), category `PUBLIC`, by 
 
 ## 8. Price series (interface)
 
-`tariff_price_series(tariff, slots, epex, house)` returns one price per slot for a chosen horizon and resolution (15, 30 or 60 minutes), for import and export. Each point may carry components (energy, grid, levies) and a quality flag (`complete`, `exact`, `forecast`).
+`tariff_price_series(tariff, ctx, start, end, *, resolution_min=15, market=None, forecast_from=None, grid_fee=None, capabilities=None)` returns a `PriceSeries` from `start` (inclusive) to `end` (exclusive).
 
-Planned outputs: Home Assistant sensor attributes `raw_today`/`raw_tomorrow` and `forecast`, MQTT (retained, HA discovery), and an action `get_rates(start, end, resolution)`.
+- **Slots:** every 15-minute slot is evaluated in UTC steps, so daylight-saving days have 92 and 100 slots. `start` must be aligned to the resolution and the range must be a multiple of it.
+- **Resolution:** 15, 30 or 60 minutes; points are the mean of their 15-minute slots.
+- **Market prices:** `market` maps slot starts (cent/kWh, day-ahead, per 15 minutes) to prices; naive keys are local time. A missing price is an error (`PRICE_MISSING`), nothing is carried over. Spot tariffs with `settlement_mtu: 60min` use the mean of the four slots of the clock hour for every slot of that hour.
+- **Point:** `start`, `end` (local time with offset), `cent` = `supplier_cent` + `grid_cent` + `vat_cent` (rounded), and `quality`: `exact`, or `forecast` for slots at or after `forecast_from` when the tariff depends on market prices.
+- **Warnings** (`PriceSeries.warnings`, never errors): `WINDOW_NOT_HOUR_ALIGNED` (a rule window not on a full hour in an hourly settled spot tariff), `REQUIREMENT_UNMET` (only checked when `capabilities` is given), `GRID_RULE_SKIPPED_STATUS`, `GRID_RULE_SKIPPED_NO_QUARTER_HOUR_METER`.
+- **Output:** `PriceSeries.to_dict()` is JSON ready. `python -m edbert series ...` prints it as a table or JSON.
+
+Planned outputs on top of this interface: Home Assistant sensor attributes `raw_today`/`raw_tomorrow` and `forecast`, MQTT (retained, HA discovery), and an action `get_rates(start, end, resolution)`.
 
 ## 9. Errors and language
 
 - Load and evaluation problems are `EdbertError` instances with a stable `code` and `params`; the message is English and meant for logs. The UI shows `error.<code>` from the translation catalog with the params as placeholders (English and German, English authoritative).
-- Codes: `RULE_UNKNOWN_FIELD` (field, rule_id), `UNSUPPORTED_FEATURE` (feature, tariff_id), `HOLIDAY_REGION_MISSING`, `PRICE_MISSING` (slot, tariff_id), `ID_COLLISION` (tariff_id). A new code needs an `error.<CODE>` text in every catalog.
+- Error codes: `TARIFF_UNKNOWN_FIELD`, `RULE_UNKNOWN_FIELD`, `FIELD_MISSING`, `VALUE_INVALID`, `UNSUPPORTED_FEATURE`, `RULE_VALUE_MISSING`, `GRID_AREA_UNKNOWN`, `FILE_INVALID`, `ID_COLLISION`, `ID_PREFIX_MISSING`, `ID_PREFIX_RESERVED`, `PRICE_MISSING`, `MARKET_PRICE_REQUIRED`, `HOLIDAY_REGION_MISSING`, `HOLIDAY_REGION_UNKNOWN`. Warning codes are listed in section 8. A new code needs an `error.<CODE>` or `warning.<CODE>` text in every catalog (checked by tests).
 - Tariff `label` values and supplier/product names are data, not UI text, and are not translated.
 - Holiday names come from the `holidays` package in the UI language.
 
