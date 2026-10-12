@@ -232,9 +232,9 @@ def _market_matches(rule: Rule, epex_cent: float | None, slot: str, tariff_id: s
             slot=slot,
             tariff_id=tariff_id,
         )
-    if rule.market_below is not None and not epex_cent < rule.market_below:
+    if rule.market_below is not None and epex_cent >= rule.market_below:
         return False
-    return not (rule.market_above is not None and not epex_cent > rule.market_above)
+    return not (rule.market_above is not None and epex_cent <= rule.market_above)
 
 
 def rule_matches(

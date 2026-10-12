@@ -68,8 +68,9 @@ def test_spot_markup_cap_vat_and_winter_surcharge(ctx_at):
 
 def test_spot_tariff_needs_a_market_price(ctx_at):
     tariff = make(load_example("spot_evening_surcharge_cap.json"))
+    slot = at("2026-12-15 18:00")
     with pytest.raises(EdbertError) as err:
-        price_cent(tariff, at("2026-12-15 18:00"), ctx_at)
+        price_cent(tariff, slot, ctx_at)
     assert err.value.code == ErrorCode.MARKET_PRICE_REQUIRED
 
 
@@ -77,8 +78,9 @@ def test_export_pays_nothing_at_negative_price(ctx_de):
     tariff = make(load_example("export_no_pay_at_negative_price.json"), EXPORT)
     assert price_cent(tariff, at("2026-06-20 13:00"), ctx_de, epex_cent=-2.0) == 0.0
     assert price_cent(tariff, at("2026-06-20 13:00"), ctx_de, epex_cent=5.0) == 7.8
+    slot = at("2026-06-20 13:00")
     with pytest.raises(EdbertError) as err:
-        price_cent(tariff, at("2026-06-20 13:00"), ctx_de)
+        price_cent(tariff, slot, ctx_de)
     assert err.value.code == ErrorCode.MARKET_PRICE_REQUIRED
 
 

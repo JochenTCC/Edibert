@@ -20,13 +20,15 @@ def test_unknown_language_fails_loudly():
 
 
 def test_missing_key_in_english_is_an_error():
+    translator = Translator("en")
     with pytest.raises(MissingTranslationError):
-        Translator("en").t("does.not.exist")
+        translator.t("does.not.exist")
 
 
 def test_missing_parameter_is_an_error():
+    translator = Translator("en")
     with pytest.raises(MissingTranslationError):
-        Translator("en").t("warning.rule_shadowed", rule="x")
+        translator.t("warning.rule_shadowed", rule="x")
 
 
 def test_missing_key_in_other_language_falls_back_to_english_and_logs(caplog):

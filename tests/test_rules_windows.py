@@ -95,6 +95,7 @@ def test_monthly_table_is_strict(ctx_plain):
     tariff = make({"id": "m", "type": "monthly_table", "supplier_id": "s",
                    "monthly_rates": [{"year": 2026, "month": 10, "tariff_cent_kwh": 9.0}]})  # fmt: skip
     assert price_cent(tariff, at("2026-10-12 12:00"), ctx_plain) == 9.0
+    november = at("2026-11-02 12:00")
     with pytest.raises(EdbertError) as err:
-        price_cent(tariff, at("2026-11-02 12:00"), ctx_plain)  # no silent carry-over
+        price_cent(tariff, november, ctx_plain)  # no silent carry-over
     assert err.value.code == ErrorCode.PRICE_MISSING
