@@ -12,7 +12,7 @@ import json
 import logging
 import string
 from collections.abc import Mapping
-from functools import lru_cache
+from functools import cache
 from importlib import resources
 
 from edbert.errors import EdbertError
@@ -27,7 +27,7 @@ class MissingTranslationError(KeyError):
     """A key is missing in the authoritative (English) catalog, or a placeholder is missing."""
 
 
-@lru_cache(maxsize=None)
+@cache
 def load_catalog(language: str) -> Mapping[str, str]:
     """Load ``catalogs/<language>.json``; fail loudly for unknown languages."""
     if language not in SUPPORTED_LANGUAGES:
@@ -80,6 +80,13 @@ class Translator:
             raise MissingTranslationError(
                 f"Key '{key}' needs parameter {exc} (language '{self.language}')."
             ) from exc
+
+    def number(self, value: float, decimals: int = 4) -> str:
+        """Number with at least two and at most ``decimals`` decimals, decimal comma in German."""
+        text = f"{value:.{decimals}f}".rstrip("0")
+        whole, _, frac = text.partition(".")
+        text = f"{whole}.{frac.ljust(2, '0')}"
+        return text.replace(".", ",") if self.language == "de" else text
 
     def error(self, err: EdbertError) -> str:
         """Localized text for a coded error."""

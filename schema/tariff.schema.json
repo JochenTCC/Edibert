@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Edbert tariff",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "supplier_id"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$comment": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "enum": [
+        "ex_post_spot",
+        "fixed",
+        "fixed_cent",
+        "monthly_market",
+        "monthly_table",
+        "spot_hourly"
+      ]
+    },
+    "land": {
+      "enum": [
+        "AT",
+        "DE",
+        "CH"
+      ]
+    },
+    "currency": {
+      "enum": [
+        "EUR",
+        "CHF"
+      ]
+    },
+    "supplier_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "string"
+    },
+    "settlement_fee_cent_kwh": {
+      "type": "number"
+    },
+    "markup_percent": {
+      "type": "number"
+    },
+    "prices_include_vat": {
+      "type": "boolean"
+    },
+    "vat_percent": {
+      "type": "number",
+      "minimum": 0
+    },
+    "settlement_mtu": {
+      "enum": [
+        "15min",
+        "60min"
+      ]
+    },
+    "fix_cent_kwh": {
+      "type": "number"
+    },
+    "k_push_cent": {
+      "type": "number"
+    },
+    "monthly_rates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "year",
+          "month",
+          "tariff_cent_kwh"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "year": {
+            "type": "integer"
+          },
+          "month": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "tariff_cent_kwh": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "monthly_seed": {
+      "type": "object"
+    },
+    "feed_in_fee_factor": {
+      "type": "number",
+      "minimum": 0
+    },
+    "feed_in_fix_cent": {
+      "type": "number"
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "effect"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "$comment": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date"
+          },
+          "valid_to": {
+            "type": "string",
+            "format": "date"
+          },
+          "months": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          },
+          "weekdays": {
+            "oneOf": [
+              {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  {
+                    "enum": [
+                      "mon",
+                      "tue",
+                      "wed",
+                      "thu",
+                      "fri",
+                      "sat",
+                      "sun",
+                      "weekday",
+                      "weekend",
+                      "holiday"
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 6
+                    },
+                    {
+                      "enum": [
+                        "mon",
+                        "tue",
+                        "wed",
+                        "thu",
+                        "fri",
+                        "sat",
+                        "sun",
+                        "weekday",
+                        "weekend",
+                        "holiday"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "time": {
+            "type": "object",
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "from": {
+                "type": "string",
+                "pattern": "^([01]?\\d|2[0-3]):[0-5]\\d$|^24:00$"
+              },
+              "to": {
+                "type": "string",
+                "pattern": "^([01]?\\d|2[0-3]):[0-5]\\d$|^24:00$"
+              }
+            }
+          },
+          "effect": {
+            "type": "object",
+            "required": [
+              "mode",
+              "value"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "mode": {
+                "enum": [
+                  "absolute_cent",
+                  "add_cent",
+                  "percent_off"
+                ]
+              },
+              "value": {
+                "type": "number"
+              }
+            }
+          },
+          "when_market_cent_kwh": {
+            "type": "object",
+            "minProperties": 1,
+            "maxProperties": 1,
+            "additionalProperties": false,
+            "properties": {
+              "below": {
+                "type": "number"
+              },
+              "above": {
+                "type": "number"
+              }
+            }
+          },
+          "requires": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "smart_meter",
+                "quarter_hour_meter",
+                "separate_meter",
+                "controllable_device"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "price_floor_cent_kwh": {
+      "type": "number"
+    },
+    "price_cap_cent_kwh": {
+      "type": "number"
+    },
+    "requires": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "smart_meter",
+          "quarter_hour_meter",
+          "separate_meter",
+          "controllable_device"
+        ]
+      }
+    },
+    "behavior_notes": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "last_verified": {
+      "type": "string",
+      "format": "date"
+    },
+    "holidays": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "treat_as": {
+          "enum": [
+            "sunday",
+            "weekday",
+            "own"
+          ]
+        }
+      }
+    },
+    "extra_holiday_dates": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "date"
+      }
+    },
+    "individual": {
+      "type": "boolean"
+    },
+    "applies_to": {
+      "const": "main"
+    },
+    "monthly_fee_eur": {
+      "type": "number",
+      "minimum": 0
+    },
+    "grid_monthly_fee_eur": {
+      "type": "number",
+      "minimum": 0
+    },
+    "metering_monthly_fee_eur": {
+      "type": "number",
+      "minimum": 0
+    },
+    "other_monthly_fee_eur": {
+      "type": "number",
+      "minimum": 0
+    }
+  }
+}

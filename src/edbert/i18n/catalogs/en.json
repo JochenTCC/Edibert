@@ -15,5 +15,22 @@
   "error.UNSUPPORTED_FEATURE": "Unsupported feature \"{feature}\" in tariff \"{tariff_id}\".",
   "error.HOLIDAY_REGION_MISSING": "Holiday logic needs a region (federal state or canton) in the house profile.",
   "error.PRICE_MISSING": "No price for slot {slot} in tariff \"{tariff_id}\".",
-  "error.ID_COLLISION": "Tariff ID \"{tariff_id}\" exists in both the catalog and the user tariffs."
+  "error.ID_COLLISION": "Tariff ID \"{tariff_id}\" is used more than once.",
+  "error.TARIFF_UNKNOWN_FIELD": "Unknown field \"{field}\".",
+  "error.FIELD_MISSING": "Required field \"{field}\" is missing.",
+  "error.VALUE_INVALID": "Invalid value \"{value}\" for field \"{field}\".",
+  "error.FILE_INVALID": "The file \"{path}\" cannot be read or is not valid JSON.",
+  "error.ID_PREFIX_MISSING": "User tariff IDs must start with \"user_\" (\"{tariff_id}\").",
+  "error.ID_PREFIX_RESERVED": "Catalog tariff \"{tariff_id}\" uses the reserved prefix \"user_\".",
+  "error.MARKET_PRICE_REQUIRED": "Tariff \"{tariff_id}\" needs a market price for slot {slot}.",
+  "error.HOLIDAY_REGION_UNKNOWN": "Unknown holiday region \"{region}\" for country \"{land}\".",
+  "cli.tariff": "Tariff: {label} ({tariff_id})",
+  "cli.slot": "Slot: {slot} ({timezone})",
+  "cli.base": "Base price: {cent} ct/kWh",
+  "cli.rule": "Rule applied: {rule}",
+  "cli.no_rule": "No time rule applies.",
+  "cli.after_limits": "After floor/cap: {cent} ct/kWh",
+  "cli.price": "Price: {cent} ct/kWh",
+  "cli.price_incl_vat": "Price incl. {vat} % VAT: {cent} ct/kWh",
+  "cli.error": "Error: {message}"
 }

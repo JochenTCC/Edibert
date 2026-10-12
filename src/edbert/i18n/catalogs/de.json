@@ -15,5 +15,22 @@
   "error.UNSUPPORTED_FEATURE": "Nicht unterstützte Funktion „{feature}“ im Tarif „{tariff_id}“.",
   "error.HOLIDAY_REGION_MISSING": "Die Feiertagslogik benötigt eine Region (Bundesland oder Kanton) im Hausprofil.",
   "error.PRICE_MISSING": "Kein Preis für den Zeitabschnitt {slot} im Tarif „{tariff_id}“.",
-  "error.ID_COLLISION": "Die Tarif-ID „{tariff_id}“ ist sowohl im Katalog als auch bei den eigenen Tarifen vorhanden."
+  "error.ID_COLLISION": "Die Tarif-ID „{tariff_id}“ wird mehrfach verwendet.",
+  "error.TARIFF_UNKNOWN_FIELD": "Unbekanntes Feld „{field}“.",
+  "error.FIELD_MISSING": "Pflichtfeld „{field}“ fehlt.",
+  "error.VALUE_INVALID": "Ungültiger Wert „{value}“ für das Feld „{field}“.",
+  "error.FILE_INVALID": "Die Datei „{path}“ kann nicht gelesen werden oder ist kein gültiges JSON.",
+  "error.ID_PREFIX_MISSING": "Eigene Tarif-IDs müssen mit „user_“ beginnen („{tariff_id}“).",
+  "error.ID_PREFIX_RESERVED": "Der Katalogtarif „{tariff_id}“ verwendet das reservierte Präfix „user_“.",
+  "error.MARKET_PRICE_REQUIRED": "Der Tarif „{tariff_id}“ benötigt für den Zeitabschnitt {slot} einen Börsenpreis.",
+  "error.HOLIDAY_REGION_UNKNOWN": "Unbekannte Feiertagsregion „{region}“ für das Land „{land}“.",
+  "cli.tariff": "Tarif: {label} ({tariff_id})",
+  "cli.slot": "Zeitabschnitt: {slot} ({timezone})",
+  "cli.base": "Basispreis: {cent} ct/kWh",
+  "cli.rule": "Angewendete Regel: {rule}",
+  "cli.no_rule": "Keine Zeitregel trifft zu.",
+  "cli.after_limits": "Nach Boden/Deckel: {cent} ct/kWh",
+  "cli.price": "Preis: {cent} ct/kWh",
+  "cli.price_incl_vat": "Preis inkl. {vat} % USt: {cent} ct/kWh",
+  "cli.error": "Fehler: {message}"
 }

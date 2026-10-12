@@ -22,17 +22,12 @@ Spec: [`docs/spec/tariff-format.md`](../docs/spec/tariff-format.md). Internal de
 
 Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T4/T4b = `0.1.d`.
 
-- [ ] **0.1.a — Engine P1: rules engine, `user_tariffs.json`, holidays**
-  - Shared rule matcher (months, weekdays, time windows over midnight, validity), effects `absolute_cent` / `add_cent` / `percent_off`, first match wins, 15-minute slots, local time of the house profile
-  - Tariff fields `rules[]`, `price_floor_cent_kwh`, `price_cap_cent_kwh`, `requires[]`, `source`, `last_verified`, `holidays`, `extra_holiday_dates`, `individual`; reserve `applies_to` (only `"main"`); reject `tiers` and unknown fields loudly
-  - Holidays via the `holidays` package (MIT, offline), category `PUBLIC`; `treat_as`: sunday (default) | weekday | own; required `region` (federal state / canton) when holiday logic is used
-  - Loader for `user_tariffs.json` (merge with catalog, ID collision = error, `user_` prefix)
-  - Multilingual foundation (skeleton exists): `Translator` with `en`/`de` JSON catalogs, coded errors (`EdbertError`), catalog parity tests; every new UI text and error code goes through the catalogs
-  - JSON Schema derived from the validation code; tests and fixtures from `examples/`, plus VKW Strom Duo summer window, Octopus Go, Westnetz Modul 3
-- [ ] **0.1.b — Engine P2: grid-fee rules and `tariff_price_series`** *(after 0.1.a)*
+- [ ] **0.1.b — Engine P2: grid-fee rules and `tariff_price_series`** *(0.1.a done)*
   - Rules for `netznutzung` when no catalog area is used (§14a Modul 3 HT/ST/NT)
   - `tariff_price_series(tariff, slots, epex, house)` as the single interface: import and export, horizon and resolution 15/30/60 min, components and quality flags
-  - Rule filter `when_market_cent_kwh`; slot-level rules for 60-minute settlement tariffs with a warning when a window is not hour-aligned
+  - Slot-level rules for 60-minute settlement tariffs with a warning when a window is not hour-aligned
+  - Fixture: Westnetz §14a Modul 3 shape (`examples/grid_fee_modul3_example.json`), plus the grid-fee step (step 4 of the evaluation order) in `evaluate`
+  - Follow-up of 0.1.a: compare against the Earnie grid-fee results (SNAP) when the Earnie integration starts
 - [ ] **0.1.c — Editor: form model, preview, import** *(after 0.1.b)*
   - Editor P1: form model, validation, preview data without UI (price curve for weekday/weekend, price at a date, shadowed-rule warning, plausibility checks, invoice check)
   - Editor P2: Streamlit front end with stepwise disclosure (base price, time windows, further costs, advanced)

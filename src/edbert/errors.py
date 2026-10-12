@@ -13,11 +13,22 @@ from typing import Any
 class ErrorCode(StrEnum):
     """Stable error codes. Every code needs ``error.<CODE>`` in all catalogs."""
 
+    # Format / validation (``field`` is a path such as ``user_x.rules[night].effect.value``)
+    TARIFF_UNKNOWN_FIELD = "TARIFF_UNKNOWN_FIELD"  # params: field
     RULE_UNKNOWN_FIELD = "RULE_UNKNOWN_FIELD"  # params: field, rule_id
+    FIELD_MISSING = "FIELD_MISSING"  # params: field
+    VALUE_INVALID = "VALUE_INVALID"  # params: field, value
     UNSUPPORTED_FEATURE = "UNSUPPORTED_FEATURE"  # params: feature, tariff_id
-    HOLIDAY_REGION_MISSING = "HOLIDAY_REGION_MISSING"  # params: none
-    PRICE_MISSING = "PRICE_MISSING"  # params: slot, tariff_id
+    # Files and identifiers
+    FILE_INVALID = "FILE_INVALID"  # params: path
     ID_COLLISION = "ID_COLLISION"  # params: tariff_id
+    ID_PREFIX_MISSING = "ID_PREFIX_MISSING"  # params: tariff_id
+    ID_PREFIX_RESERVED = "ID_PREFIX_RESERVED"  # params: tariff_id
+    # Evaluation
+    PRICE_MISSING = "PRICE_MISSING"  # params: slot, tariff_id
+    MARKET_PRICE_REQUIRED = "MARKET_PRICE_REQUIRED"  # params: slot, tariff_id
+    HOLIDAY_REGION_MISSING = "HOLIDAY_REGION_MISSING"  # params: none
+    HOLIDAY_REGION_UNKNOWN = "HOLIDAY_REGION_UNKNOWN"  # params: land, region
 
 
 class EdbertError(Exception):

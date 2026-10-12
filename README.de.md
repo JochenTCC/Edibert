@@ -4,7 +4,18 @@
 
 **Edbert** ist ein Tarif-Editor und Preisdienst für Smart-Home-Systeme. Du beschreibst deinen Stromtarif einmal (fest, börsengebunden oder zeitvariabel mit Fenstern, Wochentagen, Feiertagen) und Edbert liefert die daraus berechneten Preise als Zeitreihe an dein Smart-Home-Backend: als Home-Assistant-Sensor oder per MQTT.
 
-> **Status: Entwurf.** Dieses Repository enthält bisher Konzept, Formatbeschreibung und Beispiele. Es gibt noch keinen lauffähigen Code. Siehe [Roadmap](#roadmap).
+> **Status: Entwurf.** Die Regel-Engine (Schritt `0.1.a`) funktioniert: Tarife mit Zeitregeln, Feiertagen, Boden/Deckel und USt lassen sich laden und je Zeitabschnitt berechnen, dazu gibt es eine Kommandozeilen-Prüfung. Editor, Preisreihe und Ausgabe (Home Assistant, MQTT) gibt es noch nicht. Siehe [Roadmap](#roadmap).
+
+## Ausprobieren
+
+```bash
+pip install -e ".[dev]"
+python -m edbert --lang de price --tariff examples/spot_evening_surcharge_cap.json     --at 2026-12-15T18:00 --tz Europe/Vienna --epex 10
+python -m edbert --lang de price --tariff examples/fixed_day_night.json     --at 2026-12-25T12:00 --tz Europe/Berlin --land DE --region BY
+python -m pytest
+```
+
+Der erste Befehl zeigt den Preis eines Zeitabschnitts mit allen Schritten (Basispreis, angewendete Regel, Boden/Deckel, USt). Tarife mit Wochentagsregeln brauchen `--land` und `--region`, weil Feiertage das Ergebnis ändern können; ohne diese Angaben bricht der Befehl mit einem Fehler ab, statt zu raten. `python -m edbert schema` gibt das JSON-Schema eines Tarifs aus.
 
 ## Wozu?
 

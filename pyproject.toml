@@ -13,6 +13,7 @@ license-files = ["LICENSE", "NOTICE"]
 dependencies = [
     "holidays>=0.90",
     "jsonschema>=4.0.0",
+    "tzdata>=2024.1; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]

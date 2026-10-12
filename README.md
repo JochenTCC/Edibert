@@ -4,7 +4,18 @@
 
 **Edbert** is a tariff editor and price service for smart-home systems. You describe your electricity tariff once (fixed, market-indexed, or time-variable with windows, weekdays and holidays) and Edbert delivers the resulting prices as a time series to your smart-home backend: as a Home Assistant sensor or over MQTT.
 
-> **Status: draft.** This repository currently contains the concept, the format description and examples. There is no runnable engine yet. See the [roadmap](#roadmap).
+> **Status: draft.** The rule engine (step `0.1.a`) works: tariffs with time rules, holidays, floor/cap and VAT can be loaded and priced per slot, with a command-line check. The editor, price series and publishers (Home Assistant, MQTT) do not exist yet. See the [roadmap](#roadmap).
+
+## Try it
+
+```bash
+pip install -e ".[dev]"
+python -m edbert price --tariff examples/spot_evening_surcharge_cap.json     --at 2026-12-15T18:00 --tz Europe/Vienna --epex 10
+python -m edbert --lang de price --tariff examples/fixed_day_night.json     --at 2026-12-25T12:00 --tz Europe/Berlin --land DE --region BY
+python -m pytest
+```
+
+The first command prints the price of one slot with the steps (base price, applied rule, floor/cap, VAT). Tariffs with weekday rules need `--land` and `--region`, because holidays can change the result; without them the command stops with an error instead of guessing. `python -m edbert schema` prints the JSON Schema of a tariff.
 
 ## Why?
 
