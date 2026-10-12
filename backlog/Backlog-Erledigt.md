@@ -2,6 +2,17 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### MQTT publisher and market price chain (0.1.e, 2026-10-12)
+
+- [x] **0.1.e — Publish P2: MQTT** (`src/edbert/market/`, `src/edbert/publish/`, command `python -m edbert publish`)
+  - Market chain as in Earnie: cache -> ENTSO-E A44 (env `ENTSOE_API_TOKEN`) -> Energy-Charts -> aWATTar (AT/DE only); EUR/MWh to cent/kWh, hourly data expanded to quarter hours, A03 gaps carried forward, finer resolution wins; zone by country (AT, DE-LU, CH)
+  - Freshness by slot coverage with publish hour 12 (tomorrow expected from then on), DST-safe windows (92/100 slots), 10-minute retry pause, best partial answer with a coded warning, strict error if nothing is available; cache file per zone (atomic), damaged cache is a warning
+  - Publisher: retained topics `state` (EUR/kWh), `attributes` (`raw_today`, `raw_tomorrow`, `forecast`, components, day statistics, market block with attribution), `availability`, bridge status with last will; Home Assistant discovery; tariffs without data go offline instead of guessing; credentials only via named environment variables
+  - Forecast: free methods `mirror` (same time of day, up to 7 days back, as in Earnie) and `hold` (last price constant); key-gated plug-in hook (entry-point group `edbert.forecasters`, key from `EDBERT_FORECAST_KEY`, validated by the plug-in; none shipped in the free edition); forecast cut at the last gap-free whole hour; cache keeps 7 days of history; failing plug-ins never touch exact prices. Issuing and checking keys: open
+  - New coded errors/warnings with en/de texts, CLI `publish` (`--once`, `--dry-run`), user manual page en/de, spec `docs/spec/publishing.md`
+  - 253 tests (75 new, fake HTTP and fake MQTT), 95 % line coverage, ruff and vulture clean; smoke test against the live Energy-Charts API
+  - Open for `0.1.r`: the default `http_get` is not covered by a test; no real broker test yet (needs a Mosquitto run); `cli.py` is above the file-size target
+
 ### Editor — form model, preview, import, Streamlit front end (0.1.c, 2026-10-12)
 
 - [x] **0.1.c — Editor** (`src/edbert/editor/` without UI, `src/edbert/ui/` Streamlit)

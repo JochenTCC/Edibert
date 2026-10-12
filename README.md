@@ -4,7 +4,7 @@
 
 **Edbert** is a tariff editor and price service for smart-home systems. You describe your electricity tariff once (fixed, market-indexed, or time-variable with windows, weekdays and holidays) and Edbert delivers the resulting prices as a time series to your smart-home backend: as a Home Assistant sensor or over MQTT.
 
-> **Status: draft.** The rule engine (`0.1.a`), the price series with grid fee (`0.1.b`) and the tariff editor in the browser (`0.1.c`) work. The publishers for Home Assistant and MQTT do not exist yet. See the [roadmap](#roadmap).
+> **Status: draft.** The rule engine (`0.1.a`), the price series with grid fee (`0.1.b`) the tariff editor in the browser (`0.1.c`) and the MQTT publisher with Home Assistant discovery (`0.1.e`) work. A native Home Assistant integration does not exist yet. See the [roadmap](#roadmap).
 
 ## The tariff editor
 
@@ -14,6 +14,15 @@ python -m edbert ui --data-dir edbert_data
 ```
 
 Open `http://localhost:8501`. Four steps (base price, time windows, further costs, advanced), live price curve, price at a given time, check against a real invoice, copy a catalog tariff, import JSON. English and German. See the [user manual](docs/user/en/index.md).
+
+## Publish over MQTT
+
+```bash
+pip install -e ".[mqtt]"
+python -m edbert publish --data-dir edbert_data
+```
+
+Sends the prices of the tariffs listed in `publish.json` (current price, today, tomorrow, optional forecast) as retained MQTT topics with Home Assistant discovery. Market prices come from the same chain as in Earnie (ENTSO-E with a token, Energy-Charts, aWATTar). See [Publishing](docs/user/en/publishing.md).
 
 ## Try it
 
@@ -89,7 +98,8 @@ The code is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE): 
 | T1 | Rule engine, tariff fields, `user_tariffs.json`, holidays, multilingual foundation |
 | T2 | Grid-fee rules and `tariff_price_series` (the single interface to the price series) |
 | T3 | Editor and import (template, JSON file) |
+| T3b | MQTT publisher, market price chain, forecast (mirror, hold, key-gated plug-in) |
 | T4 | Contribution path and signed catalog access |
 | later | Price-sheet assistant, output for evcc/EMHASS/Predbat, prices per meter |
 
-The format is described in [docs/spec/tariff-format.md](docs/spec/tariff-format.md); examples are in [examples/](examples/). User manuals: [docs/user/en/](docs/user/en/).
+The format is described in [docs/spec/tariff-format.md](docs/spec/tariff-format.md) and [docs/spec/publishing.md](docs/spec/publishing.md); examples are in [examples/](examples/). User manuals: [docs/user/en/](docs/user/en/).

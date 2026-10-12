@@ -26,9 +26,10 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
   - Catalog P1: opt-in upload with payload preview per tariff, `individual` flag, no free text and no personal data; GitHub-issue route first
   - Catalog P2: signed catalog package with validity date, manual import; credit for accepted contributions or small one-time fee
   - Catalog P3 (later): automatic updates / yearly subscription
-- [ ] **0.1.e — Publish: Home Assistant sensor and MQTT** *(0.1.b done)*
-  - Publish P1: HA sensor with `raw_today` / `raw_tomorrow` and `forecast`, action `get_rates(start, end, resolution)`
-  - Publish P2: MQTT (retained, HA discovery)
+- [ ] **0.1.e2 — Publish: native Home Assistant integration** *(0.1.e done)*
+  - Publish P1: HA custom integration (sensor with `raw_today` / `raw_tomorrow` / `forecast`, action `get_rates(start, end, resolution)`), reading the same price series as the MQTT publisher
+  - Clean up retained topics of tariffs removed from `publish.json`
+  - Forecaster plug-in from Earnie (OLS model) as a separate, not freely distributed package; decide how keys are issued and checked
 - [ ] **0.1.r — Quality / release hardening** *(skill `quality-gate`; after 0.1.a–0.1.e)*
   - Coverage baseline, dead-code audit, simplification, KPI refactor, docs review, SonarCloud snapshot
 - [ ] **0.1.0 — Release** *(user decision; version bump only with approval)*

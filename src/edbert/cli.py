@@ -3,6 +3,7 @@
 * ``python -m edbert price --tariff FILE --at 2026-10-12T23:30 --tz Europe/Vienna``
 * ``python -m edbert series --tariff FILE --from 2026-12-15T00:00 --to 2026-12-16T00:00 --tz Europe/Vienna``
 * ``python -m edbert schema``
+* ``python -m edbert publish --data-dir DIR [--once] [--dry-run]``
 """
 
 from __future__ import annotations
@@ -72,6 +73,12 @@ def build_parser() -> argparse.ArgumentParser:
     ui.add_argument("--data-dir", type=Path, default=Path("edbert_data"), help="folder for user_tariffs.json and house.json")
     ui.add_argument("--catalog", type=Path, help="tariffs.json to copy tariffs from")
     ui.add_argument("--port", type=int, default=8501)
+    publish = sub.add_parser("publish", help="publish prices to an MQTT broker (needs: pip install 'edbert[mqtt]')")
+    publish.add_argument("--data-dir", type=Path, default=Path("edbert_data"), help="folder with publish.json, house.json and user_tariffs.json")
+    publish.add_argument("--catalog", type=Path, help="tariffs.json to take catalog tariffs from")
+    publish.add_argument("--config", type=Path, help="publish.json (default: in the data folder)")
+    publish.add_argument("--once", action="store_true", help="publish one time and exit")
+    publish.add_argument("--dry-run", action="store_true", help="print the topics instead of sending them")
     return parser
 
 
@@ -174,6 +181,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "ui":
         return run_ui(args, t)
     try:
+        if args.command == "publish":
+            from edbert.publish.command import run_publish
+
+            return run_publish(args, t)
         if args.command == "price":
             lines, notes = run_price(args, t), []
         else:

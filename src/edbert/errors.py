@@ -33,6 +33,13 @@ class ErrorCode(StrEnum):
     MARKET_PRICE_REQUIRED = "MARKET_PRICE_REQUIRED"  # params: slot, tariff_id
     HOLIDAY_REGION_MISSING = "HOLIDAY_REGION_MISSING"  # params: none
     HOLIDAY_REGION_UNKNOWN = "HOLIDAY_REGION_UNKNOWN"  # params: land, region
+    # Market data and publishing
+    MARKET_DATA_UNAVAILABLE = "MARKET_DATA_UNAVAILABLE"  # params: zone
+    MARKET_ZONE_UNKNOWN = "MARKET_ZONE_UNKNOWN"  # params: land
+    FORECASTER_UNAVAILABLE = "FORECASTER_UNAVAILABLE"  # params: name
+    FORECAST_KEY_MISSING = "FORECAST_KEY_MISSING"  # params: env
+    MQTT_LIBRARY_MISSING = "MQTT_LIBRARY_MISSING"  # params: none
+    MQTT_CONNECTION_FAILED = "MQTT_CONNECTION_FAILED"  # params: host, port
 
 
 class EdbertError(Exception):
@@ -59,6 +66,10 @@ class WarningCode(StrEnum):
     PRICE_UNUSUAL = "PRICE_UNUSUAL"  # params: value
     RULE_PRICE_UNUSUAL = "RULE_PRICE_UNUSUAL"  # params: rule_id, value
     SPOT_PRICES_GROSS = "SPOT_PRICES_GROSS"  # params: tariff_id
+    MARKET_SOURCE_FAILED = "MARKET_SOURCE_FAILED"  # params: source, reason
+    MARKET_DATA_INCOMPLETE = "MARKET_DATA_INCOMPLETE"  # params: zone, missing_from
+    MARKET_CACHE_UNREADABLE = "MARKET_CACHE_UNREADABLE"  # params: path
+    FORECAST_FAILED = "FORECAST_FAILED"  # params: name, reason
 
 
 @dataclass(frozen=True)

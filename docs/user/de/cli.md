@@ -1,4 +1,4 @@
-<!-- source: docs/user/en/cli.md @ 0.1.c -->
+<!-- source: docs/user/en/cli.md @ 0.1.e -->
 # Kommandozeile
 
 Mit `--lang de` vor dem Befehl erscheint die Ausgabe auf Deutsch.
@@ -25,6 +25,14 @@ python -m edbert series --tariff examples/spot_evening_surcharge_cap.json \
 ## Netzentgelt
 
 Mit `--grid-fee house_grid.json` (das Objekt `netznutzung`, siehe `examples/grid_fee_modul3_example.json`) wird ein Netzentgelt eingerechnet. Mit `--grid-catalog grid_fees.json` lässt sich ein Katalog-Netzbereich verwenden.
+
+## Veröffentlichen
+
+```bash
+python -m edbert publish --data-dir edbert_data [--once] [--dry-run] [--catalog tariffs.json] [--config publish.json]
+```
+
+Veröffentlicht die Tarife aus `publish.json` an einen MQTT-Broker, siehe [Veröffentlichen](publishing.md). Exit-Code 1 heißt: Mindestens ein Tarif ging offline (zum Beispiel, weil keine Börsenpreise verfügbar waren).
 
 ## Schema
 

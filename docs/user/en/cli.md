@@ -25,6 +25,14 @@ python -m edbert series --tariff examples/spot_evening_surcharge_cap.json \
 
 Add `--grid-fee house_grid.json` (the `netznutzung` object, see `examples/grid_fee_modul3_example.json`) to include a grid fee. With `--grid-catalog grid_fees.json` a catalog area can be used.
 
+## Publish
+
+```bash
+python -m edbert publish --data-dir edbert_data [--once] [--dry-run] [--catalog tariffs.json] [--config publish.json]
+```
+
+Publishes the tariffs of `publish.json` to an MQTT broker; see [Publishing](publishing.md). Exit code 1 means that at least one tariff went offline (for example because no market prices were available).
+
 ## Schema
 
 `python -m edbert schema` prints the JSON Schema of a tariff, for editors and tools.

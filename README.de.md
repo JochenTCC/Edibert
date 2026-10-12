@@ -4,7 +4,7 @@
 
 **Edbert** ist ein Tarif-Editor und Preisdienst für Smart-Home-Systeme. Du beschreibst deinen Stromtarif einmal (fest, börsengebunden oder zeitvariabel mit Fenstern, Wochentagen, Feiertagen) und Edbert liefert die daraus berechneten Preise als Zeitreihe an dein Smart-Home-Backend: als Home-Assistant-Sensor oder per MQTT.
 
-> **Status: Entwurf.** Die Regel-Engine (`0.1.a`), die Preisreihe mit Netzentgelt (`0.1.b`) und der Tarif-Editor im Browser (`0.1.c`) funktionieren. Die Ausgabe an Home Assistant und MQTT gibt es noch nicht. Siehe [Roadmap](#roadmap).
+> **Status: Entwurf.** Die Regel-Engine (`0.1.a`), die Preisreihe mit Netzentgelt (`0.1.b`) der Tarif-Editor im Browser (`0.1.c`) und die MQTT-Ausgabe mit Home-Assistant-Discovery (`0.1.e`) funktionieren. Eine native Home-Assistant-Integration gibt es noch nicht. Siehe [Roadmap](#roadmap).
 
 ## Der Tarif-Editor
 
@@ -14,6 +14,15 @@ python -m edbert ui --data-dir edbert_data
 ```
 
 `http://localhost:8501` öffnen. Vier Schritte (Basispreis, Zeitfenster, weitere Kosten, erweitert), Preisverlauf live, Preis zu einem Zeitpunkt, Prüfung gegen eine echte Rechnung, Katalogtarif kopieren, JSON importieren. Deutsch und Englisch. Siehe die [Bedienungsanleitung](docs/user/de/index.md).
+
+## Über MQTT veröffentlichen
+
+```bash
+pip install -e ".[mqtt]"
+python -m edbert publish --data-dir edbert_data
+```
+
+Sendet die Preise der in `publish.json` genannten Tarife (aktueller Preis, heute, morgen, optional Prognose) als retained MQTT-Topics mit Home-Assistant-Discovery. Die Börsenpreise kommen über dieselbe Kette wie in Earnie (ENTSO-E mit Token, Energy-Charts, aWATTar). Siehe [Veröffentlichen](docs/user/de/publishing.md).
 
 ## Ausprobieren
 
@@ -89,6 +98,7 @@ Der Code steht unter der [PolyForm Noncommercial License 1.0.0](LICENSE): Quellc
 | T1 | Regel-Engine, Tariffelder, `user_tariffs.json`, Feiertage, Mehrsprachigkeit (Grundlage) |
 | T2 | Netzentgelt-Regeln und `tariff_price_series` (die eine Schnittstelle zur Preisreihe) |
 | T3 | Editor und Import (Vorlage, JSON-Datei) |
+| T3b | MQTT-Ausgabe, Börsenpreis-Kette, Prognose (Spiegeln, Halten, Plug-in mit Schlüssel) |
 | T4 | Beitragsweg und signierter Katalogzugang |
 | später | Preisblatt-Assistent, Ausgabe für evcc/EMHASS/Predbat, Preise je Zähler |
 

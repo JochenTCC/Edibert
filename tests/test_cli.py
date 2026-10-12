@@ -109,3 +109,29 @@ def test_series_without_capabilities_does_not_check_requirements(capsys):
     )  # fmt: skip
     assert code == 0
     assert err == ""
+
+
+def write_publish_files(folder):
+    import json
+
+    (folder / "house.json").write_text(json.dumps({"timezone": "Europe/Vienna", "land": "AT"}), encoding="utf-8")
+    fixed = {"id": "user_fix", "type": "fixed_cent", "supplier_id": "user_s", "label": "Fix", "fix_cent_kwh": 30.0}
+    (folder / "user_tariffs.json").write_text(json.dumps({"import_tariffs": [fixed]}), encoding="utf-8")
+    config = {"mqtt": {"host": "broker.local"}, "tariffs": [{"id": "user_fix"}]}
+    (folder / "publish.json").write_text(json.dumps(config), encoding="utf-8")
+
+
+def test_publish_dry_run_prints_topics_and_sends_nothing(capsys, tmp_path):
+    write_publish_files(tmp_path)
+    code, out, err = run(capsys, "publish", "--data-dir", str(tmp_path), "--once", "--dry-run")
+    assert (code, err) == (0, "")
+    assert "Dry run" in out
+    assert "edbert/import/user_fix/state  0.3" in out
+    assert "homeassistant/sensor/edbert_import_user_fix/config" in out
+    assert "Published at" in out
+
+
+def test_publish_reports_a_missing_config_in_the_chosen_language(capsys, tmp_path):
+    code, _, err = run(capsys, "--lang", "de", "publish", "--data-dir", str(tmp_path), "--once", "--dry-run")
+    assert code == 2
+    assert "Fehler:" in err
