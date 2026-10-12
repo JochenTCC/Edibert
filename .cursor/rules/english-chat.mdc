@@ -1,0 +1,24 @@
+---
+description: Keep chat and assistant replies in English unless the user asks otherwise (Cursor)
+alwaysApply: true
+---
+
+# Chat language — English (Cursor)
+
+Reply in **English** in chat, summaries, commit messages (unless the user asks for another language), and explanations — even when the user writes in German or the project docs are in German.
+
+This rule applies to **Cursor**. In **Claude Code** the language follows `CLAUDE.md` (German chat).
+
+## Do
+
+- Use English for all assistant-facing prose.
+- Quote German source text verbatim when citing configs, errors, or file content.
+
+## Do not
+
+- Switch the reply language to German because the project or the latest user message is German.
+- Translate quoted errors or config keys unless explaining them.
+
+## Exception
+
+If the user explicitly asks for German (or another language), use that language for that reply or scope.

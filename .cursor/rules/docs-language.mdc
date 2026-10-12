@@ -1,0 +1,45 @@
+---
+description: Documentation and UI language policy — technical docs English only, user manuals EN+DE (English authoritative), legal texts per country in the national language
+alwaysApply: true
+---
+
+# Documentation and UI language policy
+
+Edbert is multilingual from the start: **English (authoritative) and German**.
+
+## Technical documents — English only
+
+Specification (`docs/spec/`), backlog, rules, skills, code, comments, docstrings, commit messages, issues, `CONTRIBUTING.md`, `CLAUDE.md`, `catalog/README.md`, example descriptions. Never translate them.
+
+## User-facing documents — English + German
+
+| What | English (authoritative) | German (translation) |
+|---|---|---|
+| Landing page | `README.md` | `README.de.md` |
+| User manuals | `docs/user/en/*.md` | `docs/user/de/*.md` (same file names) |
+
+- **Edit English first.** The German page follows. English wins if they differ.
+- Every German page starts with a short block naming the English source, e.g. `<!-- source: docs/user/en/<file>.md @ <commit> -->`. When the English page changes, the German page must be updated or marked outdated.
+- Keep code identifiers, JSON keys, file paths, env vars and CLI commands **verbatim** in both languages.
+- A new user page is created in both languages in the same change, or the German one is listed as an open item in `backlog/Backlog-Bugfixes.md` under `## Document Review Findings`.
+- `tests/test_docs_translation.py` checks that every English user page has a German counterpart.
+
+## UI texts
+
+- All visible strings go through the translation catalogs `src/edbert/i18n/catalogs/{en,de}.json` via `Translator.t(key, **params)`. **Never hard-code visible text.**
+- Every key must exist in all languages with the same placeholders (checked by `tests/test_i18n_catalogs.py`).
+- Error messages from the engine are `EdbertError` with a stable `code` and parameters; the UI translates the code (`error.<CODE>` keys). The English message stays for logs.
+- Do not keep language state in module globals (Streamlit serves several sessions from one process): use one `Translator` per session.
+- Widget keys and stored values are language independent; show translated text only as the label (`format_func`).
+- Names of suppliers and products are proper nouns and are not translated.
+
+## Legal texts — per country, in the national language
+
+- Terms, privacy notices and withdrawal information are written **per country in the national language**: Germany → German, Austria → German, Switzerland → German. Each country has its own version (different law).
+- They are **drafts outside this repository** (`Earnie-Projekt/Entwicklungsplan/Offen/Edbert-Bedingungstexte/`) until legally reviewed; do not add or paraphrase them here.
+- The English-authoritative principle applies to technical and user documents, **not** to legal texts. Which version binds consumers is a question for the legal review.
+
+## Relation to other rules
+
+- `english-chat.mdc`: assistant chat language in Cursor. In Claude Code the language follows `CLAUDE.md`.
+- `edbert-project.mdc`: license and legal-text guardrails.

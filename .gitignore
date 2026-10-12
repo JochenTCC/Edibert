@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+.scannerwork/
+
+# local data, never commit
+user_tariffs.json
+secrets/
+.env
+.cursor/user-aliases.local.md

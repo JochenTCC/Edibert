@@ -1,0 +1,19 @@
+{
+  "app.title": "Edbert",
+  "language.en": "English",
+  "language.de": "Deutsch",
+  "editor.step.base_price": "Basispreis",
+  "editor.step.time_windows": "Zeitfenster",
+  "editor.step.further_costs": "Weitere Kosten",
+  "editor.step.advanced": "Erweitert",
+  "editor.template.night": "Nachttarif (22–6 Uhr)",
+  "editor.template.weekend": "Wochenende",
+  "editor.template.summer_midday": "Sommer-Mittagsfenster (10–16 Uhr, Apr–Sep)",
+  "editor.template.ht_st_nt": "Hochtarif / Standardtarif / Niedertarif",
+  "warning.rule_shadowed": "Regel „{rule}“ greift nie, weil Regel „{by}“ zuerst zutrifft.",
+  "error.RULE_UNKNOWN_FIELD": "Unbekanntes Feld „{field}“ in Regel „{rule_id}“.",
+  "error.UNSUPPORTED_FEATURE": "Nicht unterstützte Funktion „{feature}“ im Tarif „{tariff_id}“.",
+  "error.HOLIDAY_REGION_MISSING": "Die Feiertagslogik benötigt eine Region (Bundesland oder Kanton) im Hausprofil.",
+  "error.PRICE_MISSING": "Kein Preis für den Zeitabschnitt {slot} im Tarif „{tariff_id}“.",
+  "error.ID_COLLISION": "Die Tarif-ID „{tariff_id}“ ist sowohl im Katalog als auch bei den eigenen Tarifen vorhanden."
+}

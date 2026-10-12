@@ -1,0 +1,36 @@
+---
+description: Edbert project guardrails — license, legal drafts, no real data, tariff format
+alwaysApply: true
+---
+
+# Edbert project guardrails
+
+Edbert is a tariff editor and price service (rule engine, price series, publishers). Draft stage: format spec and examples, no engine yet.
+
+## Single source for the format
+
+`docs/spec/tariff-format.md` is the format spec. It is derived from the internal development document `Earnie-Benutzertarife-Entwicklungsdokument.md` (Earnie project folder, `Entwicklungsplan/Offen/`). Keep spec, examples, and code consistent; if they diverge, say so and ask.
+
+## License and legal texts
+
+- `LICENSE` is the **verbatim** PolyForm Noncommercial License 1.0.0. Never edit it. `NOTICE` carries the `Required Notice:` line.
+- Catalog terms, contribution terms, privacy notice, and the legal review checklist are **drafts and live outside this repo** (`Earnie-Projekt/Entwicklungsplan/Offen/Edbert-Bedingungstexte/`) until legally reviewed. Do not re-add or paraphrase them here, and never present them as final.
+- Legal texts are written per country in the national language (DE/AT/CH: German), see `docs-language.mdc`.
+- Do not claim legal compliance (GDPR, consumer law, trademark) in code, docs, or commit messages.
+
+## No real data
+
+- Examples, tests, fixtures, and issues use **placeholder prices and names** only. Real fixtures (e.g. a published grid-operator example) must be marked as unverified and carry no personal data.
+- Never commit customer data, addresses, postal codes, meter numbers, invoice files, tokens, or `user_tariffs.json`.
+- Tariffs sent to a catalog must be non-individual and free of personal data; free text fields are excluded.
+
+## Tariff semantics
+
+- Rules act on 15-minute slots; the first matching rule wins; local time of the house profile applies.
+- Unsupported features (`tiers`, `applies_to` other than `"main"`, unknown fields) are rejected at load time (see `no-implicit-fallbacks.mdc`).
+- Holiday logic needs a configured `region`; missing region is an error.
+
+## Process
+
+- Do not commit, push, tag, or publish unless the user asks.
+- Name collisions: IDs in `user_tariffs.json` start with `user_` and must not exist in the catalog.

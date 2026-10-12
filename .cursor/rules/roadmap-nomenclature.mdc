@@ -1,0 +1,50 @@
+---
+description: Roadmap, backlog numbering, epics/phases and commit syntax
+alwaysApply: true
+---
+
+# Roadmap and versioning nomenclature
+
+## 1. Backlog versioning (`backlog/Backlog.md`)
+
+* **Cycle logic:** Development steps proceed alphabetically up to the release `.0` (e.g. `0.1.a` → `0.1.b` → quality gate `0.1.r` → release `0.1.0` → next minor `0.2.0`).
+* **Placeholders:** Future minors that are not yet numbered are `N.+1` (e.g. `0.+1`).
+* **Package version vs. backlog:** the package version (`pyproject.toml`, `src/edbert/__init__.py`) holds SemVer / PEP 440 only (`0.1.0`, `0.1.0a1`), never backlog letters. Changes **always** require explicit user approval (`versioning.mdc`).
+* **Granularity:** a backlog letter (`0.1.a`) is a whole chapter/feature block. Incremental steps inside it use the step level (`T1a`, see below).
+* **Quality gate:** `X.Y.r` is the release-hardening chapter before `X.Y.0` (skill `quality-gate`).
+
+## 2. The three hierarchy levels
+
+1. **Epic:** short name (e.g. `Engine`, `Editor`, `Catalog`, `Publish`).
+2. **Phase:** `<Epic> P<Number>` (e.g. `Engine P2`).
+3. **Step:** `<Epic> P<Number><Letter>` (e.g. `Engine P2a`). Only permitted inside open phases.
+
+## 3. Strict communication rules
+
+* **Precision:** always use exact identifiers in dialogue (e.g. "continue with 0.1.b" or "Engine P2a").
+* **Forbidden:** isolated phase specifications ("Phase 3" without an epic), invented clusters ("Package A"), vague placeholders ("0.+2" without a chapter).
+* **Backlog logic:** follow-up tasks are separate items, not new phases.
+
+## 4. Validated epics and phases
+
+| Epic | Phases | Source |
+|---|---|---|
+| `Engine` | P1 rules + `user_tariffs.json` + holidays (T1), P2 grid-fee rules + `tariff_price_series` (T2) | development document sections 4, 5 |
+| `Editor` | P1 form model + validation + preview, P2 Streamlit front end, P3 import I1/I2 (T3) | sections 6, 7 |
+| `Catalog` | P1 contribution path (T4), P2 signed catalog access (T4b), P3 automatic updates / subscription | section 9.2 |
+| `Publish` | P1 Home Assistant sensor, P2 MQTT, P3 evcc/EMHASS/Predbat formats | section 4.7 |
+
+The mapping to the development document's step names: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T4/T4b = `0.1.d`.
+
+## 5. Commit and chat syntax
+
+Format: `<scope>: <version> <phase/step> <description>`:
+
+```text
+engine: 0.1.a P1 rule matcher with months, weekdays and wrap-around windows
+engine: 0.1.a P1 holidays via the holidays package, region required
+editor: 0.1.c P1 form model and preview data
+catalog: 0.1.d P1 contribution payload preview
+```
+
+Commit messages are English. Mention a roadmap step freely; that does not imply a version bump.

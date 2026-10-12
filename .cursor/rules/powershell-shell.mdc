@@ -1,0 +1,42 @@
+---
+description: Windows PowerShell 5.x shell syntax — no && or ||, no heredocs
+alwaysApply: true
+---
+
+# Windows PowerShell — shell commands
+
+This environment uses **Windows PowerShell 5.x** (not pwsh 7+). `&&` and `||` are **not** valid statement separators.
+
+## Forbidden
+
+```powershell
+# ❌ ParserError: The token "&&" is not a valid statement separator
+cd "C:\...\Edbert" && python -m pytest -q
+```
+
+## Instead
+
+**Preferred:** set the working directory of the shell tool to the project root and run the command without `cd`:
+
+```powershell
+python -m pytest -q
+```
+
+**Alternative:** a semicolon (continues even if the first part fails):
+
+```powershell
+Set-Location "<project root>"; python -m pytest -q
+```
+
+**Conditional chaining** (only if the first command succeeds):
+
+```powershell
+Set-Location "<project root>"; if ($?) { python -m pytest -q }
+```
+
+## Further notes
+
+- No Bash heredocs (`<<'EOF'`). In PowerShell use here-strings `@'...'@` (closing `'@` at column 0) or write the content with the file tools.
+- Git works in PowerShell; only the chaining syntax differs.
+- In a Git Bash tool, POSIX syntax (`&&`) is fine.
+- Set UTF-8 for Python runs: see skill `windows-unicode-console`.

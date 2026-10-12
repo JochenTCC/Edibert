@@ -1,0 +1,20 @@
+{
+  "$comment": "Placeholder prices. Fixed feed-in tariff, no remuneration while the day-ahead price is negative.",
+  "id": "user_example_feed_in",
+  "label": "Example feed-in, no pay at negative price",
+  "type": "fixed",
+  "land": "DE",
+  "currency": "EUR",
+  "supplier_id": "user_example_grid_operator",
+  "k_push_cent": 7.8,
+  "prices_include_vat": true,
+  "vat_percent": 0,
+  "rules": [
+    {
+      "id": "negative",
+      "label": "No remuneration at negative price",
+      "when_market_cent_kwh": { "below": 0 },
+      "effect": { "mode": "absolute_cent", "value": 0.0 }
+    }
+  ]
+}

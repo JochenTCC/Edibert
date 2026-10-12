@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=77.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "edbert"
+version = "0.0.0.dev0"
+description = "Tarif-Editor und Preisdienst für Smart-Home-Systeme (Home Assistant, MQTT), Schwerpunkt DE/AT/CH"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "PolyForm-Noncommercial-1.0.0"
+license-files = ["LICENSE", "NOTICE"]
+dependencies = [
+    "holidays>=0.90",
+    "jsonschema>=4.0.0",
+]
+
+[project.optional-dependencies]
+mqtt = [
+    "paho-mqtt>=2.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "vulture>=2.11",
+    "ruff>=0.5.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"edbert.i18n" = ["catalogs/*.json"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["."]
+relative_files = true
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

@@ -1,0 +1,25 @@
+{
+  "$comment": "Placeholder prices. Spot tariff with an evening surcharge in winter and a price cap.",
+  "id": "user_example_spot_plus",
+  "label": "Example spot plus",
+  "type": "spot_hourly",
+  "land": "AT",
+  "currency": "EUR",
+  "supplier_id": "user_example",
+  "settlement_fee_cent_kwh": 1.5,
+  "markup_percent": 3.0,
+  "prices_include_vat": false,
+  "vat_percent": 20,
+  "settlement_mtu": "15min",
+  "price_cap_cent_kwh": 30.0,
+  "requires": ["smart_meter"],
+  "rules": [
+    {
+      "id": "evening",
+      "label": "Evening surcharge",
+      "months": [10, 11, 12, 1, 2, 3],
+      "time": { "from": "17:00", "to": "20:00" },
+      "effect": { "mode": "add_cent", "value": 2.0 }
+    }
+  ]
+}

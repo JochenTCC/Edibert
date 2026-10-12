@@ -1,0 +1,22 @@
+{
+  "$comment": "Grid-fee work price with three levels (section 14a Modul 3). Fixture based on a published example of one grid operator; not checked against its price sheet. Standard level is the base, night and high level are rules. Part of the house profile, not of a supplier tariff.",
+  "netznutzung": {
+    "area_id": null,
+    "quarter_hour_meter": true,
+    "base_cent_kwh": 9.98,
+    "rules": [
+      {
+        "id": "nt",
+        "label": "Low tariff",
+        "time": { "from": "00:00", "to": "06:00" },
+        "effect": { "mode": "absolute_cent", "value": 1.0 }
+      },
+      {
+        "id": "ht",
+        "label": "High tariff",
+        "time": { "from": "15:00", "to": "20:00" },
+        "effect": { "mode": "absolute_cent", "value": 14.92 }
+      }
+    ]
+  }
+}

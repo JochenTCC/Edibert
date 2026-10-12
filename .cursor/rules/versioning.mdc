@@ -1,0 +1,30 @@
+---
+description: Package version — never change without explicit user approval
+alwaysApply: true
+---
+
+# Versioning
+
+The version lives in **two places that must always match**: `pyproject.toml` (`[project] version`) and `src/edbert/__init__.py` (`__version__`).
+
+Format: SemVer-like `MAJOR.MINOR.PATCH`, with PEP 440 pre-release suffixes for test builds (`0.1.0.dev1`, `0.1.0a1`, `0.1.0b1`, `0.1.0rc1`). Currently `0.0.0.dev0` (draft, nothing released).
+
+## Principle: user approval (required)
+
+- **Never change the version without explicit user confirmation** — not at session end, not for a bugfix, not when a roadmap step (T1…T4) is completed.
+- Instead: **propose** the target version with a one-line rationale and **ask**.
+- On rejection or no response: leave the version **unchanged**.
+- Commit messages may mention a roadmap step; that does **not** imply a version bump.
+
+## When to suggest a bump (always only after approval)
+
+| Occasion | Typical suggestion |
+|----------|--------------------|
+| First installable build | `0.1.0.dev1` or `0.1.0a1` |
+| Community test build | next pre-release (`a2`, `b1`, `rc1`) |
+| Bugfix after a release | PATCH +1 |
+| Tariff format change that breaks existing `user_tariffs.json` | MINOR +1 (pre-1.0) and a migration note |
+
+## Tags
+
+Tag only on request: annotated tag `vX.Y.Z[...]` that matches the package version. Never rewrite or force-push a published tag; fix forward with a new approved version.

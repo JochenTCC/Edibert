@@ -1,0 +1,32 @@
+---
+description: Anonymize personal/customer names in backlog bugfix and archive files before commit
+globs: backlog/Backlog-Bugfixes.md, backlog/Backlog-Erledigt.md
+alwaysApply: true
+---
+
+# Backlog — anonymize user names before commit
+
+Before staging or committing `backlog/Backlog-Bugfixes.md` or `backlog/Backlog-Erledigt.md`, scrub **personal/customer names** from those two files. This matters more in Edbert than elsewhere because tariff contributions and issues come from real users.
+
+## Scope
+
+| Scrub | Keep |
+|-------|------|
+| Person/customer names in paths or prose, GitHub user names of reporters, meter numbers, addresses, postal codes | GitHub orgs/repos (`JochenTCC`), product and supplier names, technical IDs, `UserA`-style aliases already in use |
+
+`backlog/Backlog.md` is out of scope unless the user asks.
+
+## Stable aliases (required)
+
+1. Read the local map `.cursor/user-aliases.local.md` if it exists (gitignored; never commit it).
+2. For each **new** real name not in the map: **ask the user once** for a stable alias (`UserA`, `UserB`, … — the user chooses).
+3. Replace **all** occurrences in the two backlog files with the alias.
+4. Append `RealName → Alias` to `.cursor/user-aliases.local.md` (create it if missing).
+5. Reuse the map on later commits; never invent a second alias for the same person.
+
+## Do / don't
+
+- **Do** anonymize as part of session conclusion and any commit that includes those files.
+- **Do not** write real-name ↔ alias pairs into committed files.
+- **Do not** commit `.cursor/user-aliases.local.md`.
+- If unsure whether a token is a personal name: **ask** before replacing.

@@ -1,0 +1,19 @@
+{
+  "app.title": "Edbert",
+  "language.en": "English",
+  "language.de": "Deutsch",
+  "editor.step.base_price": "Base price",
+  "editor.step.time_windows": "Time windows",
+  "editor.step.further_costs": "Further costs",
+  "editor.step.advanced": "Advanced",
+  "editor.template.night": "Night tariff (22:00–06:00)",
+  "editor.template.weekend": "Weekend",
+  "editor.template.summer_midday": "Summer midday window (10:00–16:00, Apr–Sep)",
+  "editor.template.ht_st_nt": "High / standard / low tariff",
+  "warning.rule_shadowed": "Rule \"{rule}\" never applies because rule \"{by}\" matches first.",
+  "error.RULE_UNKNOWN_FIELD": "Unknown field \"{field}\" in rule \"{rule_id}\".",
+  "error.UNSUPPORTED_FEATURE": "Unsupported feature \"{feature}\" in tariff \"{tariff_id}\".",
+  "error.HOLIDAY_REGION_MISSING": "Holiday logic needs a region (federal state or canton) in the house profile.",
+  "error.PRICE_MISSING": "No price for slot {slot} in tariff \"{tariff_id}\".",
+  "error.ID_COLLISION": "Tariff ID \"{tariff_id}\" exists in both the catalog and the user tariffs."
+}

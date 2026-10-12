@@ -1,0 +1,62 @@
+---
+description: Backlog lifecycle — features, bugfixes (incl. Verifications Pending), Document Review Findings, and Erledigt archive format
+globs: backlog/Backlog.md, backlog/Backlog-Bugfixes.md, backlog/Backlog-Erledigt.md
+alwaysApply: false
+---
+
+# Backlog management and bugfix lifecycle
+
+Ported from the Earnie repo and reduced to what Edbert needs. Backlog files are **English**.
+
+## 1. File structure and responsibilities
+
+* **`backlog/Backlog.md`:** Open features (sorted by version). Repeated `### Version …` headings are intentional — move blocks, do not merge them.
+* **`backlog/Backlog-Bugfixes.md`:** Open bugs, deviations, regressions. Contains the dedicated chapters `## Bugfix Verifications Pending` and `## Document Review Findings`.
+* **`backlog/Backlog-Erledigt.md`:** Central archive for all completed features, bugfixes, and document-review findings.
+
+## 2. Archiving and maintenance rules
+
+* **No strikethrough:** Completed items are not formatted with `~~…~~`. They are deleted from the open files and moved to the archive.
+* **Partially completed:** For incomplete epics, only the remaining open phases/items stay in the source file.
+* **Archive format (`backlog/Backlog-Erledigt.md`):**
+  * Structure: `### <Topic, Bugfix or Document Review …> (YYYY-MM-DD)`, newest on top, date according to Europe/Vienna.
+  * Checkboxes: entries are `- [x] …`.
+* **References:** Operational reference tables belong in user docs, not in `backlog/Backlog.md`.
+
+## 3. Bugfix 3-step workflow
+
+Bugfixes go through three strict phases in `backlog/Backlog-Bugfixes.md`:
+
+1. **Open:** The bug is known but unresolved → listed in the relevant chapter.
+2. **Verifications Pending:** The fix is implemented and committed → move the entry to `## Bugfix Verifications Pending` (**do not archive yet**). If verification fails, return it to its topic or create a follow-up item.
+3. **Done:** Only after successful acceptance (real tariff check, Home Assistant test, or the reporter confirms), remove from *Pending* and move to `backlog/Backlog-Erledigt.md`.
+
+For each code bugfix follow skill `bugfix-regression-test` (propose a regression test; note the test path when moving to Pending).
+
+## 3b. Document Review Findings (2-step)
+
+Chapter `## Document Review Findings` in `backlog/Backlog-Bugfixes.md` (keep the heading even if empty). Doc/review corrections only (README, user docs, renames, TOC) — **not** code bugs.
+
+1. **Open:** Finding listed under that chapter → corrected following skill `doc-review-findings`.
+2. **Done:** After the correction, **remove** the item and archive it in `backlog/Backlog-Erledigt.md` as `### Document Review … (YYYY-MM-DD)` with `- [x]`.
+
+**Do not** route these through `## Bugfix Verifications Pending`.
+
+## 4. Anonymize user names (before commit)
+
+Before committing `backlog/Backlog-Bugfixes.md` or `backlog/Backlog-Erledigt.md`, scrub personal names using stable aliases. See `.cursor/rules/backlog-anonymize-users.mdc`.
+
+## 5. Hints / remarks (not todos)
+
+* Orientation notes, scope reminders, and cross-epic pointers are **hints**, not work items.
+* Format: `- **Note:** …` or `- **Hint:** …` — **never** `- [ ]` / `- [x]`.
+* Checkboxes are only for actionable tasks that can be completed and archived.
+
+## 6. Versioning and release
+
+* Changes to the package version must **never** be made without explicit user approval (see `versioning.mdc`).
+* During an ongoing MINOR cycle (letter steps / release chapter still open) there is **no automatic bump** — propose and ask.
+
+## 7. Relation to Earnie
+
+Edbert is developed separately, but Earnie consumes it. Earnie-side integration work (using Edbert for tariffs) is tracked in the Earnie backlog; engine, editor, catalog and publishers are tracked here.
