@@ -14,6 +14,8 @@ Spec: [`docs/spec/tariff-format.md`](../docs/spec/tariff-format.md). Internal de
 - [ ] **Legal texts per country** — separate versions for Germany, Austria and Switzerland, each in the national language (German for all three); which version binds consumers; the current drafts are Austria-oriented
 - [ ] **HACS publishing requirements** — no license requirement found in the docs; check default-store CI checks (brands, manifest, info) before any HACS release
 - [ ] **14a-Atlas license** — may its data be used for a DE grid-fee catalog? Do not scrape until clarified
+- [ ] **Shared library (weather)** — built when the forecast plug-in needs it; location open (proposal: standalone package without Earnie imports in the Earnie repo first, own repository later); no shared cache building block in advance
+- [ ] **License when Earnie contains the library** — PolyForm Noncommercial for Edbert versus Earnie's own license; as the owner a separate grant is possible; decide before both ship as one product
 - [ ] **Editor technology** — headless form model plus Streamlit first (decided); later Home Assistant config flow or ingress page for stand-alone use
 
 ## Feature Backlog
@@ -26,10 +28,20 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
   - Catalog P1: opt-in upload with payload preview per tariff, `individual` flag, no free text and no personal data; GitHub-issue route first
   - Catalog P2: signed catalog package with validity date, manual import; credit for accepted contributions or small one-time fee
   - Catalog P3 (later): automatic updates / yearly subscription
+- [ ] **0.1.f — Library API and layering** *(architecture decision 2026-10-12, [`docs/spec/architecture.md`](../docs/spec/architecture.md))*
+  - Public facade `edbert.api` (few functions, versioned) for Earnie and other callers
+  - Test: library modules never import `edbert.ui` or `edbert.publish`
+  - Split `build_forecaster` / `load_forecaster`: the library takes a forecaster object; the key check belongs to the plug-in loader of the product
+- [ ] **0.1.g — Tariff supply for the past and the future**
+  - Monthly-table fallback as in Earnie (exact → same month previous year → previous month) with a coded warning `MONTH_RATE_FALLBACK`, also when the 72-hour window reaches a month change
+  - Price points carry `market_cent` and the forecast method (`exact`, `mirror`, `hold`, plug-in name)
+  - Market prices for arbitrary ranges (simulation/backtesting) with a long-range cache, ported from Earnie (`live_price_cache`, backtesting prices), no pandas
+  - Evaluation of past periods with Earnie's tolerance rules; committed compatibility tests against Earnie results (shared with `0.1.r`)
+  - Later: tariffs that change over time (new prices from a date)
 - [ ] **0.1.e2 — Publish: native Home Assistant integration** *(0.1.e done)*
   - Publish P1: HA custom integration (sensor with `raw_today` / `raw_tomorrow` / `forecast`, action `get_rates(start, end, resolution)`), reading the same price series as the MQTT publisher
   - Clean up retained topics of tariffs removed from `publish.json`
-  - Forecaster plug-in from Earnie (OLS model) as a separate, not freely distributed package; decide how keys are issued and checked
+  - Earnie's OLS model is handed in as a forecaster object (no key); the key only guards plug-ins loaded through entry points; decide how keys are issued and checked
 - [ ] **0.1.r — Quality / release hardening** *(skill `quality-gate`; after 0.1.a–0.1.e)*
   - Coverage baseline, dead-code audit, simplification, KPI refactor, docs review, SonarCloud snapshot
 - [ ] **0.1.0 — Release** *(user decision; version bump only with approval)*
