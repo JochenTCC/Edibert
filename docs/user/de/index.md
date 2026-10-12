@@ -1,14 +1,14 @@
-<!-- source: docs/user/en/index.md @ initial -->
+<!-- source: docs/user/en/index.md @ 0.1.c -->
 # Edbert Bedienungsanleitung
 
-**Status:** Platzhalter. Die Anleitung entsteht zusammen mit dem Editor (Backlog `0.1.c`).
+Edbert beschreibt deinen Stromtarif einmal und berechnet daraus den Preis jeder Viertelstunde. Diese Anleitung behandelt den **Tarif-Editor** (die Browserseite) und die Kommandozeile. Die englischen Seiten sind maßgeblich, diese Seiten sind eine Übersetzung.
 
-Geplante Kapitel:
+**Status:** Entwurf. Der Editor funktioniert; die Ausgabe der Preise an Home Assistant und MQTT gibt es noch nicht.
 
-1. Erste Schritte: Installation, Sprache einstellen, ersten Tarif anlegen
-2. Der Tarif-Editor: Basispreis, Zeitfenster, weitere Kosten, erweitert
-3. Tarif prüfen: Preisverlauf, Preis zu einem Zeitpunkt, Kontrollrechnung
-4. Home Assistant und MQTT: Sensoren und Topics
-5. Einen Tarif beitragen und den Katalog nutzen
+Kapitel:
 
-Die englischen Seiten sind maßgeblich. Diese Seite ist eine Übersetzung.
+1. [Erste Schritte](getting-started.md): Installation, Editor starten, Sprache
+2. [Der Tarif-Editor](editor.md): die vier Schritte, Vorschau, Speichern
+3. [Einen Tarif prüfen](checking.md): Preisverlauf, Preis zu einem Zeitpunkt, Rechnungsprüfung, Hinweise
+4. [Import und Kopieren](import.md): Katalogtarif kopieren, JSON importieren
+5. [Kommandozeile](cli.md): Preis eines Zeitabschnitts, Preisreihe, Schema

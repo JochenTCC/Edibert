@@ -1,0 +1,143 @@
+"""Right-hand side of the editor: errors and hints, price curves, price at a time, invoice check, save."""
+
+from __future__ import annotations
+
+from collections.abc import Iterator
+from contextlib import contextmanager
+from datetime import date, datetime, time
+
+import altair as alt
+import pandas as pd
+import streamlit as st
+
+from edbert.checks import check_grid_fee, check_tariff
+from edbert.context import PricingContext
+from edbert.editor.invoice import (
+    BASE_BAND,
+    TOLERANCE_PERCENT,
+    invoice_bands,
+    invoice_check,
+)
+from edbert.editor.model import TariffDraft, Validation, validate
+from edbert.editor.plausibility import plausibility_warnings
+from edbert.editor.preview import DAY_KEYS, day_curve, representative_dates
+from edbert.editor.userstore import save_user_tariff, user_tariff_ids
+from edbert.errors import EdbertError
+from edbert.gridfee import GridFee
+from edbert.i18n import Translator
+from edbert.report import price_lines
+from edbert.tariff import Tariff, evaluate
+from edbert.ui import state
+from edbert.ui.config import UiConfig
+
+
+@contextmanager
+def guarded(t: Translator) -> Iterator[None]:
+    """Show coded errors as a message instead of a stack trace."""
+    try:
+        yield
+    except EdbertError as err:
+        st.error(t.error(err))
+
+
+def _hints(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFee | None, capabilities: list[str]) -> None:
+    notes = check_tariff(tariff, capabilities) + (check_grid_fee(grid_fee) if grid_fee else [])
+    notes += plausibility_warnings(tariff, ctx, date.today().year)
+    for note in notes:
+        st.warning(t.warning(note))
+
+
+def _chart_frame(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFee | None, month: int) -> pd.DataFrame:
+    rows = []
+    for key, day in representative_dates(ctx, tariff, date.today().year, month).items():
+        for point in day_curve(tariff, ctx, day, grid_fee=grid_fee):
+            hour = point.start.hour + point.start.minute / 60
+            rows.append({"hour": hour, "cent": point.cent, "day": t.t(f"ui.day.{key}")})
+    return pd.DataFrame(rows)
+
+
+def _curves(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFee | None) -> None:
+    st.subheader(t.t("ui.preview"))
+    month = st.selectbox(
+        t.t("ui.preview_month"), list(range(1, 13)), index=date.today().month - 1, format_func=lambda m: t.t(f"month.{m}"),
+        key="ui.preview_month",
+    )  # fmt: skip
+    if tariff.uses_market_price:
+        st.caption(t.t("ui.preview_spot_note"))
+    frame = _chart_frame(t, tariff, ctx, grid_fee, month)
+    chart = (
+        alt.Chart(frame)
+        .mark_line(interpolate="step-after")
+        .encode(
+            x=alt.X("hour:Q", title=t.t("ui.chart_x"), scale=alt.Scale(domain=[0, 24])),
+            y=alt.Y("cent:Q", title=t.t("ui.chart_y")),
+            color=alt.Color("day:N", title=None, sort=[t.t(f"ui.day.{key}") for key in DAY_KEYS]),
+            tooltip=["day", "hour", "cent"],
+        )
+    )
+    st.altair_chart(chart, width="stretch")
+
+
+def _probe(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFee | None) -> None:
+    st.subheader(t.t("ui.probe"))
+    left, right = st.columns(2)
+    day = left.date_input(t.t("ui.probe_date"), value=date.today(), key="ui.probe_date")
+    moment = right.time_input(t.t("ui.probe_time"), value=time(12, 0), step=900, key="ui.probe_time")
+    epex = None
+    if tariff.uses_market_price:
+        epex = st.number_input(t.t("ui.probe_market"), value=10.0, step=0.5, format="%.2f", key="ui.probe_market")
+    slot = datetime.combine(day, moment)
+    result = evaluate(tariff, slot, ctx, epex, grid_fee)
+    st.code("\n".join(price_lines(t, tariff, result, ctx.to_local(slot), ctx.timezone)), language=None)
+
+
+def _invoice(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFee | None) -> None:
+    with st.expander(t.t("ui.invoice")), guarded(t):
+        st.caption(t.t("ui.invoice_hint"))
+        month = st.date_input(t.t("ui.invoice_month"), value=date.today().replace(day=1), key="ui.inv_month")
+        market = None
+        if tariff.uses_market_price:
+            market = st.number_input(t.t("ui.invoice_market"), value=10.0, step=0.5, format="%.2f", key="ui.inv_market")
+        kwh: dict[str, float] = {}
+        for band in invoice_bands(tariff, ctx, month, market_cent=market, grid_fee=grid_fee):
+            label = t.t("ui.band_base") if band.id == BASE_BAND else band.label
+            kwh[band.id] = st.number_input(
+                t.t("ui.invoice_kwh", band=label, cent=t.number(band.cent)), min_value=0.0, step=1.0,
+                key=f"ui.inv.{state.key(band.id)}",
+            )  # fmt: skip
+        total = st.number_input(t.t("ui.invoice_total"), min_value=0.0, step=1.0, key="ui.inv_total")
+        if total > 0 and any(kwh.values()):
+            check = invoice_check(tariff, ctx, month, kwh, total, market_cent=market, grid_fee=grid_fee)
+            st.write(t.t("ui.invoice_result", expected=t.number(check.expected_eur, 2), invoice=t.number(check.invoice_eur, 2), deviation=t.number(check.deviation_percent, 2)))
+            if check.ok:
+                st.success(t.t("ui.invoice_ok"))
+            else:
+                st.warning(t.t("ui.invoice_off", tolerance=t.number(TOLERANCE_PERCENT, 1)))
+
+
+def _save(t: Translator, draft: TariffDraft, validation: Validation, config: UiConfig) -> None:
+    if st.button(t.t("ui.save"), type="primary", key="ui.save"):
+        save_user_tariff(config.user_file, validation.raw, draft.direction)
+        draft.id = validation.raw["id"]
+        state.notify(t.t("ui.saved", tariff_id=draft.id))
+        st.rerun()
+
+
+def render(t: Translator, draft: TariffDraft, config: UiConfig) -> None:
+    """Validate the draft and show everything that depends on it."""
+    taken = user_tariff_ids(config.user_file)[draft.direction]
+    validation = validate(draft, taken)
+    if validation.tariff is None:
+        st.error(t.error(validation.error))  # type: ignore[arg-type]
+        return
+    house = state.house()
+    with guarded(t):
+        ctx, grid_fee = house.context(), house.grid_fee()
+        with guarded(t):
+            _hints(t, validation.tariff, ctx, grid_fee, house.capabilities)
+        with guarded(t):
+            _curves(t, validation.tariff, ctx, grid_fee)
+        with guarded(t):
+            _probe(t, validation.tariff, ctx, grid_fee)
+        _invoice(t, validation.tariff, ctx, grid_fee)
+    _save(t, draft, validation, config)

@@ -1,0 +1,25 @@
+---
+description: Streamlit editor state — versioned language-independent widget keys, row ids, callbacks, no globals
+globs: src/edbert/ui/**/*.py, tests/test_ui_app.py
+alwaysApply: false
+---
+
+# Streamlit UI state (Edbert editor)
+
+Adapted from the Earnie rule of the same name. Run this checklist before changing or finishing any form, list, or sidebar widget in `src/edbert/ui/`.
+
+## Rules
+
+1. **Language-independent widget keys.** A key never contains translated text. Labels are translated; values stored in widgets are codes (`"mon"`, `"absolute_cent"`, `"15min"`). Use `format_func` for display. Otherwise a language switch resets the entered values.
+2. **Version in form keys.** Form widgets of the open tariff use `state.key(name)` (`"<version>.<name>"`). `state.adopt(...)` bumps the version when another tariff is opened, created, copied or deleted, so the form starts fresh and no old values leak into the new tariff. Long-lived widgets (language, house settings, preview month) use fixed keys.
+3. **Rows keyed by uid, not position.** Rows that can be added, removed or reordered (time windows) carry `RuleDraft.uid`; keys are `...r<uid>.<field>`. Never key by list index.
+4. **Mutate in callbacks.** Buttons that change the draft (add, remove, move, template) use `on_click=` with the list object as argument. Do not change the draft after widgets of the same run have rendered.
+5. **Widgets write to the draft, not the other way round.** Each run: widget returns a value, assign it to the draft field. Initial values come from the draft (`value=draft.x`). Do not also write the widget key through `st.session_state`.
+6. **Value constraints in the key.** If `min_value`/`max_value` depend on another widget (effect mode), include that choice in the key (`value.<mode>`), so a mode change creates a fresh widget instead of raising a bounds error.
+7. **No module globals for session data.** One `Translator` per session; everything else in `st.session_state`. Streamlit serves several sessions from one process.
+8. **Errors are shown, never thrown.** Wrap sections that can raise `EdbertError` (missing region, missing month price) with `guarded(t)` and show `t.error(err)`.
+9. **Save path.** After a save or import: `state.notify(...)` then `st.rerun()`, so lists and buttons reflect the file on disk.
+
+## Done when
+
+Cover in `tests/test_ui_app.py`: **create → saved file exists**, **language switch keeps values**, **reorder rows keeps their values**, **delete/new → no ghost values**, **invalid input → coded error in the chosen language and no save button**.

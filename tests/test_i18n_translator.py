@@ -49,3 +49,14 @@ def test_error_is_localized_by_code():
     assert "tiers" in Translator("de").error(err)
     assert Translator("de").error(err) != Translator("en").error(err)
     assert str(err).startswith("Unsupported feature")
+
+
+def test_field_names_in_errors_are_readable_but_unknown_ones_stay():
+    missing = EdbertError(ErrorCode.FIELD_MISSING, "x", field="label")
+    nested = EdbertError(ErrorCode.VALUE_INVALID, "x", field="user_x.rules[night].time.from", value="25:00")
+    odd = EdbertError(ErrorCode.VALUE_INVALID, "x", field="--at", value="tomorrow")
+    assert Translator("de").error(missing) == "Pflichtfeld „Name“ fehlt."
+    assert "„Von“" in Translator("de").error(nested)
+    assert "field \"from\"" in Translator("en").error(nested)
+    assert "„--at“" in Translator("de").error(odd)
+    assert missing.params["field"] == "label"  # the coded parameter itself is not changed

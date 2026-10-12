@@ -54,6 +54,11 @@ class WarningCode(StrEnum):
     REQUIREMENT_UNMET = "REQUIREMENT_UNMET"  # params: tariff_id, requirement
     GRID_RULE_SKIPPED_STATUS = "GRID_RULE_SKIPPED_STATUS"  # params: rule_id, status
     GRID_RULE_SKIPPED_NO_QUARTER_HOUR_METER = "GRID_RULE_SKIPPED_NO_QUARTER_HOUR_METER"  # params: rule_id
+    RULE_SHADOWED = "RULE_SHADOWED"  # params: rule_id, by
+    RULE_NEVER_APPLIES = "RULE_NEVER_APPLIES"  # params: rule_id
+    PRICE_UNUSUAL = "PRICE_UNUSUAL"  # params: value
+    RULE_PRICE_UNUSUAL = "RULE_PRICE_UNUSUAL"  # params: rule_id, value
+    SPOT_PRICES_GROSS = "SPOT_PRICES_GROSS"  # params: tariff_id
 
 
 @dataclass(frozen=True)

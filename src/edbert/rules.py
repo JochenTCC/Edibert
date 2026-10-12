@@ -263,6 +263,24 @@ def _market_matches(rule: Rule, epex_cent: float | None, slot: str, tariff_id: s
     return not (rule.market_above is not None and epex_cent <= rule.market_above)
 
 
+def date_matches(rule: Rule, when: date, day: DayInfo, holiday_mode: str) -> bool:
+    """True if the rule applies on this date (validity, month and weekday filters; time of day not checked)."""
+    if (rule.valid_from and when < rule.valid_from) or (rule.valid_to and when > rule.valid_to):
+        return False
+    if rule.months is not None and when.month not in rule.months:
+        return False
+    return _weekday_matches(rule, day, holiday_mode)
+
+
+def window_slots(rule: Rule) -> frozenset[int]:
+    """Indexes (0..95) of the 15-minute slots of a day that lie inside the rule's time window."""
+    return frozenset(
+        index
+        for index in range(96)
+        if _time_matches(rule, datetime(2000, 1, 1, index * 15 // 60, index * 15 % 60))
+    )
+
+
 def rule_matches(
     rule: Rule,
     local: datetime,
@@ -273,13 +291,8 @@ def rule_matches(
     tariff_id: str,
 ) -> bool:
     """True if ``rule`` applies to the slot starting at ``local`` (local time)."""
-    when = local.date()
-    if (rule.valid_from and when < rule.valid_from) or (rule.valid_to and when > rule.valid_to):
-        return False
-    if rule.months is not None and local.month not in rule.months:
-        return False
     return (
-        _weekday_matches(rule, day, holiday_mode)
+        date_matches(rule, local.date(), day, holiday_mode)
         and _time_matches(rule, local)
         and _market_matches(rule, epex_cent, local.isoformat(), tariff_id)
     )

@@ -1,13 +1,13 @@
 # Edbert user manual
 
-**Status:** placeholder. The manual is written together with the editor (backlog `0.1.c`).
+Edbert describes your electricity tariff once and calculates the price of every quarter hour from it. This manual covers the **tariff editor** (the browser page) and the command line. The English pages are authoritative; a German translation is in `docs/user/de/`.
 
-Planned chapters:
+**Status:** draft. The editor works; publishing prices to Home Assistant and MQTT is not available yet.
 
-1. Getting started: install, set the language, create your first tariff
-2. The tariff editor: base price, time windows, further costs, advanced
-3. Checking a tariff: price curve, price at a date, invoice check
-4. Home Assistant and MQTT: sensors and topics
-5. Contributing a tariff and using the catalog
+Chapters:
 
-The English pages are authoritative. A German translation lives in `docs/user/de/`.
+1. [Getting started](getting-started.md): install, start the editor, language
+2. [The tariff editor](editor.md): the four steps, preview, saving
+3. [Checking a tariff](checking.md): price curve, price at a time, invoice check, hints
+4. [Import and copying](import.md): copy a catalog tariff, import JSON
+5. [Command line](cli.md): price of a slot, price series, schema

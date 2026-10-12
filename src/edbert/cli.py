@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import argparse
 import csv
+import importlib.util
 import json
+import os
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -24,10 +27,11 @@ from edbert.gridfee import (
     resolve_grid_fee,
 )
 from edbert.i18n import SOURCE_LANGUAGE, SUPPORTED_LANGUAGES, Translator
+from edbert.report import price_lines
 from edbert.schema import tariff_schema
 from edbert.series import RESOLUTIONS, PriceSeries, tariff_price_series
 from edbert.store import load_tariff_file
-from edbert.tariff import EXPORT, IMPORT, PriceResult, Tariff, evaluate
+from edbert.tariff import EXPORT, IMPORT, evaluate
 
 
 def _configure_console_utf8() -> None:
@@ -64,6 +68,10 @@ def build_parser() -> argparse.ArgumentParser:
     series.add_argument("--format", choices=("table", "json"), default="table")
     series.add_argument("--has", action="append", help="house capability, repeatable (e.g. smart_meter); enables the requirement check")
     sub.add_parser("schema", help="print the JSON Schema of a tariff entry")
+    ui = sub.add_parser("ui", help="start the tariff editor in the browser (needs: pip install 'edbert[ui]')")
+    ui.add_argument("--data-dir", type=Path, default=Path("edbert_data"), help="folder for user_tariffs.json and house.json")
+    ui.add_argument("--catalog", type=Path, help="tariffs.json to copy tariffs from")
+    ui.add_argument("--port", type=int, default=8501)
     return parser
 
 
@@ -102,34 +110,13 @@ def _context_and_grid(args: argparse.Namespace) -> tuple[PricingContext, GridFee
     return ctx, resolve_grid_fee(load_grid_fee_config(args.grid_fee), catalog)
 
 
-def _price_lines(t: Translator, tariff: Tariff, result: PriceResult, local: datetime, tz: str) -> list[str]:
-    n = t.number
-    lines = [
-        t.t("cli.tariff", label=tariff.label, tariff_id=tariff.id),
-        t.t("cli.slot", slot=local.strftime("%Y-%m-%d %H:%M"), timezone=tz),
-        t.t("cli.base", cent=n(result.base_cent)),
-        t.t("cli.rule", rule=result.rule_id) if result.rule_id else t.t("cli.no_rule"),
-    ]
-    if result.after_limits_cent != result.after_rule_cent:
-        lines.append(t.t("cli.after_limits", cent=n(result.after_limits_cent)))
-    if result.grid_cent:
-        lines.append(t.t("cli.grid", cent=n(result.grid_cent)))
-        if result.grid_rule_id:
-            lines.append(t.t("cli.grid_rule", rule=result.grid_rule_id))
-    if tariff.prices_include_vat:
-        lines.append(t.t("cli.price", cent=n(result.cent)))
-    else:
-        lines.append(t.t("cli.price_incl_vat", vat=n(tariff.vat_percent), cent=n(result.cent)))
-    return lines
-
-
 def run_price(args: argparse.Namespace, t: Translator) -> list[str]:
     tariff = load_tariff_file(args.tariff, args.direction)
     ctx, grid_fee = _context_and_grid(args)
     slot = _parse_time(args.at, "--at")
     assert slot is not None
     result = evaluate(tariff, slot, ctx, args.epex, grid_fee)
-    return _price_lines(t, tariff, result, ctx.to_local(slot), args.tz)
+    return price_lines(t, tariff, result, ctx.to_local(slot), args.tz)
 
 
 def _series_lines(t: Translator, series: PriceSeries) -> list[str]:
@@ -161,6 +148,22 @@ def run_series(args: argparse.Namespace, t: Translator) -> tuple[list[str], list
     return _series_lines(t, series), notes
 
 
+def run_ui(args: argparse.Namespace, t: Translator) -> int:
+    """Start Streamlit with the editor page. Settings travel as environment variables."""
+    if importlib.util.find_spec("streamlit") is None:
+        print(t.t("cli.ui_missing"), file=sys.stderr)
+        return 2
+    from edbert.ui import app, config
+
+    env = {**os.environ, config.ENV_DATA_DIR: str(args.data_dir), config.ENV_LANG: args.lang}
+    if args.catalog:
+        env[config.ENV_CATALOG] = str(args.catalog)
+    print(t.t("cli.ui_start", path=str(args.data_dir)))
+    command = [sys.executable, "-m", "streamlit", "run", str(Path(app.__file__)), "--server.port", str(args.port),
+               "--server.headless", "true", "--browser.gatherUsageStats", "false"]  # fmt: skip
+    return subprocess.call(command, env=env)
+
+
 def main(argv: list[str] | None = None) -> int:
     _configure_console_utf8()
     args = build_parser().parse_args(argv)
@@ -168,6 +171,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "schema":
         print(json.dumps(tariff_schema(), indent=2, ensure_ascii=False))
         return 0
+    if args.command == "ui":
+        return run_ui(args, t)
     try:
         if args.command == "price":
             lines, notes = run_price(args, t), []

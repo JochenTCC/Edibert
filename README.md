@@ -4,7 +4,16 @@
 
 **Edbert** is a tariff editor and price service for smart-home systems. You describe your electricity tariff once (fixed, market-indexed, or time-variable with windows, weekdays and holidays) and Edbert delivers the resulting prices as a time series to your smart-home backend: as a Home Assistant sensor or over MQTT.
 
-> **Status: draft.** The rule engine (`0.1.a`) and the price series with grid fee (`0.1.b`) work: tariffs with time rules, holidays, floor/cap, VAT and grid fee can be loaded and priced per slot or over a time range, with a command-line check. The editor and the publishers (Home Assistant, MQTT) do not exist yet. See the [roadmap](#roadmap).
+> **Status: draft.** The rule engine (`0.1.a`), the price series with grid fee (`0.1.b`) and the tariff editor in the browser (`0.1.c`) work. The publishers for Home Assistant and MQTT do not exist yet. See the [roadmap](#roadmap).
+
+## The tariff editor
+
+```bash
+pip install -e ".[ui]"
+python -m edbert ui --data-dir edbert_data
+```
+
+Open `http://localhost:8501`. Four steps (base price, time windows, further costs, advanced), live price curve, price at a given time, check against a real invoice, copy a catalog tariff, import JSON. English and German. See the [user manual](docs/user/en/index.md).
 
 ## Try it
 

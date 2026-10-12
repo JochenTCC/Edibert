@@ -4,7 +4,16 @@
 
 **Edbert** ist ein Tarif-Editor und Preisdienst für Smart-Home-Systeme. Du beschreibst deinen Stromtarif einmal (fest, börsengebunden oder zeitvariabel mit Fenstern, Wochentagen, Feiertagen) und Edbert liefert die daraus berechneten Preise als Zeitreihe an dein Smart-Home-Backend: als Home-Assistant-Sensor oder per MQTT.
 
-> **Status: Entwurf.** Die Regel-Engine (`0.1.a`) und die Preisreihe mit Netzentgelt (`0.1.b`) funktionieren: Tarife mit Zeitregeln, Feiertagen, Boden/Deckel, USt und Netzentgelt lassen sich laden und je Zeitabschnitt oder über einen Zeitraum berechnen, dazu gibt es eine Kommandozeilen-Prüfung. Editor und Ausgabe (Home Assistant, MQTT) gibt es noch nicht. Siehe [Roadmap](#roadmap).
+> **Status: Entwurf.** Die Regel-Engine (`0.1.a`), die Preisreihe mit Netzentgelt (`0.1.b`) und der Tarif-Editor im Browser (`0.1.c`) funktionieren. Die Ausgabe an Home Assistant und MQTT gibt es noch nicht. Siehe [Roadmap](#roadmap).
+
+## Der Tarif-Editor
+
+```bash
+pip install -e ".[ui]"
+python -m edbert ui --data-dir edbert_data
+```
+
+`http://localhost:8501` öffnen. Vier Schritte (Basispreis, Zeitfenster, weitere Kosten, erweitert), Preisverlauf live, Preis zu einem Zeitpunkt, Prüfung gegen eine echte Rechnung, Katalogtarif kopieren, JSON importieren. Deutsch und Englisch. Siehe die [Bedienungsanleitung](docs/user/de/index.md).
 
 ## Ausprobieren
 

@@ -2,6 +2,17 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Editor — form model, preview, import, Streamlit front end (0.1.c, 2026-10-12)
+
+- [x] **0.1.c — Editor** (`src/edbert/editor/` without UI, `src/edbert/ui/` Streamlit)
+  - Editor P1 (no UI): form model (`TariffDraft`/`RuleDraft`, round trip to tariff JSON, unknown fields kept, unique rule IDs, name required), rule templates (night, weekend, summer midday, high/low tariff), plausibility checks (rule hidden behind another, rule that never applies, unusual prices, gross spot prices), preview data (typical days, holiday day, DST-safe curves, example market curve), invoice check (bands per month, fees with VAT, 2 % tolerance), house settings (`house.json`), user store (atomic writes of `user_tariffs.json`)
+  - Editor P2: Streamlit page with four steps, live price curve, price at a time, invoice check, hints, house settings with grid-fee rows, language selector (en/de, values kept on switch), `python -m edbert ui`
+  - Editor P3: copy a catalog tariff as template (I1), import JSON from text or file with rename, collision and error report (I2)
+  - Coded errors with readable field names; 30+ new catalog texts per language; user manual en/de (7 pages)
+  - Rules and skills ported from Earnie: `streamlit-ui-state`, `streamlit-apptest`
+  - 178 tests including 11 headless AppTest flows
+  - Open for `0.1.r`: visual check of the page in a browser was only partial (the browser pane failed to draw screenshots); no screenshots in the manual yet; `st.data_editor` (monthly prices) is not covered by AppTest
+
 ### Engine P2 — grid fee and price series (0.1.b, 2026-10-12)
 
 - [x] **0.1.b — Engine P2** (`src/edbert/`: `gridfee.py`, `series.py`, `checks.py`; extensions in `rules.py`, `tariff.py`, `cli.py`)

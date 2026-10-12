@@ -1,0 +1,49 @@
+# Getting started
+
+## Install
+
+Edbert needs Python 3.11 or newer.
+
+```bash
+pip install -e ".[ui]"
+```
+
+`[ui]` adds Streamlit, which draws the editor. Without it the command line still works.
+
+## Start the editor
+
+```bash
+python -m edbert ui --data-dir edbert_data
+```
+
+Then open `http://localhost:8501` in your browser. Add `--lang de` before `ui` to start in German, `--port 8601` to use another port, and `--catalog tariffs.json` if you want to copy tariffs from a catalog file.
+
+```bash
+python -m edbert --lang de ui --data-dir edbert_data --catalog tariffs.json
+```
+
+## Where your data is stored
+
+Everything stays on your computer in the data folder (default `edbert_data`):
+
+| File | Content |
+|---|---|
+| `user_tariffs.json` | your tariffs |
+| `house.json` | house settings (time zone, location, grid fee) |
+
+Nothing is sent anywhere. There is no upload yet.
+
+## Language
+
+The sidebar has a **Language** selector (English or German). Your entries are kept when you switch.
+
+## House settings
+
+Open **House settings** in the sidebar once, before you rely on the preview:
+
+- **Time zone** (for example `Europe/Vienna`). All times are local time of the house.
+- **Country** and **federal state / canton.** The region is needed as soon as a tariff has rules for certain days, because public holidays can change the price. Without a region Edbert stops with a clear message instead of guessing.
+- **What the house has**: smart meter, quarter-hour meter, separate meter, controllable device. A tariff that needs something the house does not have gets a hint.
+- **Grid fee** (optional): base price in ct/kWh (net) and time windows, for example the high and low level of section 14a EnWG module 3. It is added to the price before VAT.
+
+Click **Save house settings** to keep them.

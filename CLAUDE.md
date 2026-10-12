@@ -17,13 +17,15 @@ Project rules live in `.cursor/rules/*.mdc` and `.cursor/skills/*/SKILL.md` (wri
 | `.cursor/rules/backlog.mdc` | Backlog files, bugfix lifecycle, archive format |
 | `.cursor/rules/roadmap-nomenclature.mdc` | Version letters, epics/phases/steps, commit syntax |
 | `.cursor/rules/backlog-anonymize-users.mdc` | Scrub personal names in the bugfix/archive files before commit |
+| `.cursor/rules/streamlit-ui-state.mdc` | Editor state: language-independent versioned keys, row uids, callbacks |
+| `.cursor/skills/streamlit-apptest/` | Headless AppTest tests of the editor |
 | `.cursor/skills/windows-unicode-console/` | UTF-8 env for Python on Windows |
 | `.cursor/skills/bugfix-regression-test/` | Propose a regression test after each bugfix |
 | `.cursor/skills/doc-review-findings/` | Process `## Document Review Findings` |
 | `.cursor/skills/session-abschluss/` | End of session: backlog sync, commit, push, publish decision (lean) |
 | `.cursor/skills/quality-gate/` | `X.Y.r` release hardening incl. SonarCloud snapshot |
 
-Not ported from Earnie (Earnie-specific or not needed yet): test-health scripts, branching playbook, Streamlit and EHAL rules, Docker hooks, release promote job. Port the Streamlit rules when the editor UI exists.
+Not ported from Earnie (Earnie-specific): test-health scripts, branching playbook, EHAL rules, Docker hooks, release promote job.
 
 ## Backlog
 

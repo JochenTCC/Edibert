@@ -22,19 +22,13 @@ Spec: [`docs/spec/tariff-format.md`](../docs/spec/tariff-format.md). Internal de
 
 Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T4/T4b = `0.1.d`.
 
-- [ ] **0.1.c — Editor: form model, preview, import** *(0.1.b done)*
-  - Editor P1: form model, validation, preview data without UI (price curve for weekday/weekend, price at a date, shadowed-rule warning, plausibility checks, invoice check)
-  - Editor P2: Streamlit front end with stepwise disclosure (base price, time windows, further costs, advanced)
-  - Editor P2 also covers: language selector (en/de), one `Translator` per session, language-independent widget keys, localized weekday/month names and number format
-  - Editor P3: import I1 (copy catalog tariff as template) and I2 (JSON file / paste with validation and ID collision check)
-- [ ] **0.1.d — Catalog: contribution path and signed catalog access** *(after 0.1.c; legal review first)*
+- [ ] **0.1.d — Catalog: contribution path and signed catalog access** *(0.1.c done; legal review first)*
   - Catalog P1: opt-in upload with payload preview per tariff, `individual` flag, no free text and no personal data; GitHub-issue route first
   - Catalog P2: signed catalog package with validity date, manual import; credit for accepted contributions or small one-time fee
   - Catalog P3 (later): automatic updates / yearly subscription
 - [ ] **0.1.e — Publish: Home Assistant sensor and MQTT** *(0.1.b done)*
   - Publish P1: HA sensor with `raw_today` / `raw_tomorrow` and `forecast`, action `get_rates(start, end, resolution)`
   - Publish P2: MQTT (retained, HA discovery)
-- [ ] **0.1.c also: user manual** — `docs/user/en/` (authoritative) and `docs/user/de/`, written together with the editor; translation test must stay green
 - [ ] **0.1.r — Quality / release hardening** *(skill `quality-gate`; after 0.1.a–0.1.e)*
   - Coverage baseline, dead-code audit, simplification, KPI refactor, docs review, SonarCloud snapshot
 - [ ] **0.1.0 — Release** *(user decision; version bump only with approval)*

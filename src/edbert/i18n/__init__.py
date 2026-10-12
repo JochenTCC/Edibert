@@ -88,9 +88,18 @@ class Translator:
         text = f"{whole}.{frac.ljust(2, '0')}"
         return text.replace(".", ",") if self.language == "de" else text
 
+    def field_name(self, path: str) -> str:
+        """Readable name of a field path: ``user_x.rules[night].time.from`` -> "Von". Unknown names stay as they are."""
+        last = path.rsplit(".", 1)[-1].split("[", 1)[0]
+        known = self._catalog.get(f"field.{last}") or self._source.get(f"field.{last}")
+        return known if known else path
+
     def error(self, err: EdbertError) -> str:
-        """Localized text for a coded error."""
-        return self.t(f"error.{err.code.value}", **err.params)
+        """Localized text for a coded error. A ``field`` parameter is shown by its readable name."""
+        params = dict(err.params)
+        if isinstance(params.get("field"), str):
+            params["field"] = self.field_name(params["field"])
+        return self.t(f"error.{err.code.value}", **params)
 
     def warning(self, warning: EdbertWarning) -> str:
         """Localized text for a warning; a ``requirement`` parameter is translated as well."""
