@@ -100,8 +100,9 @@ def test_template_labels_follow_the_language_and_ids_stay_unique():
 
 
 def test_unknown_template_is_an_error():
+    translator = Translator("en")
     with pytest.raises(ValueError):
-        rules_for_template("nope", Translator("en"), kind="fixed", base_cent=30.0)
+        rules_for_template("nope", translator, kind="fixed", base_cent=30.0)
 
 
 def test_a_tariff_needs_a_name():

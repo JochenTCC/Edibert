@@ -16,14 +16,15 @@ from edbert.gridfee import GridFee, parse_grid_fee_config, resolve_grid_fee
 from edbert.rules import REQUIRES
 
 LANDS = ("AT", "DE", "CH")
-COMMON_TIMEZONES = ("Europe/Vienna", "Europe/Berlin", "Europe/Zurich")
+DEFAULT_TIMEZONE = "Europe/Vienna"
+COMMON_TIMEZONES = (DEFAULT_TIMEZONE, "Europe/Berlin", "Europe/Zurich")
 
 
 @dataclass
 class HouseSettings:
     """Where the house is and what it has. Saved next to the user tariffs as ``house.json``."""
 
-    timezone: str = "Europe/Vienna"
+    timezone: str = DEFAULT_TIMEZONE
     land: str = "AT"
     region: str = ""
     capabilities: list[str] = field(default_factory=list)
@@ -64,7 +65,7 @@ class HouseSettings:
     def from_json(cls, data: dict[str, Any]) -> HouseSettings:
         capabilities = [item for item in data.get("capabilities", []) if item in REQUIRES]
         return cls(
-            timezone=str(data.get("timezone", "Europe/Vienna")),
+            timezone=str(data.get("timezone", DEFAULT_TIMEZONE)),
             land=str(data.get("land", "AT")),
             region=str(data.get("region", "")),
             capabilities=capabilities,

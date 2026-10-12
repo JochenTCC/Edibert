@@ -114,20 +114,22 @@ def test_invoice_fees_get_vat_when_prices_are_net(ctx_plain):
 
 def test_invoice_check_rejects_unknown_bands_and_exports(ctx_plain):
     tariff = make(BASE)
+    month = date(2026, 10, 1)
     with pytest.raises(EdbertError) as err:
-        invoice_check(tariff, ctx_plain, date(2026, 10, 1), {"night": 10.0}, 10.0)
+        invoice_check(tariff, ctx_plain, month, {"night": 10.0}, 10.0)
     assert err.value.code == ErrorCode.VALUE_INVALID
     export = make({"id": "e", "type": "fixed", "supplier_id": "s", "k_push_cent": 5.0}, direction="export")
     with pytest.raises(EdbertError):
-        invoice_check(export, ctx_plain, date(2026, 10, 1), {BASE_BAND: 1.0}, 10.0)
+        invoice_check(export, ctx_plain, month, {BASE_BAND: 1.0}, 10.0)
 
 
 def test_invoice_bands_of_a_spot_tariff_need_the_month_average(ctx_plain):
     spot = make({"id": "s", "type": "spot_hourly", "supplier_id": "x", "settlement_fee_cent_kwh": 1.5})
+    month = date(2026, 10, 1)
     with pytest.raises(EdbertError) as err:
-        invoice_bands(spot, ctx_plain, date(2026, 10, 1))
+        invoice_bands(spot, ctx_plain, month)
     assert err.value.code == ErrorCode.MARKET_PRICE_REQUIRED
-    assert invoice_bands(spot, ctx_plain, date(2026, 10, 1), market_cent=10.0)[0].cent == 11.5
+    assert invoice_bands(spot, ctx_plain, month, market_cent=10.0)[0].cent == 11.5
 
 
 def test_invoice_with_grid_fee(ctx_plain):

@@ -33,7 +33,7 @@ def example_market_profile() -> tuple[float, ...]:
 
 def representative_dates(ctx: PricingContext, tariff: Tariff, year: int, month: int) -> dict[str, date]:
     """First Wednesday, Saturday and Sunday of the month and, if a calendar is available, the first holiday."""
-    days = {key: None for key in DAY_KEYS}
+    days = dict.fromkeys(DAY_KEYS)
     for number in range(1, calendar.monthrange(year, month)[1] + 1):
         when = date(year, month, number)
         for key, weekday in (("weekday", 2), ("saturday", 5), ("sunday", 6)):

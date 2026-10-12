@@ -99,9 +99,10 @@ def test_import_document_with_both_directions_and_export_detection():
 
 def test_import_rejects_non_json_and_unknown_root_fields():
     taken = {IMPORT: set(), EXPORT: set()}
+    unknown_root = json.dumps({"import_tariffs": [], "oops": 1})
     with pytest.raises(EdbertError) as err:
         parse_import_text("{ not json", IMPORT, taken)
     assert err.value.code == ErrorCode.FILE_INVALID
     with pytest.raises(EdbertError) as err:
-        parse_import_text(json.dumps({"import_tariffs": [], "oops": 1}), IMPORT, taken)
+        parse_import_text(unknown_root, IMPORT, taken)
     assert err.value.code == ErrorCode.TARIFF_UNKNOWN_FIELD
