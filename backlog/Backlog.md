@@ -34,12 +34,9 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
 - [ ] **0.1.0 — Release** *(user decision; version bump only with approval)*
 
 ### Version 0.+1
-
-- [ ] Price per meter / consumer (`applies_to`), e.g. heat-pump meter or EV allowance (class B/C; needs consumer-aware consumers such as Earnie)
+- [ ] Simple "vector multiplication" of a selected tariff and a logged consumption file for primitive comparison of tariffs (only with hint to Earnie SE)
+- [ ] Graphical comparison of multiple tariffs without consumption
 - [ ] Tiers and free allowances (class B), capacity charge (see Earnie development document "Leistungstarif AT 2027")
-- [ ] Rule condition from an external signal (Home Assistant entity state), e.g. provider events (class C)
-- [ ] Manual price overrides (time-limited promotions, `source: manual_override`)
-- [ ] Price sheet assistant (PDF/photo → proposal, user confirms, invoice check)
 - [ ] Output formats for evcc, EMHASS, Predbat; price source from a Home Assistant entity (I3b)
 - [ ] Import adapters: open-energy-tariffs, SmartGridready dynamic tariff (CH)
 - [ ] DE grid-fee catalog (depends on data source and license)
