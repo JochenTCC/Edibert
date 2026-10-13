@@ -24,8 +24,8 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
 
 - [ ] **0.1.d — Catalog: contribution path and signed catalog access** *(0.1.c done; legal review first)*
   - Catalog P1: opt-in upload with payload preview per tariff, `individual` flag, no free text and no personal data; GitHub-issue route first
-  - Catalog P2: signed catalog package with validity date, manual import; credit for accepted contributions or small one-time fee
-  - Catalog P3 (later): automatic updates / yearly subscription
+  - edbert and the catalogue are free - but donations are highly welcom  - regular reminders may be on running installations
+  - Use github issues if a concrete tariff can't be modeled with the existing version
 - [ ] **0.1.e — Publish: Home Assistant sensor and MQTT** *(0.1.b done)*
   - Publish P1: HA sensor with `raw_today` / `raw_tomorrow` and `forecast`, action `get_rates(start, end, resolution)`
   - Publish P2: MQTT (retained, HA discovery)
