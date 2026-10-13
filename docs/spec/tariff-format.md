@@ -85,6 +85,71 @@ The grid-fee work price (Netznutzungsentgelt, net, cent/kWh) is a field of the h
 
 With a catalog area the base price and the rule set come from the catalog. Rules whose `status` is not included or whose `quarter_hour_meter` requirement is not met are skipped and reported as warnings. An included rule without a value (`effect.value` is `null`) is an error (`RULE_VALUE_MISSING`). First matching rule wins. Section 14a EnWG module 3 (low/standard/high level) is modeled as base price = standard level plus one rule per other level (see `examples/grid_fee_modul3_example.json`).
 
+## 5b. Capacity charge (`capacity_charges`) — draft, not implemented
+
+**Status:** planned (backlog `0.+1`, class B in section 7). Nothing of this section is implemented; field names and codes may still change. Models the Austrian grid-fee reform (SNE-G-V, from 2027 per grid area): part of the grid fee is billed per month on the **highest quarter-hour average import power** of the calendar month. The regulation and the per-area prices are drafts as of 2026-10; all numbers below are placeholders.
+
+### Principles
+
+1. **Part of the house profile, not of a supplier tariff.** `capacity_charges` is a field of `netznutzung` (section 5a) and of a grid area in `grid_fees.json`. The tariff field `demand` stays rejected (`UNSUPPORTED_FEATURE`).
+2. **Never folded into cent/kWh.** The charge depends on the state of the month (the peak so far), so it is not a slot price. The price series keeps its per-slot prices unchanged and carries the charge as a separate block (section 8). An automatic conversion to a per-kWh surcharge would be a silent estimate and is not done.
+3. **Edbert is stateless.** The month-to-date peak comes from the caller (smart home or optimizer) on every call; Edbert never stores or guesses it. A missing state is never taken as `0`.
+4. **Bands are not `tiers`.** `tiers` means consumption brackets in kWh and stays rejected. Capacity bands are brackets of the monthly peak in kW.
+
+### Fields
+
+`capacity_charges` is a list; entries must not overlap in validity. For a month with at least one entry in the list but none that covers it, evaluation is an error (`CAPACITY_CHARGE_MISSING`), as for a missing month in a `monthly_table`. No list at all means no capacity charge.
+
+| Field | Meaning |
+|---|---|
+| `id`, `label` | name of the entry |
+| `basis` | `monthly_peak_15min` (only value for now): highest clock-aligned 15-minute average import power of the calendar month, local time of the house |
+| `min_kw` | minimum assessed power, required, no default (draft: 2 kW) |
+| `min_percent_of_contracted` | optional; the minimum is then the larger of `min_kw` and this share of `contracted_kw` from the house profile; `contracted_kw` missing = error (`FIELD_MISSING`) |
+| `bands[]` | `{up_to_kw, eur_per_kw_year}`, ascending `up_to_kw`, the last with `up_to_kw: null`; the rate of a band applies to the share of the peak inside it (draft: one band up to 10 kW, one above) |
+| `valid_from`, `valid_to` | dates; the introduction date differs per grid area and the rates change yearly |
+| `status`, `source`, `note` | as for grid-fee rules; `include_status` of the profile filters entries, a skipped entry is a warning (`GRID_CAPACITY_SKIPPED_STATUS`) |
+
+The rate is stored as printed on the price sheet (EUR per kW and year). **Open:** the monthly amount is assumed to be `peak_kw * eur_per_kw_year / 12` per band; the exact billing formula is taken from the final SNE-V once published and this line is updated. Net amounts; VAT follows the tariff's `prices_include_vat` and `vat_percent` like the work price.
+
+Loading checks: `min_kw >= 0`, band rates `>= 0`. Rates that decrease from one band to the next make the charge non-convex and are reported as a warning (`CAPACITY_BANDS_NOT_CONVEX`), because a convex charge is what optimizers can model with linear segments.
+
+Example (house profile, placeholders):
+
+```json
+"netznutzung": {
+  "area_id": null,
+  "quarter_hour_meter": true,
+  "base_cent_kwh": 4.5,
+  "capacity_charges": [
+    {
+      "id": "lp_2027",
+      "basis": "monthly_peak_15min",
+      "min_kw": 2.0,
+      "bands": [
+        { "up_to_kw": 10, "eur_per_kw_year": 19.0 },
+        { "up_to_kw": null, "eur_per_kw_year": 28.0 }
+      ],
+      "valid_from": "2027-01-01",
+      "valid_to": "2027-12-31",
+      "status": "entwurf",
+      "source": "SNE-V 2027 draft, grid area XY"
+    }
+  ]
+}
+```
+
+### Functions
+
+- `capacity_charge_eur(charge, peak_kw)`: the net amount of one month for a given peak, with minimum and bands. Used by the invoice check.
+- `capacity_ladder(charge, state, month, *, step_kw=None)`: the remaining cost of the month as a function of the peak, relative to `state`. `state` is `{peak_15min_kw, as_of}` and must belong to `month`, otherwise `CAPACITY_STATE_MONTH_MISMATCH`. The ladder lists the break points (minimum, peak so far, band limits) and optionally rungs every `step_kw`; a rung at or below the larger of `min_kw` and the peak so far is `reached` with `extra_eur: 0` (sunk cost). Without `state` the ladder is absolute and marked `state: null`; a caller that needs the relative ladder gets `CAPACITY_STATE_MISSING`.
+
+The state is **measured**, not planned: the meter's clock-aligned quarter-hour averages decide, a short burst above a band limit does not. A caller may pass a planned peak as state to see the ladder after a deliberate exceedance (what-if); Edbert does not distinguish the two.
+
+### Capability `quarter_hour_meter`
+
+The grid operator bills the peak also when the customer opted out of 15-minute data. A capacity charge is therefore never skipped for a missing `quarter_hour_meter`; the house only cannot supply the state then, which the warning `CAPACITY_STATE_UNAVAILABLE` says.
+
 ## 6. Holidays
 
 Holidays come from the `holidays` package (MIT, offline), category `PUBLIC`, by country (`AT`, `DE`, `CH`) and region (federal state or canton). The pricing context needs `land` and `region` whenever holidays can change a result; a missing region is an error (`HOLIDAY_REGION_MISSING`), an unknown one too (`HOLIDAY_REGION_UNKNOWN`).
@@ -102,7 +167,7 @@ Holidays come from the `holidays` package (MIT, offline), category `PUBLIC`, by 
 | Class | Property | Examples | Engine |
 |---|---|---|---|
 | A | price is a function of the slot | fixed, HT/NT, spot with markups, floor/cap, §14a Modul 3, no pay at negative price | supported |
-| B | state dependent | tiers, free allowance, capacity charge | later, evaluation first |
+| B | state dependent | tiers, free allowance, capacity charge (monthly peak, section 5b) | later; capacity charge planned as a separate block next to the slot prices, never as a slot price |
 | C | behaviour dependent | bonus only if the provider controls charging | note only (`behavior_notes`) |
 
 ## 8. Price series (interface)
@@ -116,12 +181,14 @@ Holidays come from the `holidays` package (MIT, offline), category `PUBLIC`, by 
 - **Warnings** (`PriceSeries.warnings`, never errors): `WINDOW_NOT_HOUR_ALIGNED` (a rule window not on a full hour in an hourly settled spot tariff), `REQUIREMENT_UNMET` (only checked when `capabilities` is given), `GRID_RULE_SKIPPED_STATUS`, `GRID_RULE_SKIPPED_NO_QUARTER_HOUR_METER`.
 - **Output:** `PriceSeries.to_dict()` is JSON ready. `python -m edbert series ...` prints it as a table or JSON.
 
-Planned outputs on top of this interface: Home Assistant sensor attributes `raw_today`/`raw_tomorrow` and `forecast`, MQTT (retained, HA discovery), and an action `get_rates(start, end, resolution)`.
+- **Capacity block (planned, section 5b):** when the grid fee carries a capacity charge, `PriceSeries.to_dict()` gets a `capacity` list with one entry per calendar month the range touches: `month`, `state` (as passed in, or `null`), `free_up_to_kw`, `days_remaining`, `ladder[]` with `up_to_kw`, `extra_eur`, `marginal_eur_per_kw`, `reached`, and `unit` ("EUR once per month, net"). The per-slot prices do not change. A month after the state's month starts with a peak of `0`.
+
+Planned outputs on top of this interface: Home Assistant sensor attributes `raw_today`/`raw_tomorrow` and `forecast`, MQTT (retained, HA discovery), an action `get_rates(start, end, resolution)`, and the capacity block as sensor attributes (`capacity_free_up_to_kw`, `capacity_ladder`, `capacity_days_remaining`) with the month-to-date peak read from a configured entity.
 
 ## 9. Errors and language
 
 - Load and evaluation problems are `EdbertError` instances with a stable `code` and `params`; the message is English and meant for logs. The UI shows `error.<code>` from the translation catalog with the params as placeholders (English and German, English authoritative).
-- Error codes: `TARIFF_UNKNOWN_FIELD`, `RULE_UNKNOWN_FIELD`, `FIELD_MISSING`, `VALUE_INVALID`, `UNSUPPORTED_FEATURE`, `RULE_VALUE_MISSING`, `GRID_AREA_UNKNOWN`, `FILE_INVALID`, `ID_COLLISION`, `ID_PREFIX_MISSING`, `ID_PREFIX_RESERVED`, `PRICE_MISSING`, `MARKET_PRICE_REQUIRED`, `HOLIDAY_REGION_MISSING`, `HOLIDAY_REGION_UNKNOWN`. Warning codes are listed in section 8. A new code needs an `error.<CODE>` or `warning.<CODE>` text in every catalog (checked by tests).
+- Error codes: `TARIFF_UNKNOWN_FIELD`, `RULE_UNKNOWN_FIELD`, `FIELD_MISSING`, `VALUE_INVALID`, `UNSUPPORTED_FEATURE`, `RULE_VALUE_MISSING`, `GRID_AREA_UNKNOWN`, `FILE_INVALID`, `ID_COLLISION`, `ID_PREFIX_MISSING`, `ID_PREFIX_RESERVED`, `PRICE_MISSING`, `MARKET_PRICE_REQUIRED`, `HOLIDAY_REGION_MISSING`, `HOLIDAY_REGION_UNKNOWN`. Planned codes of section 5b (not implemented): errors `CAPACITY_CHARGE_MISSING`, `CAPACITY_STATE_MISSING`, `CAPACITY_STATE_MONTH_MISMATCH`; warnings `GRID_CAPACITY_SKIPPED_STATUS`, `CAPACITY_BANDS_NOT_CONVEX`, `CAPACITY_STATE_UNAVAILABLE`. Warning codes are listed in section 8. A new code needs an `error.<CODE>` or `warning.<CODE>` text in every catalog (checked by tests).
 - Tariff `label` values and supplier/product names are data, not UI text, and are not translated.
 - Holiday names come from the `holidays` package in the UI language.
 

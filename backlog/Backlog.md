@@ -13,6 +13,7 @@ Spec: [`docs/spec/tariff-format.md`](../docs/spec/tariff-format.md). Internal de
 - [ ] **Verify test fixtures against real price sheets** — Octopus Go / dynamicOctopus offer for the own postal code, Westnetz / EWR Netz / e-netz Südhessen / N-ERGIE §14a Modul 3 sheets (do they differ on weekends and holidays?)
 - [ ] **Legal texts per country** — separate versions for Germany, Austria and Switzerland, each in the national language (German for all three); which version binds consumers; the current drafts are Austria-oriented
 - [ ] **HACS publishing requirements** — no license requirement found in the docs; check default-store CI checks (brands, manifest, info) before any HACS release
+- [ ] **Capacity charge AT 2027: verify against the final regulation** — the SNE-G-V and the per-area SNE-V 2027 are drafts as of 2026-10; confirm the billing formula (EUR/kW/year ÷ 12 × monthly peak?), the minimum (2 kW or 20 % of contracted power), the 10 kW band limit, the introduction date per grid area and whether opt-out customers are billed on the measured peak; then update spec section 5b and the grid-fee catalog `status`
 - [ ] **14a-Atlas license** — may its data be used for a DE grid-fee catalog? Do not scrape until clarified
 - [ ] **Shared library (weather)** — built when the forecast plug-in needs it; location open (proposal: standalone package without Earnie imports in the Earnie repo first, own repository later); no shared cache building block in advance
 - [ ] **License when Earnie contains the library** — PolyForm Noncommercial for Edbert versus Earnie's own license; as the owner a separate grant is possible; decide before both ship as one product
@@ -50,7 +51,13 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
 
 - [ ] Simple "vector multiplication" of a selected tariff and a logged consumption file for primitive comparison of tariffs (only with hint to Earnie SE)
 - [ ] Graphical comparison of multiple tariffs without consumption
-- [ ] Tiers and free allowances (class B), capacity charge (see Earnie development document "Leistungstarif AT 2027")
+- [ ] Tiers and free allowances (class B)
+- [ ] **Capacity charge AT 2027 (class B, draft spec section 5b)** — monthly peak-based grid fee (SNE-G-V, per grid area from 2027); see Earnie development document "Leistungstarif AT 2027"; keep spec, development document and these items consistent
+  - Engine: `capacity_charges` in the house profile and in `grid_fees.json` (bands, `min_kw`, validity, `status`), strict loading, `include_status` filter, convexity warning; `capacity_charge_eur` (month amount) and `capacity_ladder` (remaining cost relative to the month-to-date peak, stateless, state from the caller, never guessed); `capacity` block in `PriceSeries.to_dict()` per calendar month; CLI `python -m edbert capacity --peak-so-far … --power …`; new error and warning codes with texts in both catalogs; schema regenerated
+  - Editor: capacity charge in the house settings (minimum, bands, validity, status); invoice check with "highest quarter hour of the month (kW)" and a `capacity_eur` line next to energy and fees; preview table "cost of one more kW of peak this month"
+  - Publish: capacity block as Home Assistant sensor attributes (`capacity_free_up_to_kw`, `capacity_ladder`, `capacity_days_remaining`), month-to-date peak read from a configured entity (after `0.1.e`)
+  - Comparison: monthly peaks and capacity cost from a logged 15-minute consumption file (with the "vector multiplication" item above); without a consumption file only as an explicitly entered assumed peak, marked `estimate`, never as a cent/kWh surcharge
+  - Not in scope: Edbert as keeper of the monthly peak state; automatic conversion of the charge into cent/kWh
 - [ ] Output formats for evcc, EMHASS, Predbat; price source from a Home Assistant entity (I3b)
 - [ ] Import adapters: open-energy-tariffs, SmartGridready dynamic tariff (CH)
 - [ ] DE grid-fee catalog (depends on data source and license)
