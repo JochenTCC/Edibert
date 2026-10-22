@@ -43,6 +43,15 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
   - Publish P1: HA custom integration (sensor with `raw_today` / `raw_tomorrow` / `forecast`, action `get_rates(start, end, resolution)`), reading the same price series as the MQTT publisher
   - Clean up retained topics of tariffs removed from `publish.json`
   - Earnie's OLS model is handed in as a forecaster object (no key); the key only guards plug-ins loaded through entry points; decide how keys are issued and checked
+- [ ] **0.1.h — Editor: persistence and logic tests for the embedded editor** *(after the Edbert integration in Earnie, Earnie backlog "Edbert integration" → Editor; test concept "Earnie UI-Persistenztests", cases TE1–TE6)*
+  - Earnie's UI test suite (AppTest level 1, a few Playwright paths) covers the tariff selection in the Szenarienkonfigurator today (`ui/pages/scenario_editor_tariffs.py`, dependent land/type/tariff selects, own fixed price, next-month rate); when Edbert's editor replaces it, the same cases must run against the embedded editor. Edbert owns the editor, so the cases belong into `tests/test_ui_app.py` here and a smoke test in Earnie
+  - **TE1 filter vs. selection:** changing the land or tariff-type filter filters the list; the saved tariff stays selectable or is visibly reset, never silently replaced by another one
+  - **TE2 profile switch:** the land filter follows the new house profile; with the same profile a manually chosen filter stays
+  - **TE3 own fixed price:** choosing it shows the cent input with the saved value (else the default), deselecting hides it and does not save it
+  - **TE4 monthly table without the next month:** warning plus input; saving writes the next month to the tariff file and the warning disappears
+  - **TE5 month boundary:** planning time at month end 23:30 and 00:30 yields the next month in the planning time zone, not UTC (inject the clock)
+  - **TE6 scenario switch:** no values of the previous scenario remain (`session_scope` pattern, Earnie rule `streamlit-ui-state.mdc`)
+  - Same checks as the Earnie suite for every save path: rejected input shows an error and leaves the file unchanged (T3); a success message set right before `st.rerun()` is never visible, so use a flash message; stable language-independent widget keys (already the rule here)
 - [ ] **0.1.r — Quality / release hardening** *(skill `quality-gate`; after 0.1.a–0.1.e)*
   - Coverage baseline, dead-code audit, simplification, KPI refactor, docs review, SonarCloud snapshot
 - [ ] **0.1.0 — Release** *(user decision; version bump only with approval)*
