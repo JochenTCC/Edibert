@@ -170,6 +170,7 @@ class Publisher:
                 resolution_min=self.config.resolution_min,
                 market={**data.prices, **extra},
                 forecast_from=start,
+                forecast_method=label,
                 grid_fee=self.house.grid_fee() if tariff.direction == IMPORT else None,
                 capabilities=set(self.house.capabilities),
             )  # fmt: skip

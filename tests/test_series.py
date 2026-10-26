@@ -10,7 +10,12 @@ from edibert.checks import check_grid_fee, check_tariff
 from edibert.errors import EdibertError, ErrorCode, WarningCode
 from edibert.gridfee import parse_grid_fee_config, resolve_grid_fee
 from edibert.i18n import Translator
-from edibert.series import QUALITY_EXACT, QUALITY_FORECAST, tariff_price_series
+from edibert.series import (
+    METHOD_EXACT,
+    QUALITY_EXACT,
+    QUALITY_FORECAST,
+    tariff_price_series,
+)
 
 FIXED_NIGHT = {
     "id": "f", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0, "vat_percent": 20,
@@ -114,6 +119,41 @@ def test_forecast_quality_from_a_given_time(ctx_plain):
     assert [p.quality for p in series.points] == [QUALITY_EXACT, QUALITY_EXACT, QUALITY_FORECAST, QUALITY_FORECAST]
     fixed = tariff_price_series(make(FIXED_NIGHT), ctx_plain, at("2026-10-12 00:00"), at("2026-10-12 04:00"), forecast_from=at("2026-10-12 01:00"))
     assert {p.quality for p in fixed.points} == {QUALITY_EXACT}  # a fixed price is never a forecast
+
+
+def test_points_carry_the_market_price_and_the_method(ctx_plain):
+    market = market_for_day("2026-10-12", ctx_plain, [10.0, 12.0, 14.0, 16.0])
+    quarters = tariff_price_series(make(SPOT), ctx_plain, at("2026-10-12 00:00"), at("2026-10-12 01:00"), market=market)
+    assert [p.market_cent for p in quarters.points] == [10.0, 12.0, 14.0, 16.0]
+    assert {p.method for p in quarters.points} == {METHOD_EXACT}
+    hour_settled = tariff_price_series(make(SPOT, settlement_mtu="60min"), ctx_plain, at("2026-10-12 00:00"), at("2026-10-12 01:00"), market=market)
+    assert [p.market_cent for p in hour_settled.points] == [13.0] * 4  # after hourly settlement
+    hourly = tariff_price_series(make(SPOT), ctx_plain, at("2026-10-12 00:00"), at("2026-10-12 01:00"), resolution_min=60, market=market)
+    assert hourly.points[0].market_cent == 13.0  # mean over the point
+    fixed = tariff_price_series(make(FIXED_NIGHT), ctx_plain, at("2026-10-12 00:00"), at("2026-10-12 01:00"), market=market)
+    assert {p.market_cent for p in fixed.points} == {None}  # the tariff uses no market price
+
+
+def test_rule_on_the_market_price_reports_it_too(ctx_plain):
+    raw = dict(FIXED_NIGHT, rules=[{"id": "cheap", "when_market_cent_kwh": {"below": 11.0}, "effect": {"mode": "absolute_cent", "value": 5.0}}])
+    market = market_for_day("2026-10-12", ctx_plain, [10.0, 12.0])
+    series = tariff_price_series(make(raw), ctx_plain, at("2026-10-12 12:00"), at("2026-10-12 12:30"), market=market)
+    assert [(p.market_cent, p.cent) for p in series.points] == [(10.0, 5.0), (12.0, 30.0)]  # gross prices
+
+
+def test_forecast_points_carry_the_named_method(ctx_plain):
+    market = market_for_day("2026-10-12", ctx_plain, [10.0])
+    series = tariff_price_series(
+        make(SPOT), ctx_plain, at("2026-10-12 00:00"), at("2026-10-12 03:00"), resolution_min=60,
+        market=market, forecast_from=at("2026-10-12 01:30"), forecast_method="mirror",
+    )  # fmt: skip
+    assert [p.method for p in series.points] == [METHOD_EXACT, "mirror", "mirror"]  # a mixed hour is a forecast
+    unnamed = tariff_price_series(
+        make(SPOT), ctx_plain, at("2026-10-12 00:00"), at("2026-10-12 02:00"), resolution_min=60,
+        market=market, forecast_from=at("2026-10-12 01:00"),
+    )  # fmt: skip
+    assert [p.method for p in unnamed.points] == [METHOD_EXACT, None]  # not invented
+    assert unnamed.to_dict()["points"][1]["method"] is None
 
 
 def test_components_add_up_with_grid_fee_and_vat(ctx_plain):

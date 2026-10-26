@@ -26,7 +26,7 @@ from edibert.errors import EdibertError
 from edibert.gridfee import GridFee
 from edibert.i18n import Translator
 from edibert.report import price_lines
-from edibert.tariff import Tariff, evaluate
+from edibert.tariff import Tariff, evaluate, monthly_rate
 from edibert.ui import state
 from edibert.ui.config import UiConfig
 
@@ -43,6 +43,15 @@ def guarded(t: Translator) -> Iterator[None]:
 def _hints(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFee | None, capabilities: list[str]) -> None:
     notes = check_tariff(tariff, capabilities) + (check_grid_fee(grid_fee) if grid_fee else [])
     notes += plausibility_warnings(tariff, ctx, date.today().year)
+    for note in notes:
+        st.warning(t.warning(note))
+
+
+def _month_rate_hint(t: Translator, tariff: Tariff, ctx: PricingContext, year: int, month: int) -> None:
+    """A monthly table without this month: say which month's rate is used instead (``MONTH_RATE_FALLBACK``)."""
+    if tariff.type != "monthly_table":
+        return
+    _rate, notes = monthly_rate(tariff, ctx.to_local(datetime(year, month, 1)))
     for note in notes:
         st.warning(t.warning(note))
 
@@ -65,6 +74,7 @@ def _curves(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFe
     if tariff.uses_market_price:
         st.caption(t.t("ui.preview_spot_note"))
     frame = _chart_frame(t, tariff, ctx, grid_fee, month)
+    _month_rate_hint(t, tariff, ctx, date.today().year, month)
     chart = (
         alt.Chart(frame)
         .mark_line(interpolate="step-after")
@@ -89,6 +99,8 @@ def _probe(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFee
     slot = datetime.combine(day, moment)
     result = evaluate(tariff, slot, ctx, epex, grid_fee)
     st.code("\n".join(price_lines(t, tariff, result, ctx.to_local(slot), ctx.timezone)), language=None)
+    for note in result.warnings:
+        st.warning(t.warning(note))
 
 
 def _invoice(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFee | None) -> None:
@@ -98,6 +110,7 @@ def _invoice(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridF
         market = None
         if tariff.uses_market_price:
             market = st.number_input(t.t("ui.invoice_market"), value=10.0, step=0.5, format="%.2f", key="ui.inv_market")
+        _month_rate_hint(t, tariff, ctx, month.year, month.month)
         kwh: dict[str, float] = {}
         for band in invoice_bands(tariff, ctx, month, market_cent=market, grid_fee=grid_fee):
             label = t.t("ui.band_base") if band.id == BASE_BAND else band.label

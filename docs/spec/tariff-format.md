@@ -60,7 +60,9 @@ Export tariffs use the same steps 1 to 3 and 5 (no grid fee). Spot export base: 
 
 All steps are implemented in `edibert.tariff.evaluate`; the final price is rounded to 4 decimals. The grid fee (step 4) applies to import tariffs only and is passed in as `grid_fee`; export tariffs ignore it.
 
-**Differences from Earnie:** a missing month in a `monthly_table` is an error (`PRICE_MISSING`), not a silent carry-over from the prior year or month. Fields Edibert does not know are errors, not ignored.
+**Missing month in a `monthly_table`** (import and export, Earnie's order since `0.1.g`): the rate of the slot's local calendar month; if the table has none, the same month of the previous year (`prior_year`); if that is missing too, the previous calendar month (`prior_month`; January takes December of the year before). No further step: a month that needs a second step back, or a month before the table starts with no entry one year or one month earlier, is `PRICE_MISSING`. Every fallback is reported as the coded warning `MONTH_RATE_FALLBACK` (`tariff_id`, `direction`, `month`, `used_month`, `rule`): on `PriceResult.warnings` per slot and once per requested month on `PriceSeries.warnings`, also when a 72-hour window only reaches into the missing month. The fallback rate goes through steps 2 to 5 like any rate.
+
+**Differences from Earnie:** the fallback is a coded warning on the result, not a log line printed once per process. Fields Edibert does not know are errors, not ignored.
 
 ## 4. New tariff fields
 
@@ -199,13 +201,14 @@ Holidays come from the `holidays` package (MIT, offline), category `PUBLIC`, by 
 
 ## 8. Price series (interface)
 
-`tariff_price_series(tariff, ctx, start, end, *, resolution_min=15, market=None, forecast_from=None, grid_fee=None, capabilities=None)` returns a `PriceSeries` from `start` (inclusive) to `end` (exclusive).
+`tariff_price_series(tariff, ctx, start, end, *, resolution_min=15, market=None, forecast_from=None, grid_fee=None, capabilities=None, forecast_method=None)` returns a `PriceSeries` from `start` (inclusive) to `end` (exclusive).
 
 - **Slots:** every 15-minute slot is evaluated in UTC steps, so daylight-saving days have 92 and 100 slots. `start` must be aligned to the resolution and the range must be a multiple of it.
 - **Resolution:** 15, 30 or 60 minutes; points are the mean of their 15-minute slots.
 - **Market prices:** `market` maps slot starts (cent/kWh, day-ahead, per 15 minutes) to prices; naive keys are local time. A missing price is an error (`PRICE_MISSING`), nothing is carried over. Spot tariffs with `settlement_mtu: 60min` use the mean of the four slots of the clock hour for every slot of that hour.
-- **Point:** `start`, `end` (local time with offset), `cent` = `supplier_cent` + `grid_cent` + `vat_cent` (rounded; `grid_cent` is net, and for a gross tariff `supplier_cent` already includes VAT, so `vat_cent` is the VAT on the grid fee), and `quality`: `exact`, or `forecast` for slots at or after `forecast_from` when the tariff depends on market prices.
-- **Warnings** (`PriceSeries.warnings`, never errors): `WINDOW_NOT_HOUR_ALIGNED` (a rule window not on a full hour in an hourly settled spot tariff), `REQUIREMENT_UNMET` (only checked when `capabilities` is given), `GRID_RULE_SKIPPED_STATUS`, `GRID_RULE_SKIPPED_NO_QUARTER_HOUR_METER`.
+- **Point:** `start`, `end` (local time with offset), `cent` = `supplier_cent` + `grid_cent` + `vat_cent` (rounded; `grid_cent` is net, and for a gross tariff `supplier_cent` already includes VAT, so `vat_cent` is the VAT on the grid fee), `quality`: `exact`, or `forecast` for slots at or after `forecast_from` when the tariff depends on market prices; `market_cent`: the market price the tariff used (after hourly settlement, mean over the point), `null` for a tariff without market price; `method`: `exact`, or for a forecast point the `forecast_method` the caller named (`mirror`, `hold`, a plug-in name; `null` if none was named).
+- **Warnings** (`PriceSeries.warnings`, never errors): `WINDOW_NOT_HOUR_ALIGNED` (a rule window not on a full hour in an hourly settled spot tariff), `REQUIREMENT_UNMET` (only checked when `capabilities` is given), `GRID_RULE_SKIPPED_STATUS`, `GRID_RULE_SKIPPED_NO_QUARTER_HOUR_METER`, `MONTH_RATE_FALLBACK` (section 3, once per requested month).
+- **Market prices for past ranges:** `edibert.api.MarketArchive` / `market_range` deliver the `market` mapping for any range from a per-month cache ([api.md](api.md)).
 - **Output:** `PriceSeries.to_dict()` is JSON ready. `python -m edibert series ...` prints it as a table or JSON.
 
 - **Capacity block (planned, section 5b):** when the grid fee carries a capacity charge, `PriceSeries.to_dict()` gets a `capacity` list with one entry per calendar month the range touches: `month`, `state` (as passed in, or `null`), `free_up_to_kw`, `days_remaining`, `ladder[]` with `up_to_kw`, `extra_eur`, `marginal_eur_per_kw`, `reached`, and `unit` ("EUR once per month, net"). The per-slot prices do not change. A month after the state's month starts with a peak of `0`.

@@ -2,6 +2,16 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Tariff supply for the past and the future (0.1.g, 2026-10-26)
+
+- [x] **0.1.g — Tariff supply for the past and the future** (Earnie epic `Edibert` P3a-2; `src/edibert/tariff.py`, `src/edibert/series.py`, `src/edibert/market/archive.py`; spec `docs/spec/api.md`, `docs/spec/tariff-format.md` sections 3 and 8)
+  - Monthly-table fallback in Earnie's order for import and export: exact month → same month of the previous year (`prior_year`) → previous calendar month (`prior_month`, January looks at December), no further step; otherwise `PRICE_MISSING` (also before a table starts); coded warning `MONTH_RATE_FALLBACK` (`tariff_id`, `direction`, `month`, `used_month`, `rule`) on `PriceResult.warnings` and once per month on `PriceSeries.warnings`, also when a 72-hour window crosses the month change; editor preview, price probe and invoice check show it
+  - `PricePoint.market_cent` (after hourly settlement, mean over the point, `None` without market price) and `PricePoint.method` (`exact`, or the new `forecast_method` argument of `tariff_price_series`; `None` when the caller names none); publisher and CLI (`--forecast-method`) pass the method
+  - Market prices for arbitrary ranges: `MarketArchive` / `api.market_range` (Energy-Charts, no pandas), UTC keys end to end (autumn DST night keeps both 02:00 hours), one cache file per UTC month, refetch only while a month can still change, HTTP 429 waited out (`Retry-After` or 60 s × attempt, `RateLimited`), gaps reported as `MARKET_RANGE_INCOMPLETE` and never filled (also a gap in the Energy-Charts timestamps, which the parser used to fill); `api.known_at` for prices known at a planning moment; `api.market_zone`
+  - Compatibility with Earnie: Earnie's P3a fixture (9 tariffs × 4 windows) plus Earnie's values on the monthly-table edge months (export tables ending 2026-09, `monthly_sunny_web_recherche` 2026-10, `at_vkw_strom_duo` 2027-03, an error before a table starts and beyond one step back, a placeholder table for `prior_month` across the year boundary) in `tests/fixtures/earnie_parity/` with the generator `make_fixture.py`; triaged deviation T1 (autumn DST, hourly settled spot) asserted explicitly
+  - Additive to `edibert.api`, `API_VERSION` stays 2; tests `tests/test_monthly_fallback.py`, `tests/test_market_archive.py`, `tests/test_earnie_parity.py`, cases in `tests/test_series.py` and `tests/test_ui_app.py`; full suite green (401 passed, 1 skipped; the skipped Streamlit file passes with Streamlit installed, 12 passed)
+  - Left open: tariffs that change over time (new prices from a date), now an item under `0.+1`
+
 ### Library API parse_tariff (0.1.j, 2026-10-26)
 
 - [x] **0.1.j — Library API: `parse_tariff`** (Earnie epic `Edibert` P3a, triage T3; `src/edibert/api.py`, spec `docs/spec/api.md`)

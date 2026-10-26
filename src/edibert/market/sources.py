@@ -19,6 +19,7 @@ from typing import Any
 from edibert.errors import EdibertError, ErrorCode
 
 SLOT = timedelta(minutes=15)
+_MAX_STEP = timedelta(hours=1)  # coarsest source resolution; a longer step is a gap, never filled
 SOURCE_ENTSOE = "entsoe"
 SOURCE_ENERGY_CHARTS = "energy-charts"
 SOURCE_AWATTAR = "awattar"
@@ -45,6 +46,21 @@ class SourceError(Exception):
     """A source answered with something unusable. The chain notes it and tries the next source."""
 
 
+class RateLimited(SourceError):
+    """HTTP 429: the source wants the caller to wait (``retry_after`` seconds if it said how long)."""
+
+    def __init__(self, message: str, retry_after: float | None) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+def _retry_after(value: str | None) -> float | None:
+    try:
+        return max(float(value), 0.0) if value else None
+    except ValueError:  # an HTTP date instead of seconds: the caller's own pause applies
+        return None
+
+
 def http_get(url: str, params: Mapping[str, str], timeout: float) -> str:
     """GET ``url`` with ``params`` and return the body text."""
     full = f"{url}?{urllib.parse.urlencode(params)}" if params else url
@@ -52,6 +68,10 @@ def http_get(url: str, params: Mapping[str, str], timeout: float) -> str:
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        if exc.code == 429:
+            raise RateLimited(f"HTTP 429 (too many requests) from {url}", _retry_after(exc.headers.get("Retry-After"))) from exc
+        raise SourceError(redact(str(exc))) from exc
     except (urllib.error.URLError, TimeoutError, UnicodeDecodeError) as exc:
         raise SourceError(redact(str(exc))) from exc
 
@@ -76,7 +96,7 @@ def _expand(table: Prices, start: datetime, step: timedelta, cent: float) -> Non
 def _step_for(timestamps: list[datetime], index: int, last_step: timedelta) -> timedelta:
     if index + 1 < len(timestamps):
         step = timestamps[index + 1] - timestamps[index]
-        if step > timedelta(0):
+        if timedelta(0) < step <= _MAX_STEP:
             return step
     return last_step
 

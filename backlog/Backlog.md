@@ -29,12 +29,6 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
   - Catalog P1: opt-in upload with payload preview per tariff, `individual` flag, no free text and no personal data; GitHub-issue route first
   - **Note:** Edibert and the catalogue are free — donations are highly welcome; regular reminders may appear on running installations
   - **Note:** Use GitHub issues if a concrete tariff can't be modeled with the existing version
-- [ ] **0.1.g — Tariff supply for the past and the future**
-  - Monthly-table fallback as in Earnie (exact → same month previous year → previous month) with a coded warning `MONTH_RATE_FALLBACK`, also when the 72-hour window reaches a month change
-  - Price points carry `market_cent` and the forecast method (`exact`, `mirror`, `hold`, plug-in name)
-  - Market prices for arbitrary ranges (simulation/backtesting) with a long-range cache, ported from Earnie (`live_price_cache`, backtesting prices), no pandas
-  - Evaluation of past periods with Earnie's tolerance rules; committed compatibility tests against Earnie results (shared with `0.1.r`)
-  - Later: tariffs that change over time (new prices from a date)
 - [ ] **0.1.e2 — Publish: native Home Assistant integration** *(0.1.e done)*
   - Publish P1: HA custom integration (sensor with `raw_today` / `raw_tomorrow` / `forecast`, action `get_rates(start, end, resolution)`), reading the same price series as the MQTT publisher
   - Clean up retained topics of tariffs removed from `publish.json`
@@ -66,6 +60,7 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
 - [ ] Output formats for evcc, EMHASS, Predbat; price source from a Home Assistant entity (I3b)
 - [ ] Import adapters: open-energy-tariffs, SmartGridready dynamic tariff (CH)
 - [ ] DE grid-fee catalog (depends on data source and license)
+- [ ] Tariffs that change over time (new prices from a date) *(left open from `0.1.g`)*
 
 ## Findings from former Research
 

@@ -89,13 +89,13 @@ def test_validity_window_of_a_rule(ctx_plain):
     assert price_cent(tariff, at("2026-12-01 00:00"), ctx_plain) == 30.0
 
 
-def test_monthly_table_is_strict(ctx_plain):
+def test_monthly_table_is_strict_beyond_the_fallback(ctx_plain):
     from edibert.errors import EdibertError, ErrorCode
 
     tariff = make({"id": "m", "type": "monthly_table", "supplier_id": "s", "vat_percent": 20,
                    "monthly_rates": [{"year": 2026, "month": 10, "tariff_cent_kwh": 9.0}]})  # fmt: skip
     assert price_cent(tariff, at("2026-10-12 12:00"), ctx_plain) == 9.0
-    november = at("2026-11-02 12:00")
+    december = at("2026-12-02 12:00")  # neither 2025-12 nor 2026-11: no second step back
     with pytest.raises(EdibertError) as err:
-        price_cent(tariff, november, ctx_plain)  # no silent carry-over
+        price_cent(tariff, december, ctx_plain)
     assert err.value.code == ErrorCode.PRICE_MISSING

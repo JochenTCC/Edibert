@@ -9,7 +9,7 @@ Klicke auf **Neuer Bezugstarif** (Preis, den du zahlst) oder **Neuer Einspeiseta
 - **Wie wird der Preis gebildet?**
   - **Festpreis:** ein Preis in ct/kWh.
   - **Börsenpreis + Aufschlag:** der Day-Ahead-Börsenpreis plus ein Prozentsatz und ein fester Betrag. Bei Einspeisetarifen: Börsenpreis minus ein Anteil und ein fester Betrag. Du wählst, ob viertelstündlich oder stündlich abgerechnet wird (Mittel der vier Viertelstunden).
-  - **Monatspreise:** ein Preis je Monat. Fehlt ein Monat, bricht die Berechnung ab.
+  - **Monatspreise:** ein Preis je Monat. Fehlt ein Monat, nimmt Edibert denselben Monat des Vorjahres, sonst den Vormonat, und zeigt eine Warnung; gibt es keinen von beiden, bricht die Berechnung ab. Neue Monate rechtzeitig eintragen.
 - **Preise enthalten USt** und der **USt**-Satz. Börsentarife nennen normalerweise Nettopreise zuzüglich USt.
 
 ## Schritt 2: Zeitfenster

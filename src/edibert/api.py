@@ -28,12 +28,16 @@ from edibert.gridfee import (
     parse_grid_fee_config,
     resolve_grid_fee,
 )
+from edibert.market.archive import MarketArchive, MarketRange, known_at, market_range
 from edibert.market.forecast import (
+    METHOD_HOLD,
+    METHOD_MIRROR,
     Forecaster,
     HoldLastForecaster,
     MirrorForecaster,
     builtin_forecaster,
 )
+from edibert.market.sources import zone_for_land
 from edibert.migration import (
     STANDARD_VAT_PERCENT,
     MigrationBlocker,
@@ -43,10 +47,18 @@ from edibert.migration import (
     migrate,
     plan_migration,
 )
-from edibert.series import RESOLUTIONS, PricePoint, PriceSeries, tariff_price_series
+from edibert.series import (
+    METHOD_EXACT,
+    RESOLUTIONS,
+    PricePoint,
+    PriceSeries,
+    tariff_price_series,
+)
 from edibert.store import USER_PREFIX, TariffSet
 from edibert.tariff import (
     EXPORT,
+    FALLBACK_PRIOR_MONTH,
+    FALLBACK_PRIOR_YEAR,
     IMPORT,
     PriceResult,
     Tariff,
@@ -60,7 +72,12 @@ API_VERSION = 2  # raised on a breaking change to a name in __all__ (2: tariff_f
 __all__ = [
     "API_VERSION",
     "EXPORT",
+    "FALLBACK_PRIOR_MONTH",
+    "FALLBACK_PRIOR_YEAR",
     "IMPORT",
+    "METHOD_EXACT",
+    "METHOD_HOLD",
+    "METHOD_MIRROR",
     "RESOLUTIONS",
     "STANDARD_VAT_PERCENT",
     "TARIFF_FORMAT",
@@ -75,6 +92,8 @@ __all__ = [
     "GridFeeCatalog",
     "GridFeeConfig",
     "HoldLastForecaster",
+    "MarketArchive",
+    "MarketRange",
     "MigrationBlocker",
     "MigrationPlan",
     "MigrationQuestion",
@@ -90,9 +109,12 @@ __all__ = [
     "builtin_forecaster",
     "evaluate",
     "flat_user_grid_area",
+    "known_at",
     "load_grid_fee_catalog",
     "load_grid_fees",
     "load_tariffs",
+    "market_range",
+    "market_zone",
     "migrate",
     "parse_grid_fee_config",
     "parse_tariff",
@@ -138,6 +160,14 @@ def save_user_grid_area(path: Path, area: Mapping[str, Any]) -> None:
     price). The whole file is validated first; on any error it stays unchanged.
     """
     _gridfee.save_user_grid_area(path, area)
+
+
+def market_zone(land: str) -> str:
+    """Bidding zone of a country for the market prices (``AT`` -> ``AT``, ``DE`` -> ``DE-LU``, ``CH`` -> ``CH``).
+
+    Any other country is ``MARKET_ZONE_UNKNOWN``.
+    """
+    return zone_for_land(land)
 
 
 def pricing_context(timezone: str, land: str | None = None, region: str | None = None) -> PricingContext:

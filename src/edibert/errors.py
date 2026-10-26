@@ -78,6 +78,8 @@ class WarningCode(StrEnum):
     MARKET_DATA_INCOMPLETE = "MARKET_DATA_INCOMPLETE"  # params: zone, missing_from
     MARKET_CACHE_UNREADABLE = "MARKET_CACHE_UNREADABLE"  # params: path
     FORECAST_FAILED = "FORECAST_FAILED"  # params: name, reason
+    MONTH_RATE_FALLBACK = "MONTH_RATE_FALLBACK"  # params: tariff_id, direction, month, used_month, rule
+    MARKET_RANGE_INCOMPLETE = "MARKET_RANGE_INCOMPLETE"  # params: zone, missing_from, missing_slots
 
 
 @dataclass(frozen=True)

@@ -20,9 +20,12 @@ Only the names in `api.__all__` are covered by `api.API_VERSION` (currently `2`;
 | `parse_grid_fee_config(raw) -> GridFeeConfig` | The `netznutzung` object of a house profile: `area_id` (required, `FIELD_MISSING`), `power_metering`, `quarter_hour_meter`, `include_status`; anything else is `TARIFF_UNKNOWN_FIELD`. |
 | `resolve_grid_fee(config, catalog) -> GridFee` | Profile field plus the area view (from `load_grid_fees`) to an evaluable grid fee; unknown area: `GRID_AREA_UNKNOWN`. |
 | `pricing_context(timezone, land=None, region=None) -> PricingContext` | Time zone and holiday location of one house profile. The region is checked up front: unknown country/region is `HOLIDAY_REGION_UNKNOWN`, a region without `land` is `FIELD_MISSING`. Without a region the context works; a holiday rule then fails with `HOLIDAY_REGION_MISSING`. |
-| `tariff_price_series(tariff, ctx, start, end, *, resolution_min=15, market=None, forecast_from=None, grid_fee=None, capabilities=None) -> PriceSeries` | Prices for `[start, end)` at 15, 30 or 60 minutes. |
+| `tariff_price_series(tariff, ctx, start, end, *, resolution_min=15, market=None, forecast_from=None, grid_fee=None, capabilities=None, forecast_method=None) -> PriceSeries` | Prices for `[start, end)` at 15, 30 or 60 minutes ([tariff-format.md](tariff-format.md) section 8). Every `PricePoint` carries `market_cent` and `method` (see below). A `monthly_table` month taken from another month is in `PriceSeries.warnings` as `MONTH_RATE_FALLBACK`, once per requested month. |
 | `parse_tariff(raw, direction) -> Tariff` | One tariff object (`direction` = `IMPORT` / `EXPORT`), checked exactly like an entry of a tariff file (unknown fields, type fields, `vat_percent`, …), but without the `user_` prefix rule and without `tariff_format`: both belong to files. For tariffs a caller builds itself (Earnie: the scenario shortcut *Eigener Festpreis*). |
-| `evaluate(tariff, slot_start, ctx, epex_cent=None, grid_fee=None) -> PriceResult` / `price_cent(...) -> float` | One slot, with or without the intermediate steps. |
+| `evaluate(tariff, slot_start, ctx, epex_cent=None, grid_fee=None) -> PriceResult` / `price_cent(...) -> float` | One slot, with or without the intermediate steps. `PriceResult.warnings` holds `MONTH_RATE_FALLBACK` when the monthly rate came from another month (`price_cent` drops it; use `evaluate` or the series when the fallback matters). |
+| `market_zone(land) -> str` | Bidding zone of a country: `AT` → `AT`, `DE` → `DE-LU`, `CH` → `CH`; anything else is `MARKET_ZONE_UNKNOWN`. |
+| `market_range(zone, start, end, cache_dir) -> MarketRange` | Day-ahead prices for any range (simulation, backtesting); shorthand for `MarketArchive(zone, cache_dir).prices(start, end)`, see below. |
+| `known_at(prices, moment, tz) -> dict` | The prices a caller could know at `moment` (backtesting): up to 12:00 local time they end with today, from 12:00 with tomorrow (Earnie's `build_market_data_as_of`). `moment` must be aware. |
 | `builtin_forecaster(method, tz) -> Forecaster` | The free methods `mirror` and `hold`; anything else is `VALUE_INVALID`. |
 | `plan_migration(docs, *, user_grid_areas=()) -> MigrationPlan` | What `migrate` would change; see below. |
 | `migrate(docs, answers=None, *, user_grid_areas=()) -> MigrationResult` | Brings the tariff-track files to the current `tariff_format`; see below. |
@@ -40,18 +43,34 @@ Pure functions: the caller reads the files, passes them as `docs = {file name: d
 
 For Earnie's `MigrationStep` (`runtime_store/migration/types.py`): `detect` is `plan.needed`, the questions map to `Question` (`id`, `required`; `kind` `number` and `default` are new there), blockers to `Blocker` with the German text from `error.<code>`, and `StepResult(docs, changed_files, blockers)` comes from `MigrationResult`.
 
+## Price points
+
+`PricePoint` (additive in `0.1.g`; both fields have defaults, so existing constructions keep working):
+
+* `market_cent: float | None`: the market price the tariff used, cent/kWh, after hourly settlement for `settlement_mtu: 60min` spot tariffs and averaged over the point at 30/60 minutes; `None` for a tariff that uses no market price (also no rule on it).
+* `method: str | None`: `exact` (`METHOD_EXACT`) for every point that is not a forecast; for a forecast point (`quality` `forecast`, at or after `forecast_from`) the `forecast_method` the caller passed, e.g. `mirror` (`METHOD_MIRROR`), `hold` (`METHOD_HOLD`) or a plug-in name. Without `forecast_method` it is `None`: Edibert does not invent a name. A 30/60-minute point with one forecast slot is a forecast point.
+* `to_dict()` includes both.
+
+## Market prices for ranges
+
+`MarketArchive(zone, cache_dir, *, get=None, timeout=60, sleep=time.sleep, clock=None, retry_minutes=10, max_attempts=6)` with `.prices(start, end) -> MarketRange` returns day-ahead prices for `[start, end)` from Energy-Charts (free; AT, DE-LU, CH), no pandas.
+
+* `start` / `end` must be aware and on 15-minute steps (`VALUE_INVALID` otherwise; a naive time has no instant without a house time zone). An unknown zone is `VALUE_INVALID`.
+* Keys are UTC slot starts everywhere, so DST needs no special case: the autumn night has 100 slots and both 02:00 hours keep their own prices (Earnie's pandas loader groups naive local times and loses one of them). Hourly source data (before 2025-10-01) counts for its four quarter-hours; a gap in the source is never filled.
+* Cache: one file per UTC calendar month, `<cache_dir>/market_archive/<zone>/YYYY-MM.json` (atomic writes). A month is asked again only while it is incomplete and could still change (not before `retry_minutes` since the last request); a month asked after its prices were final keeps its gaps. Months that start more than two days in the future are not requested. A damaged file is `MARKET_CACHE_UNREADABLE` and rebuilt.
+* HTTP 429: waits for `Retry-After` (seconds) or `60 s x attempt`, up to `max_attempts` requests per month; then, like any source failure, `MARKET_SOURCE_FAILED`. `get`, `sleep` and `clock` are injectable for tests.
+* `MarketRange`: `zone`, `start`, `end` (UTC), `prices` (`{slot_start_utc: cent/kWh}`, only slots with a price), `missing` (slots without one), `notes` (warnings), property `complete`. Missing slots are reported as `MARKET_RANGE_INCOMPLETE` (`zone`, `missing_from`, `missing_slots`); no price at all in the range is `MARKET_DATA_UNAVAILABLE`. `prices` goes straight into `tariff_price_series(market=...)`, which fails with `PRICE_MISSING` on a missing slot.
+
 ## Forecasters
 
 The library takes a forecaster **object** implementing `Forecaster.forecast(known, start, end) -> {slot_start_utc: cent/kWh}`. A caller hands in its own model directly (Earnie: OLS model), no key involved. Plug-ins loaded from the entry-point group `edibert.forecasters` and their key (`EDIBERT_FORECAST_KEY`) belong to the product layer (`edibert.publish.forecasters`), not to the library.
 
 ## Types and constants
 
-`TariffSet`, `Tariff`, `PriceResult`, `PricePoint`, `PriceSeries`, `PricingContext`, `GridArea`, `GridFee`, `GridFeeCatalog`, `GridFeeConfig`, `HoldLastForecaster`, `MirrorForecaster`, `MigrationPlan`, `MigrationQuestion`, `MigrationBlocker`, `MigrationResult`; `IMPORT`, `EXPORT`, `RESOLUTIONS`, `USER_PREFIX`, `TARIFF_FORMAT` (current version, `1`), `TARIFF_TRACK_FILES`, `STANDARD_VAT_PERCENT` (`{"AT": 20.0, "DE": 19.0, "CH": 8.1}`, prefill only).
+`TariffSet`, `Tariff`, `PriceResult`, `PricePoint`, `PriceSeries`, `PricingContext`, `GridArea`, `GridFee`, `GridFeeCatalog`, `GridFeeConfig`, `HoldLastForecaster`, `MirrorForecaster`, `MarketArchive`, `MarketRange`, `MigrationPlan`, `MigrationQuestion`, `MigrationBlocker`, `MigrationResult`; `IMPORT`, `EXPORT`, `RESOLUTIONS`, `USER_PREFIX`, `TARIFF_FORMAT` (current version, `1`), `TARIFF_TRACK_FILES`, `STANDARD_VAT_PERCENT` (`{"AT": 20.0, "DE": 19.0, "CH": 8.1}`, prefill only), `METHOD_EXACT`, `METHOD_MIRROR`, `METHOD_HOLD`, `FALLBACK_PRIOR_YEAR` (`prior_year`), `FALLBACK_PRIOR_MONTH` (`prior_month`).
 
 ## Errors and warnings
 
 `EdibertError` (`code: ErrorCode`, `params`) and `EdibertWarning` (`code: WarningCode`, `params`). Callers branch on the code, never on the English message.
 
-## Not yet in the API
-
-* Monthly-table fallback with `MONTH_RATE_FALLBACK`, `market_cent` and method per point, range queries for market prices: `0.1.g`.
+New in `0.1.g` (warnings): `MONTH_RATE_FALLBACK` (`tariff_id`, `direction`, `month` and `used_month` as `YYYY-MM`, `rule` = `prior_year` / `prior_month`) and `MARKET_RANGE_INCOMPLETE` (`zone`, `missing_from`, `missing_slots`).

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -19,7 +19,7 @@ from edibert._fields import (
     missing,
 )
 from edibert.context import PricingContext
-from edibert.errors import EdibertError, ErrorCode
+from edibert.errors import EdibertError, EdibertWarning, ErrorCode, WarningCode
 from edibert.rules import (
     REQUIRES,
     Rule,
@@ -54,6 +54,10 @@ TARIFF_FIELDS = (
     *FEE_FIELDS,
 )  # fmt: skip
 UNSUPPORTED_FIELDS = ("tiers", "demand")
+
+# Monthly-table fallback (Earnie's order): exact month, else these two, never more.
+FALLBACK_PRIOR_YEAR = "prior_year"
+FALLBACK_PRIOR_MONTH = "prior_month"
 
 
 @dataclass(frozen=True)
@@ -113,6 +117,7 @@ class PriceResult:
     cent: float  # final, rounded to 4 decimals: (supplier part + grid fee) incl. VAT
     grid_cent: float = 0.0
     grid_rule_id: str | None = None
+    warnings: tuple[EdibertWarning, ...] = field(default=())  # e.g. MONTH_RATE_FALLBACK
 
 
 def _parse_monthly_rates(raw: object, path: str) -> dict[tuple[int, int], float]:
@@ -225,7 +230,41 @@ def _build(raw: Mapping[str, Any], direction: str, tariff_type: str, tid: str) -
     )
 
 
-def _base_cent(tariff: Tariff, local: datetime, epex_cent: float | None) -> float:
+def _previous_month(year: int, month: int) -> tuple[int, int]:
+    return (year - 1, 12) if month == 1 else (year, month - 1)
+
+
+def monthly_rate(tariff: Tariff, local: datetime) -> tuple[float, tuple[EdibertWarning, ...]]:
+    """Rate of a ``monthly_table`` tariff for the month of ``local``, as in Earnie.
+
+    Order: the exact month, else the same month of the previous year, else the previous calendar month
+    (January looks at December of the year before). A fallback is returned with a ``MONTH_RATE_FALLBACK``
+    warning; if none of the three exists, it is ``PRICE_MISSING``. No further step back.
+    """
+    month = (local.year, local.month)
+    rate = tariff.monthly_rates.get(month)
+    if rate is not None:
+        return rate, ()
+    for rule, used in ((FALLBACK_PRIOR_YEAR, (month[0] - 1, month[1])), (FALLBACK_PRIOR_MONTH, _previous_month(*month))):
+        rate = tariff.monthly_rates.get(used)
+        if rate is not None:
+            asked, taken = f"{month[0]}-{month[1]:02d}", f"{used[0]}-{used[1]:02d}"
+            warning = EdibertWarning(
+                WarningCode.MONTH_RATE_FALLBACK,
+                f"No monthly rate for {asked} in tariff '{tariff.id}'; using {taken} ({rule}).",
+                {"tariff_id": tariff.id, "direction": tariff.direction, "month": asked, "used_month": taken, "rule": rule},
+            )
+            return rate, (warning,)
+    raise EdibertError(
+        ErrorCode.PRICE_MISSING,
+        f"No monthly rate for {month[0]}-{month[1]:02d} in tariff '{tariff.id}' "
+        "(nor the same month of the previous year or the previous month).",
+        slot=local.isoformat(),
+        tariff_id=tariff.id,
+    )
+
+
+def _base_cent(tariff: Tariff, local: datetime, epex_cent: float | None) -> tuple[float, tuple[EdibertWarning, ...]]:
     slot = local.isoformat()
     spot = SPOT_IMPORT_TYPES if tariff.direction == IMPORT else SPOT_EXPORT_TYPES
     if tariff.type in spot:
@@ -237,26 +276,18 @@ def _base_cent(tariff: Tariff, local: datetime, epex_cent: float | None) -> floa
                 tariff_id=tariff.id,
             )
         if tariff.direction == IMPORT:
-            return epex_cent * (1.0 + tariff.markup_percent / 100.0) + tariff.settlement_fee_cent_kwh
+            return epex_cent * (1.0 + tariff.markup_percent / 100.0) + tariff.settlement_fee_cent_kwh, ()
         return (
             epex_cent
             - tariff.feed_in_fee_factor * abs(epex_cent)
             - tariff.settlement_fee_cent_kwh
             + tariff.feed_in_fix_cent
-        )
+        ), ()
     if tariff.type == "monthly_table":
-        rate = tariff.monthly_rates.get((local.year, local.month))
-        if rate is None:
-            raise EdibertError(
-                ErrorCode.PRICE_MISSING,
-                f"No monthly rate for {local.year}-{local.month:02d} in tariff '{tariff.id}'.",
-                slot=slot,
-                tariff_id=tariff.id,
-            )
-        return rate
+        return monthly_rate(tariff, local)
     fixed = tariff.fix_cent_kwh if tariff.direction == IMPORT else tariff.k_push_cent
     assert fixed is not None  # guaranteed by parse_tariff
-    return fixed
+    return fixed, ()
 
 
 def _clamp(value: float, tariff: Tariff) -> float:
@@ -277,10 +308,11 @@ def evaluate(
     """Price (cent/kWh) of the slot starting at ``slot_start``, with intermediate steps.
 
     Order: base price, first matching rule, floor/cap, grid fee (import only, optional), VAT. The grid fee is
-    always net: with gross prices only the grid fee gets the VAT, with net prices the whole sum does.
+    always net: with gross prices only the grid fee gets the VAT, with net prices the whole sum does. A monthly
+    rate taken from another month is reported in ``PriceResult.warnings`` (``MONTH_RATE_FALLBACK``).
     """
     local = ctx.to_local(slot_start)
-    base = _base_cent(tariff, local, epex_cent)
+    base, notes = _base_cent(tariff, local, epex_cent)
     rule = matching_rule(
         tariff.rules,
         local,
@@ -300,7 +332,7 @@ def evaluate(
     else:
         gross = (limited + grid_cent) * vat
     return PriceResult(
-        base, rule.id if rule else None, after_rule, limited, round(gross, 4), grid_cent, grid_rule
+        base, rule.id if rule else None, after_rule, limited, round(gross, 4), grid_cent, grid_rule, notes
     )
 
 

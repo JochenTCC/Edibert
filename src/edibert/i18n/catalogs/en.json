@@ -61,6 +61,8 @@
   "warning.MARKET_DATA_INCOMPLETE": "Market prices for {zone} end before {missing_from}. Later prices are not published.",
   "warning.MARKET_CACHE_UNREADABLE": "The price cache \"{path}\" is damaged and is rebuilt.",
   "warning.FORECAST_FAILED": "Forecaster \"{name}\" failed ({reason}). Only exact prices are published.",
+  "warning.MONTH_RATE_FALLBACK": "Tariff \"{tariff_id}\" has no monthly rate for {month}; the rate of {used_month} is used ({rule}). Please add the month to the tariff.",
+  "warning.MARKET_RANGE_INCOMPLETE": "Market prices for {zone} are missing from {missing_from} on ({missing_slots} quarter hours).",
   "editor.rule.night": "Night tariff",
   "editor.rule.weekend": "Weekend",
   "editor.rule.summer_midday": "Summer midday window",

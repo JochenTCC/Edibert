@@ -67,6 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
     series.add_argument("--resolution", type=int, choices=RESOLUTIONS, default=60, help="minutes per value")
     series.add_argument("--market-csv", type=Path, help="CSV 'timestamp,cent_kwh' per 15-minute slot")
     series.add_argument("--forecast-from", help="market prices from this time on are forecasts")
+    series.add_argument("--forecast-method", help="method of the forecast prices (mirror, hold, plug-in name)")
     series.add_argument("--format", choices=("table", "json"), default="table")
     series.add_argument("--has", action="append", help="house capability, repeatable (e.g. smart_meter); enables the requirement check")
     sub.add_parser("schema", help="print the JSON Schema of a tariff entry")
@@ -147,6 +148,7 @@ def run_series(args: argparse.Namespace, t: Translator) -> tuple[list[str], list
         resolution_min=args.resolution,
         market=_load_market(args.market_csv, ctx),
         forecast_from=_parse_time(args.forecast_from, "--forecast-from"),
+        forecast_method=args.forecast_method,
         grid_fee=grid_fee,
         capabilities=set(args.has) if args.has else None,
     )  # fmt: skip

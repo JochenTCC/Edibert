@@ -8,7 +8,7 @@ Click **New purchase tariff** (price you pay) or **New feed-in tariff** (remuner
 - **How is the price formed?**
   - **Fixed price:** one price in ct/kWh.
   - **Market price + markup:** the day-ahead market price plus a percentage and a fixed amount. For feed-in tariffs: market price minus a share and a fixed amount. Choose whether the tariff is settled every quarter hour or hourly (the mean of the four quarter hours).
-  - **Monthly prices:** one price per month. A missing month stops the calculation.
+  - **Monthly prices:** one price per month. For a missing month Edibert takes the same month of the previous year, else the previous month, and shows a warning; if neither exists, the calculation stops. Add new months in time.
 - **Prices include VAT** and the **VAT** rate. Market-price tariffs normally state net prices plus VAT.
 
 ## Step 2: Time windows

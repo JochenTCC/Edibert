@@ -1,6 +1,7 @@
 """The Streamlit editor, tested headless with Streamlit's AppTest."""
 
 import json
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -159,3 +160,17 @@ def test_spot_tariff_preview_and_invoice_check(data_dir):
     assert not app.error
     assert any("example market curve" in caption.value for caption in app.caption)
     assert app.get("vega_lite_chart")  # the price curve is drawn
+
+
+def test_monthly_table_preview_shows_the_month_rate_fallback(data_dir, tmp_path, monkeypatch):
+    today = date.today()
+    rates = [{"year": today.year - 1, "month": m, "tariff_cent_kwh": 10.0 + m} for m in range(1, 13)]
+    tariff = {"id": "at_table", "label": "Table", "type": "monthly_table", "supplier_id": "demo", "monthly_rates": rates, "vat_percent": 20}
+    catalog = tmp_path / "tariffs.json"
+    catalog.write_text(json.dumps({"tariff_format": 1, "import_tariffs": [tariff]}), encoding="utf-8")
+    monkeypatch.setenv(ENV_CATALOG, str(catalog))
+    app = start("en")
+    app.sidebar.button(key="copy.go").click().run()
+    assert not app.exception
+    month = f"{today.year}-{today.month:02d}"
+    assert any(month in warning.value and "prior_year" in warning.value for warning in app.warning)

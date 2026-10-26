@@ -21,6 +21,7 @@ from edibert.tariff import PriceResult, Tariff, evaluate
 RESOLUTIONS = (15, 30, 60)
 QUALITY_EXACT = "exact"
 QUALITY_FORECAST = "forecast"
+METHOD_EXACT = "exact"  # method of every slot that is not a forecast
 _SLOT = timedelta(minutes=15)
 
 
@@ -29,7 +30,9 @@ class PricePoint:
     """One price interval. ``cent`` = ``supplier_cent`` + ``grid_cent`` + ``vat_cent`` (rounded).
 
     ``grid_cent`` is net. For a gross tariff ``supplier_cent`` already includes VAT, so ``vat_cent`` is the VAT
-    on the grid fee only.
+    on the grid fee only. ``market_cent`` is the market price the tariff used (after hourly settlement, mean over
+    the point), ``None`` for a tariff that uses none. ``method`` is ``exact`` or, for a forecast point, the
+    ``forecast_method`` the caller named (``mirror``, ``hold``, a plug-in name; ``None`` if it named none).
     """
 
     start: datetime
@@ -39,6 +42,8 @@ class PricePoint:
     grid_cent: float
     vat_cent: float
     quality: str
+    market_cent: float | None = None
+    method: str | None = METHOD_EXACT
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -49,6 +54,8 @@ class PricePoint:
             "grid_cent": self.grid_cent,
             "vat_cent": self.vat_cent,
             "quality": self.quality,
+            "market_cent": self.market_cent,
+            "method": self.method,
         }
 
 
@@ -114,8 +121,12 @@ def _is_forecast(tariff: Tariff, slot: datetime, forecast_from: datetime | None)
     return bool(tariff.uses_market_price and forecast_from is not None and slot >= forecast_from)
 
 
-def _point(group: list[tuple[datetime, PriceResult, bool]], ctx: PricingContext, size: int) -> PricePoint:
+def _point(
+    group: list[tuple[datetime, PriceResult, bool, float | None]], ctx: PricingContext, size: int, forecast_method: str | None
+) -> PricePoint:
     results = [item[1] for item in group]
+    markets = [item[3] for item in group if item[3] is not None]  # all or none: per tariff
+    forecast = any(item[2] for item in group)
     mean_cent = sum(result.cent for result in results) / size
     supplier = sum(result.after_limits_cent for result in results) / size
     grid = sum(result.grid_cent for result in results) / size
@@ -127,8 +138,22 @@ def _point(group: list[tuple[datetime, PriceResult, bool]], ctx: PricingContext,
         supplier_cent=round(supplier, 4),
         grid_cent=round(grid, 4),
         vat_cent=round(round(mean_cent, 4) - round(supplier, 4) - round(grid, 4), 4),
-        quality=QUALITY_FORECAST if any(item[2] for item in group) else QUALITY_EXACT,
+        quality=QUALITY_FORECAST if forecast else QUALITY_EXACT,
+        market_cent=round(sum(markets) / size, 4) if markets else None,
+        method=forecast_method if forecast else METHOD_EXACT,
     )
+
+
+def _distinct(notes: list[EdibertWarning]) -> list[EdibertWarning]:
+    """Each warning once (a fallback month repeats in every slot of the month), in order of first sight."""
+    seen: set[tuple[str, tuple[tuple[str, str], ...]]] = set()
+    result = []
+    for note in notes:
+        key = (note.code, tuple(sorted((name, str(value)) for name, value in note.params.items())))
+        if key not in seen:
+            seen.add(key)
+            result.append(note)
+    return result
 
 
 def tariff_price_series(
@@ -142,12 +167,15 @@ def tariff_price_series(
     forecast_from: datetime | None = None,
     grid_fee: GridFee | None = None,
     capabilities: Collection[str] | None = None,
+    forecast_method: str | None = None,
 ) -> PriceSeries:
     """Prices from ``start`` (inclusive) to ``end`` (exclusive) at the requested resolution.
 
     ``market`` holds the day-ahead price (cent/kWh) per 15-minute slot start. Slots at or after
-    ``forecast_from`` are marked ``forecast`` when the tariff depends on market prices. A missing
-    price is an error; nothing is carried over or invented.
+    ``forecast_from`` are marked ``forecast`` when the tariff depends on market prices, with
+    ``forecast_method`` as their ``method``. A missing price is an error; nothing is carried over or invented.
+    A monthly rate taken from another month (Earnie's fallback) is in ``warnings`` as ``MONTH_RATE_FALLBACK``,
+    once per requested month.
     """
     local_start = ctx.to_local(start)
     _check_alignment(local_start, resolution_min)
@@ -155,10 +183,12 @@ def tariff_price_series(
     table = normalize_market(market, ctx)
     forecast_utc = ctx.to_local(forecast_from).astimezone(UTC) if forecast_from else None
     size = resolution_min // 15
-    evaluated = [
-        (slot, evaluate(tariff, slot, ctx, _market_for(tariff, slot, ctx, table), grid_fee), _is_forecast(tariff, slot, forecast_utc))
-        for slot in slots
-    ]  # fmt: skip
-    points = tuple(_point(evaluated[i : i + size], ctx, size) for i in range(0, len(evaluated), size))
-    notes = check_tariff(tariff, capabilities) + (check_grid_fee(grid_fee) if grid_fee else [])
+    evaluated = []
+    for slot in slots:
+        market_cent = _market_for(tariff, slot, ctx, table)
+        result = evaluate(tariff, slot, ctx, market_cent, grid_fee)
+        evaluated.append((slot, result, _is_forecast(tariff, slot, forecast_utc), market_cent))
+    points = tuple(_point(evaluated[i : i + size], ctx, size, forecast_method) for i in range(0, len(evaluated), size))
+    fallbacks = [note for item in evaluated for note in item[1].warnings]
+    notes = check_tariff(tariff, capabilities) + (check_grid_fee(grid_fee) if grid_fee else []) + _distinct(fallbacks)
     return PriceSeries(tariff.id, tariff.direction, resolution_min, points, tuple(notes))

@@ -61,6 +61,8 @@
   "warning.MARKET_DATA_INCOMPLETE": "Die Börsenpreise für {zone} enden vor {missing_from}. Spätere Preise werden nicht veröffentlicht.",
   "warning.MARKET_CACHE_UNREADABLE": "Der Preis-Zwischenspeicher „{path}“ ist beschädigt und wird neu aufgebaut.",
   "warning.FORECAST_FAILED": "Die Prognose „{name}“ ist fehlgeschlagen ({reason}). Es werden nur exakte Preise veröffentlicht.",
+  "warning.MONTH_RATE_FALLBACK": "Der Tarif „{tariff_id}“ hat keinen Monatspreis für {month}; der Preis von {used_month} wird verwendet ({rule}). Bitte den Monat im Tarif ergänzen.",
+  "warning.MARKET_RANGE_INCOMPLETE": "Börsenpreise für {zone} fehlen ab {missing_from} ({missing_slots} Viertelstunden).",
   "editor.rule.night": "Nachttarif",
   "editor.rule.weekend": "Wochenende",
   "editor.rule.summer_midday": "Sommer-Mittagsfenster",
