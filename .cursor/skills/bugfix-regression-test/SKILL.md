@@ -36,7 +36,7 @@ Bugfix regression:
 
 1. **Reproduce in the test.** Use the smallest inputs that failed (a tariff JSON fragment, a few slots, one date). For tariff bugs the typical fixtures are: a rule window across midnight, a holiday, a DST change day (last Sunday in March/October), a missing market price, a 60-minute settlement tariff.
 2. **Where to put it.** Prefer `tests/test_<topic>_regression.py` for cross-module or fixture-driven cases; extend a focused `tests/test_*.py` only when the bug is local. Name the test after the bug, not the fix.
-3. **Reference.** In the docstring cite the GitHub issue (`https://github.com/JochenTCC/edbert/issues/N`) or a one-line symptom.
+3. **Reference.** In the docstring cite the GitHub issue (`https://github.com/JochenTCC/Edibert/issues/N`) or a one-line symptom.
 4. **Propose before writing (default).** In chat: target file, failure mode, key assertions, fixture source. Implement after acceptance, or if the user asked for fix **and** test in the same turn.
 5. **Run:**
 
@@ -46,7 +46,7 @@ Bugfix regression:
 
 ## Fixture rules
 
-- Use **placeholder or anonymized** data only. Never commit customer data, real invoices, meter numbers, or postal codes (see `edbert-project.mdc`).
+- Use **placeholder or anonymized** data only. Never commit customer data, real invoices, meter numbers, or postal codes (see `edibert-project.mdc`).
 - Real published examples (a grid operator's price table) are marked unverified in the fixture.
 
 ## Quality bar

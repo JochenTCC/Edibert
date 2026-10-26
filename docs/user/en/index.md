@@ -1,6 +1,6 @@
-# Edbert user manual
+# Edibert user manual
 
-Edbert describes your electricity tariff once and calculates the price of every quarter hour from it. This manual covers the **tariff editor** (the browser page), publishing over MQTT and the command line. The English pages are authoritative; a German translation is in `docs/user/de/`.
+Edibert describes your electricity tariff once and calculates the price of every quarter hour from it. This manual covers the **tariff editor** (the browser page), publishing over MQTT and the command line. The English pages are authoritative; a German translation is in `docs/user/de/`.
 
 **Status:** draft. The editor and the MQTT publisher work; a native Home Assistant integration is not available yet.
 

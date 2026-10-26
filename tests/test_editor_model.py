@@ -3,11 +3,11 @@
 import pytest
 from conftest import load_example
 
-from edbert.editor.model import RuleDraft, TariffDraft, slugify, validate
-from edbert.editor.templates import TEMPLATES, rules_for_template
-from edbert.errors import ErrorCode
-from edbert.i18n import Translator
-from edbert.tariff import EXPORT, IMPORT, parse_tariff
+from edibert.editor.model import RuleDraft, TariffDraft, slugify, validate
+from edibert.editor.templates import TEMPLATES, rules_for_template
+from edibert.errors import ErrorCode
+from edibert.i18n import Translator
+from edibert.tariff import EXPORT, IMPORT, parse_tariff
 
 
 @pytest.mark.parametrize(

@@ -7,7 +7,7 @@ Wenn du den Editor mit `--catalog tariffs.json` gestartet hast, öffne in der Se
 
 ## JSON importieren
 
-Öffne in der Seitenleiste **JSON importieren** und füge das Tarif-JSON ein oder lade eine `.json`-Datei hoch. Edbert prüft jeden Tarif und sagt dir, was es gefunden hat:
+Öffne in der Seitenleiste **JSON importieren** und füge das Tarif-JSON ein oder lade eine `.json`-Datei hoch. Edibert prüft jeden Tarif und sagt dir, was es gefunden hat:
 
 - *gültig:* bereit zum Hinzufügen.
 - *umbenannt:* eigene Tarif-IDs müssen mit `user_` beginnen, eine andere ID wird deshalb umbenannt.

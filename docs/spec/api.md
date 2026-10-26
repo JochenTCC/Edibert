@@ -1,12 +1,12 @@
-# Library API (`edbert.api`)
+# Library API (`edibert.api`)
 
 Technical description of the public library facade for Earnie and other callers. Architecture: [architecture.md](architecture.md).
 
 ```python
-from edbert import api
+from edibert import api
 ```
 
-Only the names in `api.__all__` are covered by `api.API_VERSION` (currently `1`). A breaking change to one of them raises the version; additions do not. Everything else in the package may change without notice. The API imports neither `edbert.ui` nor `edbert.publish` (checked by `tests/test_api.py`).
+Only the names in `api.__all__` are covered by `api.API_VERSION` (currently `1`). A breaking change to one of them raises the version; additions do not. Everything else in the package may change without notice. The API imports neither `edibert.ui` nor `edibert.publish` (checked by `tests/test_api.py`).
 
 ## Functions
 
@@ -23,7 +23,7 @@ Only the names in `api.__all__` are covered by `api.API_VERSION` (currently `1`)
 
 ## Forecasters
 
-The library takes a forecaster **object** implementing `Forecaster.forecast(known, start, end) -> {slot_start_utc: cent/kWh}`. A caller hands in its own model directly (Earnie: OLS model), no key involved. Plug-ins loaded from the entry-point group `edbert.forecasters` and their key (`EDBERT_FORECAST_KEY`) belong to the product layer (`edbert.publish.forecasters`), not to the library.
+The library takes a forecaster **object** implementing `Forecaster.forecast(known, start, end) -> {slot_start_utc: cent/kWh}`. A caller hands in its own model directly (Earnie: OLS model), no key involved. Plug-ins loaded from the entry-point group `edibert.forecasters` and their key (`EDIBERT_FORECAST_KEY`) belong to the product layer (`edibert.publish.forecasters`), not to the library.
 
 ## Types and constants
 
@@ -31,7 +31,7 @@ The library takes a forecaster **object** implementing `Forecaster.forecast(know
 
 ## Errors and warnings
 
-`EdbertError` (`code: ErrorCode`, `params`) and `EdbertWarning` (`code: WarningCode`, `params`). Callers branch on the code, never on the English message.
+`EdibertError` (`code: ErrorCode`, `params`) and `EdibertWarning` (`code: WarningCode`, `params`). Callers branch on the code, never on the English message.
 
 ## Not yet in the API
 

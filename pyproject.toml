@@ -3,8 +3,8 @@ requires = ["setuptools>=77.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "edbert"
-version = "0.1.0"
+name = "edibert"
+version = "0.1.1"
 description = "Tarif-Editor und Preisdienst für Smart-Home-Systeme (Home Assistant, MQTT), Schwerpunkt DE/AT/CH"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -34,7 +34,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-"edbert.i18n" = ["catalogs/*.json"]
+"edibert.i18n" = ["catalogs/*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

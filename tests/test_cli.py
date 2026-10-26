@@ -2,7 +2,7 @@ from pathlib import Path
 
 from conftest import EXAMPLES
 
-from edbert.cli import main
+from edibert.cli import main
 
 MARKET = Path(__file__).resolve().parent / "fixtures" / "market_2026-12-15.csv"
 
@@ -126,8 +126,8 @@ def test_publish_dry_run_prints_topics_and_sends_nothing(capsys, tmp_path):
     code, out, err = run(capsys, "publish", "--data-dir", str(tmp_path), "--once", "--dry-run")
     assert (code, err) == (0, "")
     assert "Dry run" in out
-    assert "edbert/import/user_fix/state  0.3" in out
-    assert "homeassistant/sensor/edbert_import_user_fix/config" in out
+    assert "edibert/import/user_fix/state  0.3" in out
+    assert "homeassistant/sensor/edibert_import_user_fix/config" in out
     assert "Published at" in out
 
 

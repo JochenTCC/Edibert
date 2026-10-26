@@ -6,20 +6,20 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from market_helpers import FakeWeb, energy_charts_json, utc
 
-from edbert.editor.house import HouseSettings, save_house
-from edbert.editor.userstore import save_user_tariff
-from edbert.errors import EdbertError, ErrorCode, WarningCode
-from edbert.market.sources import SLOT, SourceError
-from edbert.publish.config import parse_publish_config
-from edbert.publish.service import build_publisher, seconds_to_next_quarter
-from edbert.tariff import IMPORT
+from edibert.editor.house import HouseSettings, save_house
+from edibert.editor.userstore import save_user_tariff
+from edibert.errors import EdibertError, ErrorCode, WarningCode
+from edibert.market.sources import SLOT, SourceError
+from edibert.publish.config import parse_publish_config
+from edibert.publish.service import build_publisher, seconds_to_next_quarter
+from edibert.tariff import IMPORT
 
 MORNING = utc("2026-12-15T09:00")  # 10:00 in Vienna
 AFTERNOON = utc("2026-12-15T12:00")  # 13:00: tomorrow's prices are out
 DAY_START = utc("2026-12-14T23:00")
 FIXED = {"id": "user_fix", "type": "fixed_cent", "supplier_id": "user_s", "label": "Fix", "fix_cent_kwh": 30.0}
 SPOT = {"id": "user_spot", "type": "spot_hourly", "supplier_id": "user_s", "label": "Spot", "settlement_fee_cent_kwh": 1.5}
-MQTT = {"host": "broker.local", "base_topic": "edbert"}
+MQTT = {"host": "broker.local", "base_topic": "edibert"}
 
 
 class FakeLink:
@@ -38,10 +38,10 @@ class FakeLink:
         self.closed = True
 
     def attributes(self, tariff_id, direction=IMPORT):
-        return json.loads(self.sent[f"edbert/{direction}/{tariff_id}/attributes"])
+        return json.loads(self.sent[f"edibert/{direction}/{tariff_id}/attributes"])
 
     def state(self, tariff_id, direction=IMPORT):
-        return self.sent[f"edbert/{direction}/{tariff_id}/state"]
+        return self.sent[f"edibert/{direction}/{tariff_id}/state"]
 
 
 def setup(tmp_path, tariffs, web=None, loader=None, **config):
@@ -68,19 +68,19 @@ def test_fixed_tariff_is_published_without_any_network_access(tmp_path):
     assert attributes["raw_today"][0]["start"] == "2026-12-15T00:00:00+01:00"
     assert attributes["raw_today"][0]["value"] == 0.3
     assert (attributes["unit"], attributes["market"], attributes["quality"]) == ("EUR/kWh", None, "exact")
-    assert link.sent["edbert/import/user_fix/availability"] == "online"
-    assert link.sent["edbert/status"] == "online"
+    assert link.sent["edibert/import/user_fix/availability"] == "online"
+    assert link.sent["edibert/status"] == "online"
 
 
 def test_discovery_registers_a_home_assistant_sensor(tmp_path):
     publisher, link = setup(tmp_path, [FIXED])
     publisher.announce()
-    config = json.loads(link.sent["homeassistant/sensor/edbert_import_user_fix/config"])
-    assert config["state_topic"] == "edbert/import/user_fix/state"
-    assert config["json_attributes_topic"] == "edbert/import/user_fix/attributes"
+    config = json.loads(link.sent["homeassistant/sensor/edibert_import_user_fix/config"])
+    assert config["state_topic"] == "edibert/import/user_fix/state"
+    assert config["json_attributes_topic"] == "edibert/import/user_fix/attributes"
     assert config["unit_of_measurement"] == "EUR/kWh"
-    assert config["unique_id"] == "edbert_import_user_fix"
-    assert {"topic": "edbert/status"} in config["availability"]
+    assert config["unique_id"] == "edibert_import_user_fix"
+    assert {"topic": "edibert/status"} in config["availability"]
 
 
 def test_spot_tariff_uses_the_market_data_and_hides_tomorrow_until_it_exists(tmp_path):
@@ -123,9 +123,9 @@ def test_market_failure_takes_only_market_tariffs_offline(tmp_path):
     report = publisher.run_cycle(MORNING)
     assert report.published == ["user_fix"]
     assert sorted(name for name, _ in report.offline) == ["market", "user_spot"]
-    assert link.sent["edbert/import/user_spot/availability"] == "offline"
-    assert "edbert/import/user_spot/state" not in link.sent  # nothing is invented
-    assert link.sent["edbert/import/user_fix/availability"] == "online"
+    assert link.sent["edibert/import/user_spot/availability"] == "offline"
+    assert "edibert/import/user_spot/state" not in link.sent  # nothing is invented
+    assert link.sent["edibert/import/user_fix/availability"] == "online"
 
 
 class FakeForecaster:
@@ -168,7 +168,7 @@ def test_missing_forecaster_plugin_is_an_error(tmp_path):
     save_user_tariff(tmp_path / "user_tariffs.json", FIXED, IMPORT)
     document = {"mqtt": MQTT, "tariffs": [{"id": "user_fix"}], "forecast": {"method": "plugin", "name": "nope"}}
     (tmp_path / "publish.json").write_text(json.dumps(document), encoding="utf-8")
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         build_publisher(tmp_path, link_factory=FakeLink, env={})
     assert err.value.code == ErrorCode.FORECASTER_UNAVAILABLE
 
@@ -177,7 +177,7 @@ def test_forecast_key_comes_from_the_environment(tmp_path):
     seen = []
     setup(tmp_path, [FIXED], loader=lambda name, key: seen.append((name, key)), forecast={"method": "plugin", "name": "demo"})
     assert seen == [("demo", "")]  # build_publisher passes what the environment holds (nothing here)
-    other = build_publisher(tmp_path, link_factory=FakeLink, env={"EDBERT_FORECAST_KEY": "k"}, forecaster_loader=lambda name, key: seen.append(key))
+    other = build_publisher(tmp_path, link_factory=FakeLink, env={"EDIBERT_FORECAST_KEY": "k"}, forecaster_loader=lambda name, key: seen.append(key))
     assert other.config.forecast.name == "demo"
     assert seen[-1] == "k"
 
@@ -185,7 +185,7 @@ def test_forecast_key_comes_from_the_environment(tmp_path):
 def test_unknown_tariff_in_the_config_is_an_error(tmp_path):
     save_house(tmp_path / "house.json", HouseSettings())
     (tmp_path / "publish.json").write_text(json.dumps({"mqtt": MQTT, "tariffs": [{"id": "user_none"}]}), encoding="utf-8")
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         build_publisher(tmp_path, link_factory=FakeLink, env={})
     assert err.value.code == ErrorCode.VALUE_INVALID
 
@@ -209,7 +209,7 @@ def test_loop_publishes_each_quarter_and_says_offline_on_exit(tmp_path):
 
     publisher.run_forever(clock=lambda: next(times), sleep=sleep)
     assert link.closed
-    assert link.log.count("edbert/import/user_fix/state") == 2
+    assert link.log.count("edibert/import/user_fix/state") == 2
     assert all(1 <= pause <= 17 * 60 for pause in pauses)
 
 
@@ -246,6 +246,6 @@ def test_config_accepts_the_documented_shape():
     ],
 )
 def test_config_errors_are_coded(raw, code):
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         parse_publish_config(raw)
     assert err.value.code == code

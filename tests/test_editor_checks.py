@@ -5,15 +5,15 @@ from datetime import date
 import pytest
 from conftest import at, load_example, make
 
-from edbert.editor.invoice import BASE_BAND, invoice_bands, invoice_check
-from edbert.editor.plausibility import analyze_rules, plausibility_warnings
-from edbert.editor.preview import (
+from edibert.editor.invoice import BASE_BAND, invoice_bands, invoice_check
+from edibert.editor.plausibility import analyze_rules, plausibility_warnings
+from edibert.editor.preview import (
     day_curve,
     example_market_profile,
     representative_dates,
 )
-from edbert.errors import EdbertError, ErrorCode, WarningCode
-from edbert.gridfee import parse_grid_fee_config, resolve_grid_fee
+from edibert.errors import EdibertError, ErrorCode, WarningCode
+from edibert.gridfee import parse_grid_fee_config, resolve_grid_fee
 
 BASE = {"id": "t", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0}
 ALL_DAY = {"id": "all", "effect": {"mode": "add_cent", "value": 1.0}}
@@ -115,18 +115,18 @@ def test_invoice_fees_get_vat_when_prices_are_net(ctx_plain):
 def test_invoice_check_rejects_unknown_bands_and_exports(ctx_plain):
     tariff = make(BASE)
     month = date(2026, 10, 1)
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         invoice_check(tariff, ctx_plain, month, {"night": 10.0}, 10.0)
     assert err.value.code == ErrorCode.VALUE_INVALID
     export = make({"id": "e", "type": "fixed", "supplier_id": "s", "k_push_cent": 5.0}, direction="export")
-    with pytest.raises(EdbertError):
+    with pytest.raises(EdibertError):
         invoice_check(export, ctx_plain, month, {BASE_BAND: 1.0}, 10.0)
 
 
 def test_invoice_bands_of_a_spot_tariff_need_the_month_average(ctx_plain):
     spot = make({"id": "s", "type": "spot_hourly", "supplier_id": "x", "settlement_fee_cent_kwh": 1.5})
     month = date(2026, 10, 1)
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         invoice_bands(spot, ctx_plain, month)
     assert err.value.code == ErrorCode.MARKET_PRICE_REQUIRED
     assert invoice_bands(spot, ctx_plain, month, market_cent=10.0)[0].cent == 11.5

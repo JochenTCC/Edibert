@@ -28,7 +28,7 @@ Same order as Earnie: cache -> ENTSO-E A44 (only with `ENTSOE_API_TOKEN`) -> Ene
 * A failed source is a `MARKET_SOURCE_FAILED` warning. Tokens are removed from the message (`redact`).
 * A damaged cache file is a `MARKET_CACHE_UNREADABLE` warning; it is rebuilt.
 
-Deviation from Earnie: Earnie places a stale cache before aWATTar by time; Edbert picks the best partial answer by slot coverage.
+Deviation from Earnie: Earnie places a stale cache before aWATTar by time; Edibert picks the best partial answer by slot coverage.
 
 ## Publisher
 
@@ -45,7 +45,7 @@ Deviation from Earnie: Earnie places a stale cache before aWATTar by time; Edber
 
 * State: price of the current interval in EUR/kWh, rounded to 5 decimals (cent / 100). Empty if no interval matches.
 * `raw_today`, `raw_tomorrow`, `forecast`: lists of `{start, end, value}`; `start`/`end` ISO 8601 with the house offset.
-* Discovery: one `sensor` per tariff, `unit_of_measurement: EUR/kWh`, `availability_mode: all` over the bridge status and the tariff availability, one device "Edbert". No `device_class` (Home Assistant's `monetary` class does not allow a per-kWh unit).
+* Discovery: one `sensor` per tariff, `unit_of_measurement: EUR/kWh`, `availability_mode: all` over the bridge status and the tariff availability, one device "Edibert". No `device_class` (Home Assistant's `monetary` class does not allow a per-kWh unit).
 * All messages are retained, QoS 1. Credentials come from environment variables named in `publish.json`; the file never holds a secret.
 * Removing a tariff from `publish.json` does not delete its retained topics.
 
@@ -55,9 +55,9 @@ Deviation from Earnie: Earnie places a stale cache before aWATTar by time; Edber
 
 * `MirrorForecaster(tz)`: same **local** time of day on the nearest earlier day within 7 days that has a real price (`MAX_MIRROR_LOOKBACK_DAYS`, as in Earnie's `find_mirror_slot`); DST-safe through wall-clock arithmetic. Slots without a source are left out.
 * `HoldLastForecaster`: the last real price before `start`, constant.
-* `plugin` (product layer, `edbert.publish.forecasters`): entry-point group `edbert.forecasters`; the entry point is a class or factory called as `factory(key=...)`. The key comes from `EDBERT_FORECAST_KEY`; Edbert requires it (`FORECAST_KEY_MISSING`), validating it is the plug-in's job, so the free edition contains no validation. How keys are issued and checked is not decided yet. Earnie's regression model can be wrapped as such a plug-in.
+* `plugin` (product layer, `edibert.publish.forecasters`): entry-point group `edibert.forecasters`; the entry point is a class or factory called as `factory(key=...)`. The key comes from `EDIBERT_FORECAST_KEY`; Edibert requires it (`FORECAST_KEY_MISSING`), validating it is the plug-in's job, so the free edition contains no validation. How keys are issued and checked is not decided yet. Earnie's regression model can be wrapped as such a plug-in.
 * The publisher starts the forecast where the exact series ends, asks for `hours` (1 to 72, `MAX_FORECAST_HOURS`, default 48), and cuts the result at the last gap-free **whole hour** (`_covered_end`). A forecaster that returns nothing yields an empty `forecast`; an exception yields `FORECAST_FAILED` and exact prices stay.
-* The market cache keeps 7 days of history (`HISTORY_DAYS`) and merges new downloads into it; history is not downloaded, it accumulates while Edbert runs.
+* The market cache keeps 7 days of history (`HISTORY_DAYS`) and merges new downloads into it; history is not downloaded, it accumulates while Edibert runs.
 * Attribute `forecast_method` names the method (or the plug-in name) when a forecast is present.
 
 ## Open points

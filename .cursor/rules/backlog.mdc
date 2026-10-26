@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Backlog management and bugfix lifecycle
 
-Ported from the Earnie repo and reduced to what Edbert needs. Backlog files are **English**.
+Ported from the Earnie repo and reduced to what Edibert needs. Backlog files are **English**.
 
 ## 1. File structure and responsibilities
 
@@ -59,4 +59,4 @@ Before committing `backlog/Backlog-Bugfixes.md` or `backlog/Backlog-Erledigt.md`
 
 ## 7. Relation to Earnie
 
-Edbert is developed separately, but Earnie consumes it. Earnie-side integration work (using Edbert for tariffs) is tracked in the Earnie backlog; engine, editor, catalog and publishers are tracked here.
+Edibert is developed separately, but Earnie consumes it. Earnie-side integration work (using Edibert for tariffs) is tracked in the Earnie backlog; engine, editor, catalog and publishers are tracked here.

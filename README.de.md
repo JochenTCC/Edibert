@@ -1,8 +1,10 @@
-# Edbert
+# Edibert
 
 [English](README.md) · **Deutsch** · *Die englische Fassung ist maßgeblich.*
 
-**Edbert** ist ein Tarif-Editor und Preisdienst für Smart-Home-Systeme. Du beschreibst deinen Stromtarif einmal (fest, börsengebunden oder zeitvariabel mit Fenstern, Wochentagen, Feiertagen) und Edbert liefert die daraus berechneten Preise als Zeitreihe an dein Smart-Home-Backend: als Home-Assistant-Sensor oder per MQTT.
+*Früher Edbert (umbenannt am 2026-10-26).*
+
+**Edibert** ist ein Tarif-Editor und Preisdienst für Smart-Home-Systeme. Du beschreibst deinen Stromtarif einmal (fest, börsengebunden oder zeitvariabel mit Fenstern, Wochentagen, Feiertagen) und Edibert liefert die daraus berechneten Preise als Zeitreihe an dein Smart-Home-Backend: als Home-Assistant-Sensor oder per MQTT.
 
 > **Status: Entwurf.** Die Regel-Engine (`0.1.a`), die Preisreihe mit Netzentgelt (`0.1.b`) der Tarif-Editor im Browser (`0.1.c`) und die MQTT-Ausgabe mit Home-Assistant-Discovery (`0.1.e`) funktionieren. Eine native Home-Assistant-Integration gibt es noch nicht. Siehe [Roadmap](#roadmap).
 
@@ -10,7 +12,7 @@
 
 ```bash
 pip install -e ".[ui]"
-python -m edbert ui --data-dir edbert_data
+python -m edibert ui --data-dir edibert_data
 ```
 
 `http://localhost:8501` öffnen. Vier Schritte (Basispreis, Zeitfenster, weitere Kosten, erweitert), Preisverlauf live, Preis zu einem Zeitpunkt, Prüfung gegen eine echte Rechnung, Katalogtarif kopieren, JSON importieren. Deutsch und Englisch. Siehe die [Bedienungsanleitung](docs/user/de/index.md).
@@ -19,7 +21,7 @@ python -m edbert ui --data-dir edbert_data
 
 ```bash
 pip install -e ".[mqtt]"
-python -m edbert publish --data-dir edbert_data
+python -m edibert publish --data-dir edibert_data
 ```
 
 Sendet die Preise der in `publish.json` genannten Tarife (aktueller Preis, heute, morgen, optional Prognose) als retained MQTT-Topics mit Home-Assistant-Discovery. Die Börsenpreise kommen über dieselbe Kette wie in Earnie (ENTSO-E mit Token, Energy-Charts, aWATTar). Siehe [Veröffentlichen](docs/user/de/publishing.md).
@@ -28,15 +30,15 @@ Sendet die Preise der in `publish.json` genannten Tarife (aktueller Preis, heute
 
 ```bash
 pip install -e ".[dev]"
-python -m edbert --lang de price --tariff examples/spot_evening_surcharge_cap.json     --at 2026-12-15T18:00 --tz Europe/Vienna --epex 10
-python -m edbert --lang de price --tariff examples/fixed_day_night.json     --at 2026-12-25T12:00 --tz Europe/Berlin --land DE --region BY
+python -m edibert --lang de price --tariff examples/spot_evening_surcharge_cap.json     --at 2026-12-15T18:00 --tz Europe/Vienna --epex 10
+python -m edibert --lang de price --tariff examples/fixed_day_night.json     --at 2026-12-25T12:00 --tz Europe/Berlin --land DE --region BY
 python -m pytest
 ```
 
-Der erste Befehl zeigt den Preis eines Zeitabschnitts mit allen Schritten (Basispreis, angewendete Regel, Boden/Deckel, USt). Tarife mit Wochentagsregeln brauchen `--land` und `--region`, weil Feiertage das Ergebnis ändern können; ohne diese Angaben bricht der Befehl mit einem Fehler ab, statt zu raten. `python -m edbert schema` gibt das JSON-Schema eines Tarifs aus.
+Der erste Befehl zeigt den Preis eines Zeitabschnitts mit allen Schritten (Basispreis, angewendete Regel, Boden/Deckel, USt). Tarife mit Wochentagsregeln brauchen `--land` und `--region`, weil Feiertage das Ergebnis ändern können; ohne diese Angaben bricht der Befehl mit einem Fehler ab, statt zu raten. `python -m edibert schema` gibt das JSON-Schema eines Tarifs aus.
 
 ```bash
-python -m edbert --lang de series --tariff examples/spot_evening_surcharge_cap.json \
+python -m edibert --lang de series --tariff examples/spot_evening_surcharge_cap.json \
     --grid-fee examples/grid_fee_modul3_example.json \
     --from 2026-12-15T00:00 --to 2026-12-16T00:00 --tz Europe/Vienna \
     --market-csv tests/fixtures/market_2026-12-15.csv --resolution 60
@@ -54,7 +56,7 @@ Viele Tarife lassen sich nicht in einem Feld „ct/kWh“ beschreiben:
 - Einspeisung mit „keine Vergütung bei negativem Preis“
 - Feiertage, die wie ein Sonntag zählen
 
-Edbert bildet das mit wenigen Bausteinen ab, **ohne dass du JSON von Hand schreiben musst**, und zeigt dir den Preisverlauf sofort an, bevor du ihn verwendest.
+Edibert bildet das mit wenigen Bausteinen ab, **ohne dass du JSON von Hand schreiben musst**, und zeigt dir den Preisverlauf sofort an, bevor du ihn verwendest.
 
 ## Geplante Funktionen
 
@@ -68,15 +70,15 @@ Edbert bildet das mit wenigen Bausteinen ab, **ohne dass du JSON von Hand schrei
 | Import | Katalogtarif als Vorlage, JSON-Datei, Preisreihe (CSV), später Assistent für Preisblätter |
 | Feiertage | Aus der Bibliothek [`holidays`](https://github.com/vacanza/holidays) (DE/AT/CH nach Bundesland bzw. Kanton), ohne Internet |
 
-Nicht Ziel: Tarife vergleichen oder vermitteln, Rechnungen erstellen, Geräte steuern. Edbert liefert nur Preise.
+Nicht Ziel: Tarife vergleichen oder vermitteln, Rechnungen erstellen, Geräte steuern. Edibert liefert nur Preise.
 
 ## Verhältnis zu Earnie
 
-Edbert ist ein eigenständiges Werkzeug und wird auch von [Earnie](https://github.com/JochenTCC/Earnie) genutzt, einem Optimierer für Heimspeicher, PV und Verbraucher. Du brauchst Earnie nicht, um Edbert zu verwenden.
+Edibert ist ein eigenständiges Werkzeug und wird auch von [Earnie](https://github.com/JochenTCC/Earnie) genutzt, einem Optimierer für Heimspeicher, PV und Verbraucher. Du brauchst Earnie nicht, um Edibert zu verwenden.
 
 ## Katalog und Beiträge
 
-Edbert hat einen gepflegten Katalog von Tarifen (DE/AT/CH). Du kannst jederzeit eigene Tarife anlegen. Der Zugang zum **Community-Katalog und seinen Updates** gilt für Nutzer,
+Edibert hat einen gepflegten Katalog von Tarifen (DE/AT/CH). Du kannst jederzeit eigene Tarife anlegen. Der Zugang zum **Community-Katalog und seinen Updates** gilt für Nutzer,
 
 - die selbst einen Tarif beigetragen haben (zeitlich begrenzt), oder
 - die einmalig eine kleine Gebühr zahlen.

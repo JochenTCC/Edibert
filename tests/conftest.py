@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from edbert.context import PricingContext
-from edbert.tariff import EXPORT, IMPORT, Tariff, parse_tariff
+from edibert.context import PricingContext
+from edibert.tariff import EXPORT, IMPORT, Tariff, parse_tariff
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
 

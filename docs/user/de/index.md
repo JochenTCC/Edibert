@@ -1,7 +1,7 @@
 <!-- source: docs/user/en/index.md @ 0.1.e -->
-# Edbert Bedienungsanleitung
+# Edibert Bedienungsanleitung
 
-Edbert beschreibt deinen Stromtarif einmal und berechnet daraus den Preis jeder Viertelstunde. Diese Anleitung behandelt den **Tarif-Editor** (die Browserseite), die Ausgabe über MQTT und die Kommandozeile. Die englischen Seiten sind maßgeblich, diese Seiten sind eine Übersetzung.
+Edibert beschreibt deinen Stromtarif einmal und berechnet daraus den Preis jeder Viertelstunde. Diese Anleitung behandelt den **Tarif-Editor** (die Browserseite), die Ausgabe über MQTT und die Kommandozeile. Die englischen Seiten sind maßgeblich, diese Seiten sind eine Übersetzung.
 
 **Status:** Entwurf. Der Editor und die MQTT-Ausgabe funktionieren; eine native Home-Assistant-Integration gibt es noch nicht.
 

@@ -3,8 +3,8 @@
 import pytest
 from conftest import EXPORT, at, load_example, make
 
-from edbert.errors import EdbertError, ErrorCode
-from edbert.tariff import evaluate, price_cent
+from edibert.errors import EdibertError, ErrorCode
+from edibert.tariff import evaluate, price_cent
 
 
 def test_day_night_weekday_night_and_weekend(ctx_de):
@@ -69,7 +69,7 @@ def test_spot_markup_cap_vat_and_winter_surcharge(ctx_at):
 def test_spot_tariff_needs_a_market_price(ctx_at):
     tariff = make(load_example("spot_evening_surcharge_cap.json"))
     slot = at("2026-12-15 18:00")
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         price_cent(tariff, slot, ctx_at)
     assert err.value.code == ErrorCode.MARKET_PRICE_REQUIRED
 
@@ -79,7 +79,7 @@ def test_export_pays_nothing_at_negative_price(ctx_de):
     assert price_cent(tariff, at("2026-06-20 13:00"), ctx_de, epex_cent=-2.0) == 0.0
     assert price_cent(tariff, at("2026-06-20 13:00"), ctx_de, epex_cent=5.0) == 7.8
     slot = at("2026-06-20 13:00")
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         price_cent(tariff, slot, ctx_de)
     assert err.value.code == ErrorCode.MARKET_PRICE_REQUIRED
 

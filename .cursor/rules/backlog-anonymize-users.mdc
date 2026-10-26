@@ -6,7 +6,7 @@ alwaysApply: true
 
 # Backlog — anonymize user names before commit
 
-Before staging or committing `backlog/Backlog-Bugfixes.md` or `backlog/Backlog-Erledigt.md`, scrub **personal/customer names** from those two files. This matters more in Edbert than elsewhere because tariff contributions and issues come from real users.
+Before staging or committing `backlog/Backlog-Bugfixes.md` or `backlog/Backlog-Erledigt.md`, scrub **personal/customer names** from those two files. This matters more in Edibert than elsewhere because tariff contributions and issues come from real users.
 
 ## Scope
 

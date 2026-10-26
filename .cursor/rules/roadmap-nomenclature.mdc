@@ -9,7 +9,7 @@ alwaysApply: true
 
 * **Cycle logic:** Development steps proceed alphabetically up to the release `.0` (e.g. `0.1.a` → `0.1.b` → quality gate `0.1.r` → release `0.1.0` → next minor `0.2.0`).
 * **Placeholders:** Future minors that are not yet numbered are `N.+1` (e.g. `0.+1`).
-* **Package version vs. backlog:** the package version (`pyproject.toml`, `src/edbert/__init__.py`) holds SemVer / PEP 440 only (`0.1.0`, `0.1.0a1`), never backlog letters. Changes **always** require explicit user approval (`versioning.mdc`).
+* **Package version vs. backlog:** the package version (`pyproject.toml`, `src/edibert/__init__.py`) holds SemVer / PEP 440 only (`0.1.0`, `0.1.0a1`), never backlog letters. Changes **always** require explicit user approval (`versioning.mdc`).
 * **Granularity:** a backlog letter (`0.1.a`) is a whole chapter/feature block. Incremental steps inside it use the step level (`T1a`, see below).
 * **Quality gate:** `X.Y.r` is the release-hardening chapter before `X.Y.0` (skill `quality-gate`).
 

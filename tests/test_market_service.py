@@ -6,15 +6,15 @@ from zoneinfo import ZoneInfo
 import pytest
 from market_helpers import FakeWeb, awattar_json, energy_charts_json, entsoe_xml, utc
 
-from edbert.errors import EdbertError, ErrorCode, WarningCode
-from edbert.market.cache import cache_path
-from edbert.market.service import (
+from edibert.errors import EdibertError, ErrorCode, WarningCode
+from edibert.market.cache import cache_path
+from edibert.market.service import (
     MarketService,
     expected_window,
     last_day_ahead_date,
     window_slots,
 )
-from edbert.market.sources import SourceError
+from edibert.market.sources import SourceError
 
 VIENNA = ZoneInfo("Europe/Vienna")
 DAY_START = utc("2026-12-14T23:00")  # 2026-12-15 00:00 in Vienna
@@ -105,7 +105,7 @@ def test_partial_answer_is_reported_and_asked_again_only_after_the_retry_pause(t
 
 
 def test_no_source_and_no_cache_is_an_error(tmp_path):
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         service(tmp_path, FakeWeb()).load(VIENNA, MORNING)
     assert err.value.code == ErrorCode.MARKET_DATA_UNAVAILABLE
     assert err.value.params == {"zone": "AT"}
@@ -128,6 +128,6 @@ def test_unreadable_cache_is_noted_and_replaced(tmp_path):
 
 def test_switzerland_has_no_third_source(tmp_path):
     web = FakeWeb(energy_charts=SourceError("down"))
-    with pytest.raises(EdbertError):
+    with pytest.raises(EdibertError):
         MarketService("CH", tmp_path, get=web).load(VIENNA, MORNING)
     assert web.hosts() == ["api.energy-charts.info"]

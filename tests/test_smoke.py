@@ -1,13 +1,13 @@
 import json
 from pathlib import Path
 
-import edbert
+import edibert
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
 
 
 def test_package_has_version():
-    assert edbert.__version__
+    assert edibert.__version__
 
 
 def test_examples_are_valid_json():

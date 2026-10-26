@@ -1,14 +1,14 @@
 ---
 name: streamlit-apptest
 description: >-
-  Keep the headless Streamlit AppTest tests of the Edbert editor in sync when
-  src/edbert/ui/ changes: new or renamed widgets, steps, buttons, visible texts,
+  Keep the headless Streamlit AppTest tests of the Edibert editor in sync when
+  src/edibert/ui/ changes: new or renamed widgets, steps, buttons, visible texts,
   language handling. Use when editing the editor page or tests/test_ui_app.py.
 ---
 
 # Streamlit AppTest for the editor
 
-The page script is `src/edbert/ui/app.py` (it only calls `main()`); tests live in `tests/test_ui_app.py`.
+The page script is `src/edibert/ui/app.py` (it only calls `main()`); tests live in `tests/test_ui_app.py`.
 
 ## Pattern
 
@@ -19,7 +19,7 @@ app.sidebar.button(key="new.import").click().run()
 app.text_input(key=widget_key(app, "label")).set_value("My tariff").run()
 ```
 
-- Environment (`EDBERT_DATA_DIR`, `EDBERT_LANG`, `EDBERT_CATALOG`) is set with `monkeypatch` to a temporary folder; tests never touch real data.
+- Environment (`EDIBERT_DATA_DIR`, `EDIBERT_LANG`, `EDIBERT_CATALOG`) is set with `monkeypatch` to a temporary folder; tests never touch real data.
 - `widget_key(app, name)` builds `"<ui.ver>.<name>"` like `state.key`. Keys are language independent, so the same test works in `en` and `de`.
 - Assert on **behavior** (file written, rows added, error shown) and on a few exact texts per language; do not assert every label.
 

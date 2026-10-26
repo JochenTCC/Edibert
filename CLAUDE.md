@@ -1,4 +1,4 @@
-# CLAUDE.md — Edbert
+# CLAUDE.md — Edibert
 
 Tariff editor and price service. Draft stage: format spec and examples exist, no engine yet.
 
@@ -8,7 +8,7 @@ Project rules live in `.cursor/rules/*.mdc` and `.cursor/skills/*/SKILL.md` (wri
 
 | File | Topic |
 |---|---|
-| `.cursor/rules/edbert-project.mdc` | Guardrails: license, legal drafts, no real data, tariff semantics |
+| `.cursor/rules/edibert-project.mdc` | Guardrails: license, legal drafts, no real data, tariff semantics |
 | `.cursor/rules/no-implicit-fallbacks.mdc` | Fail loud instead of silent fallbacks |
 | `.cursor/rules/powershell-shell.mdc` | PowerShell 5.x syntax (no `&&`) |
 | `.cursor/rules/docs-language.mdc` | Technical docs English only; user manuals EN+DE (English authoritative); UI via translation catalogs; legal texts per country in the national language |
@@ -33,7 +33,7 @@ Not ported from Earnie (Earnie-specific): test-health scripts, branching playboo
 
 ## SonarCloud
 
-CI scans `main` and pull requests (`.github/workflows/sonarcloud.yml`, `sonar-project.properties`, project key `JochenTCC_edbert`). It needs a SonarCloud project and a `SONAR_TOKEN` repository secret, which the user sets up; do not create or change either. Local runs do not call Sonar. The snapshot is part of the quality gate skill.
+CI scans `main` and pull requests (`.github/workflows/sonarcloud.yml`, `sonar-project.properties`, project key `JochenTCC_Edibert`). It needs a SonarCloud project and a `SONAR_TOKEN` repository secret, which the user sets up; do not create or change either. Local runs do not call Sonar. The snapshot is part of the quality gate skill.
 
 ## Tests
 
@@ -54,7 +54,7 @@ Reply in **German** in Claude Code chat (the user switches language spontaneousl
 
 ## Versioning and publishing
 
-- **Never change the version** (`pyproject.toml`, `src/edbert/__init__.py`) without explicit user approval; propose and ask (`versioning.mdc`).
+- **Never change the version** (`pyproject.toml`, `src/edibert/__init__.py`) without explicit user approval; propose and ask (`versioning.mdc`).
 - Do not commit, push, tag, or publish unless asked.
 
 ## Code changes
@@ -66,4 +66,4 @@ Reply in **German** in Claude Code chat (the user switches language spontaneousl
 ## Legal
 
 - `LICENSE` is the verbatim PolyForm Noncommercial 1.0.0 text and must not be edited.
-- Draft legal texts (catalog terms, contribution terms, privacy notice, review checklist) are **not in this repo**. They live in the Earnie project folder under `Entwicklungsplan/Offen/Edbert-Bedingungstexte/` until legally reviewed. Do not re-add them here and do not describe them as final.
+- Draft legal texts (catalog terms, contribution terms, privacy notice, review checklist) are **not in this repo**. They live in the Earnie project folder under `Entwicklungsplan/Offen/Edibert-Bedingungstexte/` until legally reviewed. Do not re-add them here and do not describe them as final.

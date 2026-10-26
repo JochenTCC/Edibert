@@ -2,8 +2,8 @@ import logging
 
 import pytest
 
-from edbert.errors import EdbertError, ErrorCode
-from edbert.i18n import MissingTranslationError, Translator
+from edibert.errors import EdibertError, ErrorCode
+from edibert.i18n import MissingTranslationError, Translator
 
 
 def test_translates_with_parameters():
@@ -34,13 +34,13 @@ def test_missing_parameter_is_an_error():
 def test_missing_key_in_other_language_falls_back_to_english_and_logs(caplog):
     catalogs = {"en": {"only.en": "English text"}, "de": {}}
     translator = Translator("de", catalogs=catalogs)
-    with caplog.at_level(logging.WARNING, logger="edbert.i18n"):
+    with caplog.at_level(logging.WARNING, logger="edibert.i18n"):
         assert translator.t("only.en") == "English text"
     assert "only.en" in caplog.text
 
 
 def test_error_is_localized_by_code():
-    err = EdbertError(
+    err = EdibertError(
         ErrorCode.UNSUPPORTED_FEATURE,
         "Unsupported feature 'tiers' in tariff 'user_x'.",
         feature="tiers",
@@ -52,9 +52,9 @@ def test_error_is_localized_by_code():
 
 
 def test_field_names_in_errors_are_readable_but_unknown_ones_stay():
-    missing = EdbertError(ErrorCode.FIELD_MISSING, "x", field="label")
-    nested = EdbertError(ErrorCode.VALUE_INVALID, "x", field="user_x.rules[night].time.from", value="25:00")
-    odd = EdbertError(ErrorCode.VALUE_INVALID, "x", field="--at", value="tomorrow")
+    missing = EdibertError(ErrorCode.FIELD_MISSING, "x", field="label")
+    nested = EdibertError(ErrorCode.VALUE_INVALID, "x", field="user_x.rules[night].time.from", value="25:00")
+    odd = EdibertError(ErrorCode.VALUE_INVALID, "x", field="--at", value="tomorrow")
     assert Translator("de").error(missing) == "Pflichtfeld „Name“ fehlt."
     assert "„Von“" in Translator("de").error(nested)
     assert "field \"from\"" in Translator("en").error(nested)

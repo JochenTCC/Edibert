@@ -1,8 +1,10 @@
-# Edbert
+# Edibert
 
 **English** · [Deutsch](README.de.md) · *The English version is authoritative.*
 
-**Edbert** is a tariff editor and price service for smart-home systems. You describe your electricity tariff once (fixed, market-indexed, or time-variable with windows, weekdays and holidays) and Edbert delivers the resulting prices as a time series to your smart-home backend: as a Home Assistant sensor or over MQTT.
+*Formerly named Edbert (renamed 2026-10-26).*
+
+**Edibert** is a tariff editor and price service for smart-home systems. You describe your electricity tariff once (fixed, market-indexed, or time-variable with windows, weekdays and holidays) and Edibert delivers the resulting prices as a time series to your smart-home backend: as a Home Assistant sensor or over MQTT.
 
 > **Status: draft.** The rule engine (`0.1.a`), the price series with grid fee (`0.1.b`) the tariff editor in the browser (`0.1.c`) and the MQTT publisher with Home Assistant discovery (`0.1.e`) work. A native Home Assistant integration does not exist yet. See the [roadmap](#roadmap).
 
@@ -10,7 +12,7 @@
 
 ```bash
 pip install -e ".[ui]"
-python -m edbert ui --data-dir edbert_data
+python -m edibert ui --data-dir edibert_data
 ```
 
 Open `http://localhost:8501`. Four steps (base price, time windows, further costs, advanced), live price curve, price at a given time, check against a real invoice, copy a catalog tariff, import JSON. English and German. See the [user manual](docs/user/en/index.md).
@@ -19,7 +21,7 @@ Open `http://localhost:8501`. Four steps (base price, time windows, further cost
 
 ```bash
 pip install -e ".[mqtt]"
-python -m edbert publish --data-dir edbert_data
+python -m edibert publish --data-dir edibert_data
 ```
 
 Sends the prices of the tariffs listed in `publish.json` (current price, today, tomorrow, optional forecast) as retained MQTT topics with Home Assistant discovery. Market prices come from the same chain as in Earnie (ENTSO-E with a token, Energy-Charts, aWATTar). See [Publishing](docs/user/en/publishing.md).
@@ -28,15 +30,15 @@ Sends the prices of the tariffs listed in `publish.json` (current price, today, 
 
 ```bash
 pip install -e ".[dev]"
-python -m edbert price --tariff examples/spot_evening_surcharge_cap.json     --at 2026-12-15T18:00 --tz Europe/Vienna --epex 10
-python -m edbert --lang de price --tariff examples/fixed_day_night.json     --at 2026-12-25T12:00 --tz Europe/Berlin --land DE --region BY
+python -m edibert price --tariff examples/spot_evening_surcharge_cap.json     --at 2026-12-15T18:00 --tz Europe/Vienna --epex 10
+python -m edibert --lang de price --tariff examples/fixed_day_night.json     --at 2026-12-25T12:00 --tz Europe/Berlin --land DE --region BY
 python -m pytest
 ```
 
-The first command prints the price of one slot with the steps (base price, applied rule, floor/cap, VAT). Tariffs with weekday rules need `--land` and `--region`, because holidays can change the result; without them the command stops with an error instead of guessing. `python -m edbert schema` prints the JSON Schema of a tariff.
+The first command prints the price of one slot with the steps (base price, applied rule, floor/cap, VAT). Tariffs with weekday rules need `--land` and `--region`, because holidays can change the result; without them the command stops with an error instead of guessing. `python -m edibert schema` prints the JSON Schema of a tariff.
 
 ```bash
-python -m edbert series --tariff examples/spot_evening_surcharge_cap.json \
+python -m edibert series --tariff examples/spot_evening_surcharge_cap.json \
     --grid-fee examples/grid_fee_modul3_example.json \
     --from 2026-12-15T00:00 --to 2026-12-16T00:00 --tz Europe/Vienna \
     --market-csv tests/fixtures/market_2026-12-15.csv --resolution 60
@@ -54,7 +56,7 @@ Many tariffs cannot be described by a single "ct/kWh" field:
 - feed-in with "no remuneration at negative prices"
 - public holidays that count like a Sunday
 
-Edbert models this with a few building blocks, **without hand-written JSON**, and shows you the price curve immediately, before you use it.
+Edibert models this with a few building blocks, **without hand-written JSON**, and shows you the price curve immediately, before you use it.
 
 ## Planned features
 
@@ -68,15 +70,15 @@ Edbert models this with a few building blocks, **without hand-written JSON**, an
 | Import | Catalog tariff as template, JSON file, price series (CSV), later a price-sheet assistant |
 | Holidays | From the [`holidays`](https://github.com/vacanza/holidays) library (DE/AT/CH by federal state or canton), offline |
 
-Non-goals: comparing or brokering tariffs, creating invoices, controlling devices. Edbert only delivers prices.
+Non-goals: comparing or brokering tariffs, creating invoices, controlling devices. Edibert only delivers prices.
 
 ## Relation to Earnie
 
-Edbert is a stand-alone tool that is also used by [Earnie](https://github.com/JochenTCC/Earnie), an optimizer for home batteries, PV and loads. You do not need Earnie to use Edbert.
+Edibert is a stand-alone tool that is also used by [Earnie](https://github.com/JochenTCC/Earnie), an optimizer for home batteries, PV and loads. You do not need Earnie to use Edibert.
 
 ## Catalog and contributions
 
-Edbert has a curated catalog of tariffs (DE/AT/CH). You can always create your own tariffs. Access to the **community catalog and its updates** is available to users
+Edibert has a curated catalog of tariffs (DE/AT/CH). You can always create your own tariffs. Access to the **community catalog and its updates** is available to users
 
 - who have contributed a tariff themselves (for a limited time), or
 - who pay a small one-time fee.

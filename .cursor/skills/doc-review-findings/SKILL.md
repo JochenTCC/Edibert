@@ -34,7 +34,7 @@ Doc review finding:
 
 1. **Scope:** one finding (top-level `- [ ]`) per pass unless the user asks for a batch. Ask before inventing content the finding does not specify.
 2. **Language:** technical docs English only; user pages English (authoritative) and German (`README.md`/`README.de.md`, `docs/user/en|de/`). See `docs-language.mdc`.
-3. **Legal texts:** never paraphrase or add binding legal texts to this repo (`edbert-project.mdc`).
+3. **Legal texts:** never paraphrase or add binding legal texts to this repo (`edibert-project.mdc`).
 4. **Archive:** use the heading format `### Document Review <topic> (YYYY-MM-DD)`, newest on top, date in Europe/Vienna.
 
 ## Do not

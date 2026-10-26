@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Versioning
 
-The version lives in **two places that must always match**: `pyproject.toml` (`[project] version`) and `src/edbert/__init__.py` (`__version__`).
+The version lives in **two places that must always match**: `pyproject.toml` (`[project] version`) and `src/edibert/__init__.py` (`__version__`).
 
 Format: SemVer-like `MAJOR.MINOR.PATCH`, with PEP 440 pre-release suffixes for test builds (`0.1.0.dev1`, `0.1.0a1`, `0.1.0b1`, `0.1.0rc1`). Currently `0.0.0.dev0` (draft, nothing released).
 

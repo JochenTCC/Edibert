@@ -5,13 +5,13 @@ from types import SimpleNamespace
 import pytest
 from market_helpers import utc
 
-from edbert.errors import EdbertError, ErrorCode
-from edbert.market.cache import CacheEntry, read_cache, write_cache
-from edbert.publish import forecasters as forecast
-from edbert.publish import mqtt
-from edbert.publish.config import MqttSettings
+from edibert.errors import EdibertError, ErrorCode
+from edibert.market.cache import CacheEntry, read_cache, write_cache
+from edibert.publish import forecasters as forecast
+from edibert.publish import mqtt
+from edibert.publish.config import MqttSettings
 
-SETTINGS = MqttSettings(host="broker", port=8883, tls=True, base_topic="edbert", client_id="cid")
+SETTINGS = MqttSettings(host="broker", port=8883, tls=True, base_topic="edibert", client_id="cid")
 
 
 class FakeInfo:
@@ -64,20 +64,20 @@ def test_paho_link_sets_will_credentials_tls_and_publishes_retained(monkeypatch)
     client = link.client
     assert ("auth", "user", "secret") in client.calls
     assert ("tls",) in client.calls
-    assert ("will", "edbert/status", "offline", 1, True) in client.calls
+    assert ("will", "edibert/status", "offline", 1, True) in client.calls
     assert ("connect", "broker", 8883, 60) in client.calls
-    link.publish("edbert/x", "1")
-    assert client.published == [("edbert/x", "1", 1, True)]
+    link.publish("edibert/x", "1")
+    assert client.published == [("edibert/x", "1", 1, True)]
     client.on_connect(client, None, None, 0, None)
-    assert client.published[-1] == ("edbert/status", "online", 1, True)  # again after a reconnect
+    assert client.published[-1] == ("edibert/status", "online", 1, True)  # again after a reconnect
     link.close()
-    assert client.published[-1] == ("edbert/status", "offline", 1, True)
+    assert client.published[-1] == ("edibert/status", "offline", 1, True)
     assert client.calls[-2:] == [("loop_stop",), ("disconnect",)]
 
 
 def test_connection_failure_is_a_coded_error(monkeypatch):
     fake_paho(monkeypatch, fail=True)
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         mqtt.PahoLink(SETTINGS, None, None)
     assert err.value.code == ErrorCode.MQTT_CONNECTION_FAILED
     assert err.value.params == {"host": "broker", "port": 8883}
@@ -88,7 +88,7 @@ def test_missing_library_is_a_coded_error(monkeypatch):
         raise ImportError(name)
 
     monkeypatch.setattr(mqtt, "importlib", SimpleNamespace(import_module=refuse))
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         mqtt.PahoLink(SETTINGS, None, None)
     assert err.value.code == ErrorCode.MQTT_LIBRARY_MISSING
 
@@ -121,16 +121,16 @@ def test_forecaster_is_loaded_from_the_entry_point_group(monkeypatch):
             return {}
 
     point = SimpleNamespace(name="demo", value="pkg:Demo", load=lambda: Demo)
-    monkeypatch.setattr(forecast, "entry_points", lambda group: [point] if group == "edbert.forecasters" else [])
+    monkeypatch.setattr(forecast, "entry_points", lambda group: [point] if group == "edibert.forecasters" else [])
     assert forecast.available_forecasters() == {"demo": "pkg:Demo"}
     assert forecast.load_forecaster("demo", " k-1 ").key == "k-1"  # the key is handed over, validation is the plug-in's job
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         forecast.load_forecaster("other", "k-1")
     assert err.value.code == ErrorCode.FORECASTER_UNAVAILABLE
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         forecast.load_forecaster("demo", "  ")
     assert err.value.code == ErrorCode.FORECAST_KEY_MISSING
-    assert err.value.params == {"env": "EDBERT_FORECAST_KEY"}
+    assert err.value.params == {"env": "EDIBERT_FORECAST_KEY"}
 
 
 def test_cache_round_trip_and_damage(tmp_path):

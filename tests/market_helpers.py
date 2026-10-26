@@ -4,7 +4,7 @@ import json
 from datetime import UTC, datetime, timedelta
 from urllib.parse import urlparse
 
-from edbert.market.sources import (
+from edibert.market.sources import (
     AWATTAR_URLS,
     ENERGY_CHARTS_URL,
     ENTSOE_URL,

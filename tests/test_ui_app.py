@@ -8,8 +8,8 @@ import pytest
 pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 
-import edbert.ui.app as app_module
-from edbert.ui.config import ENV_CATALOG, ENV_DATA_DIR, ENV_LANG
+import edibert.ui.app as app_module
+from edibert.ui.config import ENV_CATALOG, ENV_DATA_DIR, ENV_LANG
 
 APP = Path(app_module.__file__)
 
@@ -46,7 +46,7 @@ def test_start_page_in_both_languages(data_dir):
     assert english.info[0].value.startswith("Create a new tariff")
     german = start("de")
     assert german.info[0].value.startswith("Lege einen neuen Tarif an")
-    assert german.title[0].value == "Edbert Tarif-Editor"
+    assert german.title[0].value == "Edibert Tarif-Editor"
 
 
 def test_create_and_save_a_fixed_tariff(data_dir):

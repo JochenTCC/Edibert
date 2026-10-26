@@ -1,4 +1,4 @@
-"""The public library API ``edbert.api`` and the layering rule (library never imports UI or publisher)."""
+"""The public library API ``edibert.api`` and the layering rule (library never imports UI or publisher)."""
 
 import ast
 import json
@@ -8,12 +8,12 @@ from pathlib import Path
 
 import pytest
 
-from edbert import api
+from edibert import api
 
 SRC = Path(__file__).resolve().parents[1] / "src"
-PACKAGE = SRC / "edbert"
-PRODUCT = ("edbert.ui", "edbert.publish")
-PRODUCT_ENTRY = ("edbert.cli", "edbert.__main__")  # command line: starts the editor and the publisher
+PACKAGE = SRC / "edibert"
+PRODUCT = ("edibert.ui", "edibert.publish")
+PRODUCT_ENTRY = ("edibert.cli", "edibert.__main__")  # command line: starts the editor and the publisher
 
 
 def _module_name(path: Path) -> str:
@@ -49,7 +49,7 @@ def test_library_modules_never_import_ui_or_publish():
 
 
 def test_importing_the_api_loads_no_product_module():
-    code = "import sys, edbert.api; print([m for m in sys.modules if m.startswith(('edbert.ui', 'edbert.publish'))])"
+    code = "import sys, edibert.api; print([m for m in sys.modules if m.startswith(('edibert.ui', 'edibert.publish'))])"
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True, env={"PYTHONPATH": str(SRC), "SYSTEMROOT": "C:\\Windows", "PATH": ""})
     assert out.stdout.strip() == "[]"
 
@@ -73,7 +73,7 @@ def test_load_tariffs_keeps_the_origin_and_tolerates_a_missing_user_file(tmp_pat
 
 
 def test_a_missing_catalog_file_is_an_error(tmp_path):
-    with pytest.raises(api.EdbertError) as err:
+    with pytest.raises(api.EdibertError) as err:
         api.load_tariffs(tmp_path / "tariffs.json")
     assert err.value.code == api.ErrorCode.FILE_INVALID
 
@@ -81,10 +81,10 @@ def test_a_missing_catalog_file_is_an_error(tmp_path):
 def test_pricing_context_checks_the_region_up_front():
     assert api.pricing_context("Europe/Vienna", "AT", "9").region == "9"
     assert api.pricing_context("Europe/Vienna", "AT").region is None
-    with pytest.raises(api.EdbertError) as err:
+    with pytest.raises(api.EdibertError) as err:
         api.pricing_context("Europe/Vienna", "AT", "XX")
     assert err.value.code == api.ErrorCode.HOLIDAY_REGION_UNKNOWN
     assert err.value.params == {"land": "AT", "region": "XX"}
-    with pytest.raises(api.EdbertError) as err:
+    with pytest.raises(api.EdibertError) as err:
         api.pricing_context("Europe/Vienna", None, "9")
     assert err.value.code == api.ErrorCode.FIELD_MISSING

@@ -5,8 +5,8 @@ import json
 import pytest
 from market_helpers import FakeWeb, awattar_json, energy_charts_json, entsoe_xml, utc
 
-from edbert.errors import EdbertError, ErrorCode
-from edbert.market.sources import (
+from edibert.errors import EdibertError, ErrorCode
+from edibert.market.sources import (
     SLOT,
     SourceError,
     fetch_awattar,
@@ -108,7 +108,7 @@ def test_requests_use_the_right_zone_and_dates():
 
 def test_zones_and_labels():
     assert [zone_for_land(land) for land in ("AT", "DE", "CH")] == ["AT", "DE-LU", "CH"]
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         zone_for_land("FR")
     assert err.value.code == ErrorCode.MARKET_ZONE_UNKNOWN
     assert source_label("energy-charts")["license"] == "CC BY 4.0"

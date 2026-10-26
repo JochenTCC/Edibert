@@ -5,17 +5,17 @@ import json
 import pytest
 from conftest import at, load_example, make
 
-from edbert.context import PricingContext
-from edbert.errors import EdbertError, ErrorCode
-from edbert.store import load_tariffs
-from edbert.tariff import EXPORT, IMPORT, parse_tariff, price_cent
+from edibert.context import PricingContext
+from edibert.errors import EdibertError, ErrorCode
+from edibert.store import load_tariffs
+from edibert.tariff import EXPORT, IMPORT, parse_tariff, price_cent
 
 BASE = {"id": "t", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0}
 EFFECT = {"mode": "add_cent", "value": 1}
 
 
 def code_of(func, *args, **kwargs):
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         func(*args, **kwargs)
     return err.value.code
 

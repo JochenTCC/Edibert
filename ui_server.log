@@ -27,7 +27,7 @@
   [33m[1mWarning:[0m to view this Streamlit app on a browser, run it with the following
   command:
 
-    streamlit run C:\Users\joche\Documents\Smarthome\Python\Edbert\src\edbert\__main__.py [ARGUMENTS]
+    streamlit run C:\Users\joche\Documents\Smarthome\Python\Edibert\src\edibert\__main__.py [ARGUMENTS]
 2026-10-12 12:59:49.655 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 2026-10-12 12:59:49.655 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 2026-10-12 12:59:49.655 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.

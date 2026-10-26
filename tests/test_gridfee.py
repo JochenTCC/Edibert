@@ -3,8 +3,8 @@
 import pytest
 from conftest import at, load_example, make
 
-from edbert.errors import EdbertError, ErrorCode
-from edbert.gridfee import (
+from edibert.errors import EdibertError, ErrorCode
+from edibert.gridfee import (
     SKIP_NO_QUARTER_HOUR_METER,
     SKIP_STATUS,
     load_grid_fee_config,
@@ -12,7 +12,7 @@ from edbert.gridfee import (
     parse_grid_fee_config,
     resolve_grid_fee,
 )
-from edbert.tariff import evaluate, price_cent
+from edibert.tariff import evaluate, price_cent
 
 CATALOG = {
     "description": "test catalog (Earnie shape)",
@@ -37,7 +37,7 @@ FIXED = {"id": "t", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 20
 
 
 def code_of(func, *args, **kwargs):
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         func(*args, **kwargs)
     return err.value.code
 

@@ -5,7 +5,7 @@ import pytest
 from conftest import load_example
 from jsonschema import Draft202012Validator
 
-from edbert.schema import rule_field_names, tariff_field_names, tariff_schema
+from edibert.schema import rule_field_names, tariff_field_names, tariff_schema
 
 COMMITTED = Path(__file__).resolve().parent.parent / "schema" / "tariff.schema.json"
 EXAMPLE_FILES = ("fixed_day_night.json", "spot_evening_surcharge_cap.json", "export_no_pay_at_negative_price.json")
@@ -40,5 +40,5 @@ def test_schema_rejects_bad_tariffs(bad):
 
 def test_committed_schema_is_current():
     assert json.loads(COMMITTED.read_text(encoding="utf-8")) == tariff_schema(), (
-        "schema/tariff.schema.json is stale: run `python -m edbert schema > schema/tariff.schema.json`"
+        "schema/tariff.schema.json is stale: run `python -m edibert schema > schema/tariff.schema.json`"
     )

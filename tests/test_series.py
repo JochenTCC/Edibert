@@ -6,11 +6,11 @@ from datetime import timedelta
 import pytest
 from conftest import at, load_example, make
 
-from edbert.checks import check_grid_fee, check_tariff
-from edbert.errors import EdbertError, ErrorCode, WarningCode
-from edbert.gridfee import parse_grid_fee_config, resolve_grid_fee
-from edbert.i18n import Translator
-from edbert.series import QUALITY_EXACT, QUALITY_FORECAST, tariff_price_series
+from edibert.checks import check_grid_fee, check_tariff
+from edibert.errors import EdibertError, ErrorCode, WarningCode
+from edibert.gridfee import parse_grid_fee_config, resolve_grid_fee
+from edibert.i18n import Translator
+from edibert.series import QUALITY_EXACT, QUALITY_FORECAST, tariff_price_series
 
 FIXED_NIGHT = {
     "id": "f", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0,
@@ -21,7 +21,7 @@ SPOT = {"id": "sp", "type": "spot_hourly", "supplier_id": "s", "prices_include_v
 
 
 def code_of(func, *args, **kwargs):
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         func(*args, **kwargs)
     return err.value.code
 
@@ -161,7 +161,7 @@ def test_series_collects_warnings_from_tariff_and_grid_fee(ctx_plain):
     catalog = {"rule_sets": {"S": [{"id": "snap", "status": "verordnet", "requires": ["quarter_hour_meter"],
                                     "effect": {"mode": "percent_off", "value": 20}}]},
                "areas": [{"id": "A", "base_cent_kwh": {"unmetered_power": 5, "metered_power": 3}, "rule_set": "S"}]}  # fmt: skip
-    from edbert.gridfee import parse_grid_fee_catalog
+    from edibert.gridfee import parse_grid_fee_catalog
 
     fee = resolve_grid_fee(parse_grid_fee_config({"area_id": "A"}), parse_grid_fee_catalog(catalog))
     assert [w.code for w in check_grid_fee(fee)] == [WarningCode.GRID_RULE_SKIPPED_NO_QUARTER_HOUR_METER]

@@ -3,7 +3,7 @@
 
 ## Installation
 
-Edbert braucht Python 3.11 oder neuer.
+Edibert braucht Python 3.11 oder neuer.
 
 ```bash
 pip install -e ".[ui]"
@@ -14,18 +14,18 @@ pip install -e ".[ui]"
 ## Den Editor starten
 
 ```bash
-python -m edbert ui --data-dir edbert_data
+python -m edibert ui --data-dir edibert_data
 ```
 
 Danach `http://localhost:8501` im Browser öffnen. Mit `--lang de` vor `ui` startet er auf Deutsch, mit `--port 8601` auf einem anderen Port, und mit `--catalog tariffs.json` kannst du Tarife aus einer Katalogdatei kopieren.
 
 ```bash
-python -m edbert --lang de ui --data-dir edbert_data --catalog tariffs.json
+python -m edibert --lang de ui --data-dir edibert_data --catalog tariffs.json
 ```
 
 ## Wo deine Daten liegen
 
-Alles bleibt auf deinem Rechner im Datenordner (Standard `edbert_data`):
+Alles bleibt auf deinem Rechner im Datenordner (Standard `edibert_data`):
 
 | Datei | Inhalt |
 |---|---|
@@ -43,7 +43,7 @@ In der Seitenleiste gibt es die Auswahl **Sprache** (Englisch oder Deutsch). Dei
 Öffne einmal **Haus-Einstellungen** in der Seitenleiste, bevor du dich auf die Vorschau verlässt:
 
 - **Zeitzone** (z. B. `Europe/Vienna`). Alle Zeiten sind Ortszeit des Hauses.
-- **Land** und **Bundesland / Kanton.** Die Region ist nötig, sobald ein Tarif Regeln für bestimmte Tage hat, weil Feiertage den Preis ändern können. Ohne Region bricht Edbert mit einer klaren Meldung ab, statt zu raten.
+- **Land** und **Bundesland / Kanton.** Die Region ist nötig, sobald ein Tarif Regeln für bestimmte Tage hat, weil Feiertage den Preis ändern können. Ohne Region bricht Edibert mit einer klaren Meldung ab, statt zu raten.
 - **Ausstattung des Hauses**: Smart Meter, Viertelstundenzähler, separater Zähler, steuerbare Verbrauchseinrichtung. Ein Tarif, der etwas verlangt, das dem Haus fehlt, bekommt einen Hinweis.
 - **Netzentgelt** (optional): Basispreis in ct/kWh (netto) und Zeitfenster, z. B. die Hoch- und Niedertarifstufe nach §14a EnWG Modul 3. Es wird vor der USt zum Preis addiert.
 

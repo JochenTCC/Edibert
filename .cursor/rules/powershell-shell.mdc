@@ -11,7 +11,7 @@ This environment uses **Windows PowerShell 5.x** (not pwsh 7+). `&&` and `||` ar
 
 ```powershell
 # ❌ ParserError: The token "&&" is not a valid statement separator
-cd "C:\...\Edbert" && python -m pytest -q
+cd "C:\...\Edibert" && python -m pytest -q
 ```
 
 ## Instead

@@ -1,13 +1,13 @@
 ---
 name: session-abschluss
 description: >-
-  End-of-session routine for Edbert: backlog sync, commit approved changes,
+  End-of-session routine for Edibert: backlog sync, commit approved changes,
   push, and the publish decision. Use when the user wants to end the session,
   sync the backlog, commit and push, or tag a release. Lean version of the
   Earnie skill (no Docker, no promote job).
 ---
 
-# Session conclusion (Edbert)
+# Session conclusion (Edibert)
 
 Commit and push approval is implied by the end-session request. Still: never commit secrets, gitignored files, real tariff or customer data, or the draft legal texts.
 
@@ -44,7 +44,7 @@ Present once, with the live package version and one recommended choice:
 
 ## Phase 2 — tag (only on request)
 
-1. Version bump only after explicit approval; `pyproject.toml` and `src/edbert/__init__.py` must match.
+1. Version bump only after explicit approval; `pyproject.toml` and `src/edibert/__init__.py` must match.
 2. Annotated tag `vX.Y.Z[…]` matching the package version. Never rewrite or force-push a published tag; fix forward with a new approved version.
 3. Publishing to PyPI / HACS is **not** automated by this skill; it needs a separate decision (license note: PolyForm Noncommercial; HACS requirements in the backlog research items).
 

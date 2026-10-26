@@ -5,7 +5,7 @@ import json
 import pytest
 from conftest import load_example
 
-from edbert.editor.userstore import (
+from edibert.editor.userstore import (
     copy_as_template,
     delete_user_tariff,
     parse_import_text,
@@ -13,9 +13,9 @@ from edbert.editor.userstore import (
     save_user_tariff,
     user_tariff_ids,
 )
-from edbert.errors import EdbertError, ErrorCode
-from edbert.store import load_tariffs
-from edbert.tariff import EXPORT, IMPORT
+from edibert.errors import EdibertError, ErrorCode
+from edibert.store import load_tariffs
+from edibert.tariff import EXPORT, IMPORT
 
 IMPORT_RAW = {"id": "user_a", "type": "fixed_cent", "supplier_id": "user_s", "fix_cent_kwh": 30.0}
 EXPORT_RAW = {"id": "user_e", "type": "fixed", "supplier_id": "user_s", "k_push_cent": 5.0}
@@ -40,7 +40,7 @@ def test_invalid_tariff_is_not_written(tmp_path):
     path = tmp_path / "user_tariffs.json"
     save_user_tariff(path, IMPORT_RAW, IMPORT)
     before = path.read_text(encoding="utf-8")
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         save_user_tariff(path, {**IMPORT_RAW, "id": "user_b", "colour": 1}, IMPORT)
     assert err.value.code == ErrorCode.TARIFF_UNKNOWN_FIELD
     assert path.read_text(encoding="utf-8") == before
@@ -50,7 +50,7 @@ def test_missing_file_is_an_empty_document_and_broken_file_is_an_error(tmp_path)
     assert read_document(tmp_path / "none.json") == {"import_tariffs": [], "export_tariffs": []}
     broken = tmp_path / "broken.json"
     broken.write_text("{ nope", encoding="utf-8")
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         read_document(broken)
     assert err.value.code == ErrorCode.FILE_INVALID
 
@@ -100,9 +100,9 @@ def test_import_document_with_both_directions_and_export_detection():
 def test_import_rejects_non_json_and_unknown_root_fields():
     taken = {IMPORT: set(), EXPORT: set()}
     unknown_root = json.dumps({"import_tariffs": [], "oops": 1})
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         parse_import_text("{ not json", IMPORT, taken)
     assert err.value.code == ErrorCode.FILE_INVALID
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         parse_import_text(unknown_root, IMPORT, taken)
     assert err.value.code == ErrorCode.TARIFF_UNKNOWN_FIELD

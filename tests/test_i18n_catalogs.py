@@ -1,7 +1,12 @@
 import pytest
 
-from edbert.errors import ErrorCode, WarningCode
-from edbert.i18n import SOURCE_LANGUAGE, SUPPORTED_LANGUAGES, load_catalog, placeholders
+from edibert.errors import ErrorCode, WarningCode
+from edibert.i18n import (
+    SOURCE_LANGUAGE,
+    SUPPORTED_LANGUAGES,
+    load_catalog,
+    placeholders,
+)
 
 OTHER_LANGUAGES = [lang for lang in SUPPORTED_LANGUAGES if lang != SOURCE_LANGUAGE]
 

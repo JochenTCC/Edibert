@@ -1,7 +1,7 @@
 ---
 name: quality-gate
 description: >-
-  Runs the Edbert MINOR release quality / hardening gate (backlog chapter
+  Runs the Edibert MINOR release quality / hardening gate (backlog chapter
   X.Y.r): coverage baseline, dead-code and obsolete-test audit, identify
   redundant or unnecessarily complex code without changing functionality, KPI
   refactor including mega-file splits, docs review, then a SonarCloud
@@ -73,7 +73,7 @@ Files over the hard limit and functions > 60 LOC are in-gate work. Split in boun
 
 ## 6. SonarCloud snapshot
 
-CI scans `main` and pull requests (`.github/workflows/sonarcloud.yml`). **Do not** re-run Sonar or `pytest --cov` locally for this step. Open the SonarCloud project (`JochenTCC_edbert`) on the `main` commit this `.r` is based on.
+CI scans `main` and pull requests (`.github/workflows/sonarcloud.yml`). **Do not** re-run Sonar or `pytest --cov` locally for this step. Open the SonarCloud project (`JochenTCC_Edibert`) on the `main` commit this `.r` is based on.
 
 | Record | Rule |
 |--------|------|

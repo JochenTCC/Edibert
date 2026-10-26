@@ -1,12 +1,12 @@
 ---
 description: Streamlit editor state — versioned language-independent widget keys, row ids, callbacks, no globals
-globs: src/edbert/ui/**/*.py, tests/test_ui_app.py
+globs: src/edibert/ui/**/*.py, tests/test_ui_app.py
 alwaysApply: false
 ---
 
-# Streamlit UI state (Edbert editor)
+# Streamlit UI state (Edibert editor)
 
-Adapted from the Earnie rule of the same name. Run this checklist before changing or finishing any form, list, or sidebar widget in `src/edbert/ui/`.
+Adapted from the Earnie rule of the same name. Run this checklist before changing or finishing any form, list, or sidebar widget in `src/edibert/ui/`.
 
 ## Rules
 
@@ -17,7 +17,7 @@ Adapted from the Earnie rule of the same name. Run this checklist before changin
 5. **Widgets write to the draft, not the other way round.** Each run: widget returns a value, assign it to the draft field. Initial values come from the draft (`value=draft.x`). Do not also write the widget key through `st.session_state`.
 6. **Value constraints in the key.** If `min_value`/`max_value` depend on another widget (effect mode), include that choice in the key (`value.<mode>`), so a mode change creates a fresh widget instead of raising a bounds error.
 7. **No module globals for session data.** One `Translator` per session; everything else in `st.session_state`. Streamlit serves several sessions from one process.
-8. **Errors are shown, never thrown.** Wrap sections that can raise `EdbertError` (missing region, missing month price) with `guarded(t)` and show `t.error(err)`.
+8. **Errors are shown, never thrown.** Wrap sections that can raise `EdibertError` (missing region, missing month price) with `guarded(t)` and show `t.error(err)`.
 9. **Save path.** After a save or import: `state.notify(...)` then `st.rerun()`, so lists and buttons reflect the file on disk.
 
 ## Done when

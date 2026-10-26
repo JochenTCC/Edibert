@@ -4,29 +4,29 @@ Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes �
 
 ### Library API and layering (0.1.f, 2026-10-26)
 
-- [x] **0.1.f — Library API and layering** (`src/edbert/api.py`, spec `docs/spec/api.md`)
-  - Public facade `edbert.api` with `API_VERSION = 1`: `load_tariffs` (catalog + optional user file, origin per tariff), `load_grid_fee_catalog`, `parse_grid_fee_config`, `resolve_grid_fee`, `pricing_context` (region checked up front: `HOLIDAY_REGION_UNKNOWN`; region without land: `FIELD_MISSING`), `tariff_price_series`, `evaluate`, `price_cent`, `builtin_forecaster`; types, constants, error and warning codes re-exported
-  - Layering test: no library module imports `edbert.ui` or `edbert.publish` (static scan), and `import edbert.api` loads no product module (fresh interpreter)
-  - Forecaster split: the library keeps the `Forecaster` interface and the free methods (`builtin_forecaster`, `mirror` / `hold`); plug-in loading with the key (`load_forecaster`, `available_forecasters`, `build_forecaster`, `EDBERT_FORECAST_KEY`) moved to `edbert.publish.forecasters`
-  - Check against Earnie: `share/config/tariffs.json` (50 tariffs) and `grid_fees.json` (14 areas) load through `edbert.api` without error
+- [x] **0.1.f — Library API and layering** (`src/edibert/api.py`, spec `docs/spec/api.md`)
+  - Public facade `edibert.api` with `API_VERSION = 1`: `load_tariffs` (catalog + optional user file, origin per tariff), `load_grid_fee_catalog`, `parse_grid_fee_config`, `resolve_grid_fee`, `pricing_context` (region checked up front: `HOLIDAY_REGION_UNKNOWN`; region without land: `FIELD_MISSING`), `tariff_price_series`, `evaluate`, `price_cent`, `builtin_forecaster`; types, constants, error and warning codes re-exported
+  - Layering test: no library module imports `edibert.ui` or `edibert.publish` (static scan), and `import edibert.api` loads no product module (fresh interpreter)
+  - Forecaster split: the library keeps the `Forecaster` interface and the free methods (`builtin_forecaster`, `mirror` / `hold`); plug-in loading with the key (`load_forecaster`, `available_forecasters`, `build_forecaster`, `EDIBERT_FORECAST_KEY`) moved to `edibert.publish.forecasters`
+  - Check against Earnie: `share/config/tariffs.json` (50 tariffs) and `grid_fees.json` (14 areas) load through `edibert.api` without error
   - Open: `tariff_format` root key and migration functions (`plan_migration` / `migrate`) are a format decision for the Earnie integration (Earnie config-migration draft §3.7), not taken here
 
 ### MQTT publisher and market price chain (0.1.e, 2026-10-12)
 
-- [x] **0.1.e — Publish P2: MQTT** (`src/edbert/market/`, `src/edbert/publish/`, command `python -m edbert publish`)
+- [x] **0.1.e — Publish P2: MQTT** (`src/edibert/market/`, `src/edibert/publish/`, command `python -m edibert publish`)
   - Market chain as in Earnie: cache -> ENTSO-E A44 (env `ENTSOE_API_TOKEN`) -> Energy-Charts -> aWATTar (AT/DE only); EUR/MWh to cent/kWh, hourly data expanded to quarter hours, A03 gaps carried forward, finer resolution wins; zone by country (AT, DE-LU, CH)
   - Freshness by slot coverage with publish hour 12 (tomorrow expected from then on), DST-safe windows (92/100 slots), 10-minute retry pause, best partial answer with a coded warning, strict error if nothing is available; cache file per zone (atomic), damaged cache is a warning
   - Publisher: retained topics `state` (EUR/kWh), `attributes` (`raw_today`, `raw_tomorrow`, `forecast`, components, day statistics, market block with attribution), `availability`, bridge status with last will; Home Assistant discovery; tariffs without data go offline instead of guessing; credentials only via named environment variables
-  - Forecast: free methods `mirror` (same time of day, up to 7 days back, as in Earnie) and `hold` (last price constant); key-gated plug-in hook (entry-point group `edbert.forecasters`, key from `EDBERT_FORECAST_KEY`, validated by the plug-in; none shipped in the free edition); forecast cut at the last gap-free whole hour; cache keeps 7 days of history; failing plug-ins never touch exact prices. Issuing and checking keys: open
+  - Forecast: free methods `mirror` (same time of day, up to 7 days back, as in Earnie) and `hold` (last price constant); key-gated plug-in hook (entry-point group `edibert.forecasters`, key from `EDIBERT_FORECAST_KEY`, validated by the plug-in; none shipped in the free edition); forecast cut at the last gap-free whole hour; cache keeps 7 days of history; failing plug-ins never touch exact prices. Issuing and checking keys: open
   - New coded errors/warnings with en/de texts, CLI `publish` (`--once`, `--dry-run`), user manual page en/de, spec `docs/spec/publishing.md`
   - 253 tests (75 new, fake HTTP and fake MQTT), 95 % line coverage, ruff and vulture clean; smoke test against the live Energy-Charts API
   - Open for `0.1.r`: the default `http_get` is not covered by a test; no real broker test yet (needs a Mosquitto run); `cli.py` is above the file-size target
 
 ### Editor — form model, preview, import, Streamlit front end (0.1.c, 2026-10-12)
 
-- [x] **0.1.c — Editor** (`src/edbert/editor/` without UI, `src/edbert/ui/` Streamlit)
+- [x] **0.1.c — Editor** (`src/edibert/editor/` without UI, `src/edibert/ui/` Streamlit)
   - Editor P1 (no UI): form model (`TariffDraft`/`RuleDraft`, round trip to tariff JSON, unknown fields kept, unique rule IDs, name required), rule templates (night, weekend, summer midday, high/low tariff), plausibility checks (rule hidden behind another, rule that never applies, unusual prices, gross spot prices), preview data (typical days, holiday day, DST-safe curves, example market curve), invoice check (bands per month, fees with VAT, 2 % tolerance), house settings (`house.json`), user store (atomic writes of `user_tariffs.json`)
-  - Editor P2: Streamlit page with four steps, live price curve, price at a time, invoice check, hints, house settings with grid-fee rows, language selector (en/de, values kept on switch), `python -m edbert ui`
+  - Editor P2: Streamlit page with four steps, live price curve, price at a time, invoice check, hints, house settings with grid-fee rows, language selector (en/de, values kept on switch), `python -m edibert ui`
   - Editor P3: copy a catalog tariff as template (I1), import JSON from text or file with rename, collision and error report (I2)
   - Coded errors with readable field names; 30+ new catalog texts per language; user manual en/de (7 pages)
   - Rules and skills ported from Earnie: `streamlit-ui-state`, `streamlit-apptest`
@@ -35,7 +35,7 @@ Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes �
 
 ### Engine P2 — grid fee and price series (0.1.b, 2026-10-12)
 
-- [x] **0.1.b — Engine P2** (`src/edbert/`: `gridfee.py`, `series.py`, `checks.py`; extensions in `rules.py`, `tariff.py`, `cli.py`)
+- [x] **0.1.b — Engine P2** (`src/edibert/`: `gridfee.py`, `series.py`, `checks.py`; extensions in `rules.py`, `tariff.py`, `cli.py`)
   - Grid fee (`netznutzung`) in Earnie's shape: catalog areas (`grid_fees.json`), metering type, `quarter_hour_meter`, rule status and `include_status`, own rules without a catalog area (section 14a module 3 levels), holiday handling; included rule without a value is an error
   - Grid fee added in `evaluate` before VAT (import only); `PriceResult` carries grid fee and rule
   - `tariff_price_series`: horizon, resolution 15/30/60 min, UTC slot stepping (DST days 92/100 slots), market prices per slot with strict missing-price errors, hour-mean for hourly settled spot tariffs, components (supplier, grid, VAT), quality `exact`/`forecast`, JSON output
@@ -47,11 +47,11 @@ Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes �
 
 ### Engine P1 — rule engine, user tariffs, holidays (0.1.a, 2026-10-12)
 
-- [x] **0.1.a — Engine P1** (`src/edbert/`: `rules.py`, `tariff.py`, `context.py`, `store.py`, `schema.py`, `cli.py`)
+- [x] **0.1.a — Engine P1** (`src/edibert/`: `rules.py`, `tariff.py`, `context.py`, `store.py`, `schema.py`, `cli.py`)
   - Strict tariff parser (unknown fields, `tiers`/`demand` and `applies_to` other than `"main"` rejected with coded errors); time rules with months, weekdays (numbers, names, groups, `holiday`), windows over midnight, validity, effects `absolute_cent` / `add_cent` / `percent_off`, market-price filter `when_market_cent_kwh`; first match wins; price floor/cap; VAT; evaluation per 15-minute slot in the house time zone
   - Holidays via `holidays` (MIT, offline): `treat_as` sunday | weekday | own, `extra_holiday_dates`, region required only when holidays can change a result
   - Loader for `tariffs.json` plus `user_tariffs.json` (ID collision, `user_` prefix rules, optional user file, broken files as coded errors)
-  - Command line `python -m edbert price …` and `python -m edbert schema`; generated `schema/tariff.schema.json` with a consistency test
+  - Command line `python -m edibert price …` and `python -m edibert schema`; generated `schema/tariff.schema.json` with a consistency test
   - Verified against the Earnie catalog (35 import and 13 export tariffs load); 2466 price comparisons against Earnie's `data/tariff_pricing.py` without a difference (months missing in a `monthly_table` are strict errors here by design)
   - 83 tests, 96 % line coverage, ruff and vulture clean; no function over 40 lines, no file over 300 lines
   - Not part of 0.1.a any more: Westnetz §14a fixture and grid-fee step (moved to 0.1.b)
@@ -59,10 +59,10 @@ Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes �
 ### Language policy and multilingual foundation (2026-10-12)
 
 - [x] **Language policy** — technical documents English only; README and user manuals in English (authoritative) and German (`README.de.md`, `docs/user/en|de/`); legal texts per country in the national language (DE/AT/CH: German); rule `docs-language.mdc` replaces `german-user-docs.mdc`
-- [x] **Multilingual skeleton** — `edbert.i18n` (`Translator`, `en`/`de` catalogs), `edbert.errors` (`EdbertError`, `ErrorCode`), catalog parity tests, docs translation test, user manual placeholders
+- [x] **Multilingual skeleton** — `edibert.i18n` (`Translator`, `en`/`de` catalogs), `edibert.errors` (`EdibertError`, `ErrorCode`), catalog parity tests, docs translation test, user manual placeholders
 
 ### Repository scaffold (2026-10-12)
 
-- [x] **Repository scaffold** — local repo with README, `LICENSE` (PolyForm Noncommercial 1.0.0, verbatim) and `NOTICE`, contributing guide, format spec draft (`docs/spec/tariff-format.md`), four example tariffs, smoke tests, package skeleton `src/edbert/`
-- [x] **Rules and skills ported from Earnie** — `.cursor/rules` (no-implicit-fallbacks, powershell-shell, german-user-docs (later replaced by docs-language), english-chat, versioning, backlog, roadmap-nomenclature, backlog-anonymize-users, edbert-project) and `.cursor/skills` (windows-unicode-console, bugfix-regression-test, doc-review-findings, session-abschluss, quality-gate)
+- [x] **Repository scaffold** — local repo with README, `LICENSE` (PolyForm Noncommercial 1.0.0, verbatim) and `NOTICE`, contributing guide, format spec draft (`docs/spec/tariff-format.md`), four example tariffs, smoke tests, package skeleton `src/edibert/`
+- [x] **Rules and skills ported from Earnie** — `.cursor/rules` (no-implicit-fallbacks, powershell-shell, german-user-docs (later replaced by docs-language), english-chat, versioning, backlog, roadmap-nomenclature, backlog-anonymize-users, edibert-project) and `.cursor/skills` (windows-unicode-console, bugfix-regression-test, doc-review-findings, session-abschluss, quality-gate)
 - [x] **Draft legal texts moved out of the repo** — catalog terms, contribution terms, privacy notice and review checklist live in the Earnie project folder until legally reviewed

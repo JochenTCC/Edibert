@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from conftest import at, make
 
-from edbert.tariff import evaluate, price_cent
+from edibert.tariff import evaluate, price_cent
 
 STANDARD = {"id": "t", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0}
 
@@ -90,12 +90,12 @@ def test_validity_window_of_a_rule(ctx_plain):
 
 
 def test_monthly_table_is_strict(ctx_plain):
-    from edbert.errors import EdbertError, ErrorCode
+    from edibert.errors import EdibertError, ErrorCode
 
     tariff = make({"id": "m", "type": "monthly_table", "supplier_id": "s",
                    "monthly_rates": [{"year": 2026, "month": 10, "tariff_cent_kwh": 9.0}]})  # fmt: skip
     assert price_cent(tariff, at("2026-10-12 12:00"), ctx_plain) == 9.0
     november = at("2026-11-02 12:00")
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         price_cent(tariff, november, ctx_plain)  # no silent carry-over
     assert err.value.code == ErrorCode.PRICE_MISSING

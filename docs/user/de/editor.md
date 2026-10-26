@@ -32,7 +32,7 @@ Feste Monatskosten: Grundpreis, Messentgelt, Netz-Grundpreis, Sonstiges. Gib sie
 ## Schritt 4: Erweitert
 
 - **Niedrigster / höchster Preis** (Boden und Deckel). Ein niedrigster Preis von 0 bei einem Einspeisetarif heißt „nie negativ“.
-- **Voraussetzungen des Tarifs** (z. B. ein Smart Meter). Edbert warnt, wenn dein Haus das nicht hat.
+- **Voraussetzungen des Tarifs** (z. B. ein Smart Meter). Edibert warnt, wenn dein Haus das nicht hat.
 - **Feiertage zählen** wie ein Sonntag (Standard), wie ein normaler Tag oder nur für Zeilen, die Feiertage nennen. **Zusätzliche Tage** (z. B. 24. und 31. Dezember) können für diesen Tarif als Feiertag zählen.
 - **Dieser Tarif ist persönlich**, wenn er Sonderkonditionen hat. Persönliche Tarife werden nie geteilt.
 - **Quelle**, **zuletzt geprüft** und **Bedingungen, die die Berechnung nicht abbilden kann** (z. B. „Bonus nur, wenn der Anbieter das Laden steuert“).

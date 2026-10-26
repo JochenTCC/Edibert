@@ -31,7 +31,7 @@ Fixed monthly costs: base fee, metering fee, grid base fee, other. Enter them li
 ## Step 4: Advanced
 
 - **Lowest / highest price** (floor and cap). A lowest price of 0 on a feed-in tariff means "never negative".
-- **What the tariff requires** (for example a smart meter). Edbert warns when your house does not have it.
+- **What the tariff requires** (for example a smart meter). Edibert warns when your house does not have it.
 - **Public holidays count** like a Sunday (default), like a normal day, or only for rows that name holidays. **Extra days** (for example 24 and 31 December) can count as holidays for this tariff.
 - **This tariff is personal** if it has special conditions. Personal tariffs are never shared.
 - **Source**, **last checked**, and **conditions the calculation cannot show** (for example "bonus only if the provider controls charging").

@@ -8,16 +8,16 @@ import pytest
 from market_helpers import FakeWeb, energy_charts_json, utc
 from test_publish import AFTERNOON, DAY_START, MORNING, SPOT, setup
 
-from edbert.errors import EdbertError, ErrorCode
-from edbert.market.forecast import (
+from edibert.errors import EdibertError, ErrorCode
+from edibert.market.forecast import (
     HoldLastForecaster,
     MirrorForecaster,
     builtin_forecaster,
 )
-from edbert.market.service import MarketService
-from edbert.market.sources import SLOT
-from edbert.publish.config import parse_publish_config
-from edbert.publish.forecasters import build_forecaster
+from edibert.market.service import MarketService
+from edibert.market.sources import SLOT
+from edibert.publish.config import parse_publish_config
+from edibert.publish.forecasters import build_forecaster
 
 VIENNA = ZoneInfo("Europe/Vienna")
 MQTT = {"host": "h"}
@@ -72,7 +72,7 @@ def test_builder_chooses_the_method():
 def test_library_builds_only_the_free_methods():
     assert isinstance(builtin_forecaster("hold", VIENNA), HoldLastForecaster)
     assert isinstance(builtin_forecaster("mirror", VIENNA), MirrorForecaster)
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         builtin_forecaster("plugin", VIENNA)  # plug-ins and their key belong to the product layer
     assert err.value.code == ErrorCode.VALUE_INVALID
 
@@ -135,20 +135,20 @@ def test_cache_keeps_the_history_that_mirroring_needs(tmp_path):
 
 def test_forecast_hours_are_limited_to_72():
     assert parse_publish_config({"mqtt": MQTT, "tariffs": [{"id": "a"}], "forecast": {"hours": 72}}).forecast.hours == 72
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         parse_publish_config({"mqtt": MQTT, "tariffs": [{"id": "a"}], "forecast": {"hours": 73}})
     assert err.value.code == ErrorCode.VALUE_INVALID
 
 
 def test_config_method_rules():
     assert parse_publish_config({"mqtt": MQTT, "tariffs": [{"id": "a"}], "forecast": {}}).forecast.method == "mirror"
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         parse_publish_config({"mqtt": MQTT, "tariffs": [{"id": "a"}], "forecast": {"method": "crystal-ball"}})
     assert err.value.code == ErrorCode.VALUE_INVALID
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         parse_publish_config({"mqtt": MQTT, "tariffs": [{"id": "a"}], "forecast": {"method": "plugin"}})
     assert err.value.code == ErrorCode.FIELD_MISSING
-    with pytest.raises(EdbertError) as err:
+    with pytest.raises(EdibertError) as err:
         parse_publish_config({"mqtt": MQTT, "tariffs": [{"id": "a"}], "forecast": {"method": "hold", "name": "x"}})
     assert err.value.code == ErrorCode.VALUE_INVALID
 
@@ -160,4 +160,4 @@ def test_afternoon_with_tomorrow_known_mirrors_after_tomorrow(tmp_path):
     forecast = link.attributes("user_spot")["forecast"]
     assert forecast[0]["start"].startswith("2026-12-17T00")
     assert forecast[0]["value"] == 0.139  # tomorrow's 00:00 (hour 24 = 124 EUR/MWh) plus 1.5 ct
-    assert json.loads(link.sent["edbert/import/user_spot/attributes"])["tomorrow_valid"] is True
+    assert json.loads(link.sent["edibert/import/user_spot/attributes"])["tomorrow_valid"] is True

@@ -6,7 +6,7 @@ If you started the editor with `--catalog tariffs.json`, open **Copy a catalog t
 
 ## Import JSON
 
-Open **Import JSON** in the sidebar and paste the tariff JSON or upload a `.json` file. Edbert checks every tariff and tells you what it found:
+Open **Import JSON** in the sidebar and paste the tariff JSON or upload a `.json` file. Edibert checks every tariff and tells you what it found:
 
 - *valid:* ready to add.
 - *renamed:* your own tariff IDs must start with `user_`, so a different ID is renamed.
