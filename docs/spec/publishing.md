@@ -8,7 +8,7 @@ Technical description. Users read [docs/user/en/publishing.md](../user/en/publis
 sources.py   HTTP + parsers          -> {slot_start_utc: cent/kWh}   (ENTSO-E, Energy-Charts, aWATTar)
 cache.py     market_<zone>.json      -> CacheEntry
 service.py   MarketService.load()    -> MarketData (chain, freshness, partial answers)
-forecast.py  mirror / hold / plug-in   -> Forecaster.forecast(known, start, end)
+forecast.py  mirror / hold (library); plug-ins: publish/forecasters.py -> Forecaster.forecast(known, start, end)
 publish/     config, payloads, mqtt, service, command
 ```
 
@@ -55,7 +55,7 @@ Deviation from Earnie: Earnie places a stale cache before aWATTar by time; Edber
 
 * `MirrorForecaster(tz)`: same **local** time of day on the nearest earlier day within 7 days that has a real price (`MAX_MIRROR_LOOKBACK_DAYS`, as in Earnie's `find_mirror_slot`); DST-safe through wall-clock arithmetic. Slots without a source are left out.
 * `HoldLastForecaster`: the last real price before `start`, constant.
-* `plugin`: entry-point group `edbert.forecasters`; the entry point is a class or factory called as `factory(key=...)`. The key comes from `EDBERT_FORECAST_KEY`; Edbert requires it (`FORECAST_KEY_MISSING`), validating it is the plug-in's job, so the free edition contains no validation. How keys are issued and checked is not decided yet. Earnie's regression model can be wrapped as such a plug-in.
+* `plugin` (product layer, `edbert.publish.forecasters`): entry-point group `edbert.forecasters`; the entry point is a class or factory called as `factory(key=...)`. The key comes from `EDBERT_FORECAST_KEY`; Edbert requires it (`FORECAST_KEY_MISSING`), validating it is the plug-in's job, so the free edition contains no validation. How keys are issued and checked is not decided yet. Earnie's regression model can be wrapped as such a plug-in.
 * The publisher starts the forecast where the exact series ends, asks for `hours` (1 to 72, `MAX_FORECAST_HOURS`, default 48), and cuts the result at the last gap-free **whole hour** (`_covered_end`). A forecaster that returns nothing yields an empty `forecast`; an exception yields `FORECAST_FAILED` and exact prices stay.
 * The market cache keeps 7 days of history (`HISTORY_DAYS`) and merges new downloads into it; history is not downloaded, it accumulates while Edbert runs.
 * Attribute `forecast_method` names the method (or the plug-in name) when a forecast is present.

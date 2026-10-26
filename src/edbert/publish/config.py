@@ -17,7 +17,8 @@ from edbert._fields import (
     missing,
 )
 from edbert.errors import EdbertError, ErrorCode
-from edbert.market.forecast import METHOD_MIRROR, METHOD_PLUGIN, METHODS
+from edbert.market.forecast import METHOD_MIRROR
+from edbert.publish.forecasters import METHOD_PLUGIN, METHODS
 from edbert.series import RESOLUTIONS
 from edbert.tariff import EXPORT, IMPORT
 

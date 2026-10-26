@@ -12,11 +12,12 @@ from edbert.errors import EdbertError, ErrorCode
 from edbert.market.forecast import (
     HoldLastForecaster,
     MirrorForecaster,
-    build_forecaster,
+    builtin_forecaster,
 )
 from edbert.market.service import MarketService
 from edbert.market.sources import SLOT
 from edbert.publish.config import parse_publish_config
+from edbert.publish.forecasters import build_forecaster
 
 VIENNA = ZoneInfo("Europe/Vienna")
 MQTT = {"host": "h"}
@@ -66,6 +67,14 @@ def test_builder_chooses_the_method():
     assert isinstance(build_forecaster("mirror", "", "", VIENNA), MirrorForecaster)
     sentinel = object()
     assert build_forecaster("plugin", "p", "k", VIENNA, loader=lambda name, key: (name, key, sentinel)) == ("p", "k", sentinel)
+
+
+def test_library_builds_only_the_free_methods():
+    assert isinstance(builtin_forecaster("hold", VIENNA), HoldLastForecaster)
+    assert isinstance(builtin_forecaster("mirror", VIENNA), MirrorForecaster)
+    with pytest.raises(EdbertError) as err:
+        builtin_forecaster("plugin", VIENNA)  # plug-ins and their key belong to the product layer
+    assert err.value.code == ErrorCode.VALUE_INVALID
 
 
 def forecast_of(tmp_path, method, hours, prices, **config):

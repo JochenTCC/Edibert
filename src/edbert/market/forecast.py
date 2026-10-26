@@ -1,55 +1,37 @@
-"""Optional price forecast beyond the known Day-Ahead prices.
+"""Price forecast beyond the known Day-Ahead prices: the forecaster interface and the free methods.
 
 A forecaster only supplies market prices; the tariff rules are applied to them as for real prices and
-the result is marked ``forecast``. Three methods, chosen in ``publish.json``:
+the result is marked ``forecast``. The library takes a forecaster *object*: a caller such as Earnie
+hands in its own model directly, no key involved. Built in (free):
 
-* ``mirror`` (built in, free): the price of the same time of day on an earlier day, up to 7 days back,
-  as in Earnie (``missing_price_strategy: mirror``).
-* ``hold`` (built in, free): the last known price stays constant.
-* ``plugin``: a model from an installed package (entry-point group ``edbert.forecasters``). The free
-  edition ships none. It needs a key: Edbert insists that one is given and hands it to the factory
-  (``factory(key=...)``); checking it is the job of the plug-in, so the free edition holds no validation.
+* ``mirror``: the price of the same time of day on an earlier day, up to 7 days back, as in Earnie
+  (``missing_price_strategy: mirror``).
+* ``hold``: the last known price stays constant.
+
+Plug-ins from installed packages and their key belong to the product layer
+(:mod:`edbert.publish.forecasters`), never to the library.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
 from datetime import UTC, datetime, timedelta
-from importlib.metadata import entry_points
 from typing import Protocol
 from zoneinfo import ZoneInfo
 
-from edbert.errors import EdbertError, ErrorCode
+from edbert._fields import invalid
 from edbert.market.sources import SLOT, Prices
 
-ENTRY_POINT_GROUP = "edbert.forecasters"
-FORECAST_KEY_ENV = "EDBERT_FORECAST_KEY"
 MAX_MIRROR_LOOKBACK_DAYS = 7
 METHOD_MIRROR = "mirror"
 METHOD_HOLD = "hold"
-METHOD_PLUGIN = "plugin"
-METHODS = (METHOD_MIRROR, METHOD_HOLD, METHOD_PLUGIN)
+BUILTIN_METHODS = (METHOD_MIRROR, METHOD_HOLD)
 
 
 class Forecaster(Protocol):
     """``forecast`` returns cent/kWh per 15-minute slot start (UTC) for ``[start, end)``."""
 
     def forecast(self, known: Mapping[datetime, float], start: datetime, end: datetime) -> Prices: ...
-
-
-def available_forecasters() -> dict[str, str]:
-    """Registered forecasters by name."""
-    return {point.name: point.value for point in entry_points(group=ENTRY_POINT_GROUP)}
-
-
-def load_forecaster(name: str, key: str) -> Forecaster:
-    """The forecaster registered as ``name``; a missing plug-in or key is an error, never a silent skip."""
-    for point in entry_points(group=ENTRY_POINT_GROUP):
-        if point.name == name:
-            if not key.strip():
-                raise EdbertError(ErrorCode.FORECAST_KEY_MISSING, "A key is needed to use the forecast.", env=FORECAST_KEY_ENV)
-            return point.load()(key=key.strip())
-    raise EdbertError(ErrorCode.FORECASTER_UNAVAILABLE, f"No forecaster '{name}' is installed.", name=name)
 
 
 def _slots(start: datetime, end: datetime) -> Iterator[datetime]:
@@ -88,10 +70,10 @@ class MirrorForecaster:
         return result  # slots without a mirror source are left out, never guessed
 
 
-def build_forecaster(method: str, name: str, key: str, tz: ZoneInfo, loader=load_forecaster) -> Forecaster:
-    """The forecaster for a ``publish.json`` method. Only ``plugin`` needs a name and a key."""
+def builtin_forecaster(method: str, tz: ZoneInfo) -> Forecaster:
+    """The free forecaster for ``mirror`` or ``hold``; any other method is an error."""
     if method == METHOD_MIRROR:
         return MirrorForecaster(tz)
     if method == METHOD_HOLD:
         return HoldLastForecaster()
-    return loader(name, key)
+    raise invalid("forecast.method", method)

@@ -6,8 +6,8 @@ import pytest
 from market_helpers import utc
 
 from edbert.errors import EdbertError, ErrorCode
-from edbert.market import forecast
 from edbert.market.cache import CacheEntry, read_cache, write_cache
+from edbert.publish import forecasters as forecast
 from edbert.publish import mqtt
 from edbert.publish.config import MqttSettings
 

@@ -14,12 +14,7 @@ from zoneinfo import ZoneInfo
 
 from edbert.editor.house import HouseSettings, load_house
 from edbert.errors import EdbertError, EdbertWarning, ErrorCode, WarningCode
-from edbert.market.forecast import (
-    FORECAST_KEY_ENV,
-    Forecaster,
-    build_forecaster,
-    load_forecaster,
-)
+from edbert.market.forecast import Forecaster
 from edbert.market.service import MarketData, MarketService, window_slots
 from edbert.market.sources import HttpGet, http_get, zone_for_land
 from edbert.publish import payloads
@@ -29,6 +24,11 @@ from edbert.publish.config import (
     PublishConfig,
     TariffRef,
     load_publish_config,
+)
+from edbert.publish.forecasters import (
+    FORECAST_KEY_ENV,
+    build_forecaster,
+    load_forecaster,
 )
 from edbert.publish.mqtt import MqttLink, connect
 from edbert.series import PricePoint, tariff_price_series

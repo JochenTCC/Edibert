@@ -2,6 +2,15 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Library API and layering (0.1.f, 2026-10-26)
+
+- [x] **0.1.f — Library API and layering** (`src/edbert/api.py`, spec `docs/spec/api.md`)
+  - Public facade `edbert.api` with `API_VERSION = 1`: `load_tariffs` (catalog + optional user file, origin per tariff), `load_grid_fee_catalog`, `parse_grid_fee_config`, `resolve_grid_fee`, `pricing_context` (region checked up front: `HOLIDAY_REGION_UNKNOWN`; region without land: `FIELD_MISSING`), `tariff_price_series`, `evaluate`, `price_cent`, `builtin_forecaster`; types, constants, error and warning codes re-exported
+  - Layering test: no library module imports `edbert.ui` or `edbert.publish` (static scan), and `import edbert.api` loads no product module (fresh interpreter)
+  - Forecaster split: the library keeps the `Forecaster` interface and the free methods (`builtin_forecaster`, `mirror` / `hold`); plug-in loading with the key (`load_forecaster`, `available_forecasters`, `build_forecaster`, `EDBERT_FORECAST_KEY`) moved to `edbert.publish.forecasters`
+  - Check against Earnie: `share/config/tariffs.json` (50 tariffs) and `grid_fees.json` (14 areas) load through `edbert.api` without error
+  - Open: `tariff_format` root key and migration functions (`plan_migration` / `migrate`) are a format decision for the Earnie integration (Earnie config-migration draft §3.7), not taken here
+
 ### MQTT publisher and market price chain (0.1.e, 2026-10-12)
 
 - [x] **0.1.e — Publish P2: MQTT** (`src/edbert/market/`, `src/edbert/publish/`, command `python -m edbert publish`)
