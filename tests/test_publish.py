@@ -17,8 +17,8 @@ from edibert.tariff import IMPORT
 MORNING = utc("2026-12-15T09:00")  # 10:00 in Vienna
 AFTERNOON = utc("2026-12-15T12:00")  # 13:00: tomorrow's prices are out
 DAY_START = utc("2026-12-14T23:00")
-FIXED = {"id": "user_fix", "type": "fixed_cent", "supplier_id": "user_s", "label": "Fix", "fix_cent_kwh": 30.0}
-SPOT = {"id": "user_spot", "type": "spot_hourly", "supplier_id": "user_s", "label": "Spot", "settlement_fee_cent_kwh": 1.5}
+FIXED = {"id": "user_fix", "type": "fixed_cent", "supplier_id": "user_s", "label": "Fix", "fix_cent_kwh": 30.0, "vat_percent": 20}
+SPOT = {"id": "user_spot", "type": "spot_hourly", "supplier_id": "user_s", "label": "Spot", "settlement_fee_cent_kwh": 1.5, "vat_percent": 20}
 MQTT = {"host": "broker.local", "base_topic": "edibert"}
 
 

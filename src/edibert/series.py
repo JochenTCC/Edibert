@@ -26,7 +26,11 @@ _SLOT = timedelta(minutes=15)
 
 @dataclass(frozen=True)
 class PricePoint:
-    """One price interval. ``cent`` = ``supplier_cent`` + ``grid_cent`` + ``vat_cent`` (rounded)."""
+    """One price interval. ``cent`` = ``supplier_cent`` + ``grid_cent`` + ``vat_cent`` (rounded).
+
+    ``grid_cent`` is net. For a gross tariff ``supplier_cent`` already includes VAT, so ``vat_cent`` is the VAT
+    on the grid fee only.
+    """
 
     start: datetime
     end: datetime

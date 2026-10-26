@@ -1,0 +1,7 @@
+{
+  "$comment": "The house-profile field netznutzung: it only selects a grid area (here the user area of grid_fee_modul3_example.json) and states the metering facts of the house.",
+  "netznutzung": {
+    "area_id": "user_modul3_example",
+    "quarter_hour_meter": true
+  }
+}

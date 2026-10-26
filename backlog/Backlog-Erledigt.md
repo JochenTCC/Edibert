@@ -2,6 +2,17 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Tariff-format version, user grid areas and migrations (0.1.i, 2026-10-26)
+
+- [x] **0.1.i — Tariff-format version, user grid areas and migrations** (Part A of Earnie epic `Edibert` P2; `src/edibert/fileformat.py`, `src/edibert/migration.py`, `src/edibert/gridfee.py`; spec `docs/spec/tariff-format.md` sections 2, 2a, 5a, `docs/spec/api.md`)
+  - Format version: root key `tariff_format` (current `1`) required in `tariffs.json`, `user_tariffs.json`, `grid_fees.json`, `user_grid_fees.json`; missing is `FORMAT_MISSING`, unknown is `FORMAT_UNSUPPORTED`; `earnie_data_model` left `ROOT_FIELDS` (only the migration reads it); the editor creates `user_tariffs.json` with the key and refuses to write into an unmigrated file; a pasted import document may omit the key but not state an unknown one
+  - User grid areas: `user_grid_fees.json` with the shape of `grid_fees.json`, `user_` prefix for areas and rule sets (`GRID_ID_PREFIX_MISSING` / `GRID_ID_PREFIX_RESERVED`), `GRID_ID_COLLISION`; user rules may omit `status`; merged view with origin per area (`api.load_grid_fees`), writer `api.save_user_grid_area`, helper `api.flat_user_grid_area`; CLI option `--user-grid-fees`
+  - Smaller `netznutzung`: `area_id` (required), `power_metering`, `quarter_hour_meter`, `include_status`; own values only in a user area; the editor's own grid fee resolves through an in-memory user area (`house.json` unchanged); example split into `grid_fee_modul3_example.json` (user grid file) and `netznutzung_modul3_example.json` (selection)
+  - `vat_percent` required on every tariff, gross or net (`VAT_PERCENT_MISSING`, `0` allowed), also in the JSON schema; decided 2026-10-26, stricter than Earnie memo D3b (gross only), because net prices get the rate added
+  - Migration API: `api.plan_migration` / `api.migrate` (pure, docs in and out): tagging, `earnie_data_model` removal, user grid areas from the caller, VAT question `VAT_PERCENT` for every user tariff without a rate, prefill AT 20 / DE 19 / CH 8.1 (written only from an answer), blockers with error codes, idempotent; `API_VERSION` 2
+  - Tests: `tests/test_migration.py`, `tests/test_gridfee.py` rewritten, format and VAT cases in the store, user-store and schema tests; full suite green (303 passed, 1 skipped)
+  - Same release: bugfix VAT on the net grid fee for gross tariffs (`Backlog-Bugfixes.md`, Verifications Pending); released as `0.1.2` with tag `v0.1.2` (approved 2026-10-26); Earnie P2 raises its pin and adapts its callers
+
 ### Library API and layering (0.1.f, 2026-10-26)
 
 - [x] **0.1.f — Library API and layering** (`src/edibert/api.py`, spec `docs/spec/api.md`)

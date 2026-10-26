@@ -23,8 +23,8 @@ from edibert.context import PricingContext
 from edibert.errors import EdibertError
 from edibert.gridfee import (
     GridFee,
-    load_grid_fee_catalog,
     load_grid_fee_config,
+    load_grid_fees,
     resolve_grid_fee,
 )
 from edibert.i18n import SOURCE_LANGUAGE, SUPPORTED_LANGUAGES, Translator
@@ -47,8 +47,9 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--tz", required=True, help="IANA time zone of the house, e.g. Europe/Vienna")
     parser.add_argument("--land", help="country for holidays: AT, DE or CH")
     parser.add_argument("--region", help="federal state or canton for holidays")
-    parser.add_argument("--grid-fee", type=Path, help="JSON file with the house-profile field 'netznutzung'")
-    parser.add_argument("--grid-catalog", type=Path, help="grid_fees.json (Earnie shape) for a catalog area")
+    parser.add_argument("--grid-fee", type=Path, help="JSON file with the house-profile field 'netznutzung' (selects a grid area)")
+    parser.add_argument("--grid-catalog", type=Path, help="grid_fees.json (Earnie shape) with catalog areas")
+    parser.add_argument("--user-grid-fees", type=Path, help="user_grid_fees.json with own grid areas (user_...)")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -113,7 +114,7 @@ def _context_and_grid(args: argparse.Namespace) -> tuple[PricingContext, GridFee
     ctx = PricingContext(args.tz, args.land, args.region)
     if args.grid_fee is None:
         return ctx, None
-    catalog = load_grid_fee_catalog(args.grid_catalog) if args.grid_catalog else None
+    catalog = load_grid_fees(args.grid_catalog, args.user_grid_fees)
     return ctx, resolve_grid_fee(load_grid_fee_config(args.grid_fee), catalog)
 
 

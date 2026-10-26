@@ -39,7 +39,8 @@ Der erste Befehl zeigt den Preis eines Zeitabschnitts mit allen Schritten (Basis
 
 ```bash
 python -m edibert --lang de series --tariff examples/spot_evening_surcharge_cap.json \
-    --grid-fee examples/grid_fee_modul3_example.json \
+    --grid-fee examples/netznutzung_modul3_example.json \
+    --user-grid-fees examples/grid_fee_modul3_example.json \
     --from 2026-12-15T00:00 --to 2026-12-16T00:00 --tz Europe/Vienna \
     --market-csv tests/fixtures/market_2026-12-15.csv --resolution 60
 ```

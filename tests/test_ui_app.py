@@ -120,7 +120,7 @@ def test_house_region_removes_the_hint_and_is_saved(data_dir):
 
 def test_import_pasted_tariff(data_dir):
     app = start("en")
-    raw = {"id": "my day night", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0}
+    raw = {"id": "my day night", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0, "vat_percent": 20}
     app.sidebar.text_area(key="import.text").set_value(json.dumps(raw)).run()
     assert any("renamed" in info.value for info in app.sidebar.info)
     app.sidebar.button(key="import.add").click().run()
@@ -138,7 +138,7 @@ def test_import_of_broken_json_is_reported(data_dir):
 def test_copy_a_catalog_tariff(data_dir, tmp_path, monkeypatch):
     catalog = tmp_path / "tariffs.json"
     catalog.write_text(
-        json.dumps({"import_tariffs": [{"id": "at_demo", "label": "Demo", "type": "fixed_cent", "supplier_id": "demo", "fix_cent_kwh": 12.0}]}),
+        json.dumps({"tariff_format": 1, "import_tariffs": [{"id": "at_demo", "label": "Demo", "type": "fixed_cent", "supplier_id": "demo", "fix_cent_kwh": 12.0, "vat_percent": 20}]}),
         encoding="utf-8",
     )
     monkeypatch.setenv(ENV_CATALOG, str(catalog))

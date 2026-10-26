@@ -185,6 +185,14 @@ def _build(raw: Mapping[str, Any], direction: str, tariff_type: str, tid: str) -
     mtu = get_str(raw, "settlement_mtu", tid) or "15min"
     if mtu not in ("15min", "60min"):
         raise invalid(f"{tid}.settlement_mtu", mtu)
+    include_vat = get_bool(raw, "prices_include_vat", tid, True)
+    vat = get_number(raw, "vat_percent", tid, minimum=0)
+    if vat is None:  # gross and net prices both need the rate; never a silent 0 %
+        raise EdibertError(
+            ErrorCode.VAT_PERCENT_MISSING,
+            f"Tariff '{tid}' has no 'vat_percent' (0 is allowed).",
+            tariff_id=tid,
+        )
     return Tariff(
         id=tid,
         direction=direction,
@@ -195,8 +203,8 @@ def _build(raw: Mapping[str, Any], direction: str, tariff_type: str, tid: str) -
         currency=get_str(raw, "currency", tid),
         settlement_fee_cent_kwh=get_number(raw, "settlement_fee_cent_kwh", tid) or 0.0,
         markup_percent=get_number(raw, "markup_percent", tid) or 0.0,
-        prices_include_vat=get_bool(raw, "prices_include_vat", tid, True),
-        vat_percent=get_number(raw, "vat_percent", tid, minimum=0) or 0.0,
+        prices_include_vat=include_vat,
+        vat_percent=vat,
         settlement_mtu=mtu,
         fix_cent_kwh=get_number(raw, "fix_cent_kwh", tid),
         k_push_cent=get_number(raw, "k_push_cent", tid),
@@ -268,7 +276,8 @@ def evaluate(
 ) -> PriceResult:
     """Price (cent/kWh) of the slot starting at ``slot_start``, with intermediate steps.
 
-    Order: base price, first matching rule, floor/cap, grid fee (import only, optional), VAT.
+    Order: base price, first matching rule, floor/cap, grid fee (import only, optional), VAT. The grid fee is
+    always net: with gross prices only the grid fee gets the VAT, with net prices the whole sum does.
     """
     local = ctx.to_local(slot_start)
     base = _base_cent(tariff, local, epex_cent)
@@ -285,8 +294,11 @@ def evaluate(
     grid_cent, grid_rule = (0.0, None)
     if grid_fee is not None and tariff.direction == IMPORT:
         grid_cent, grid_rule = grid_fee.work_cent(local, ctx)
-    net = limited + grid_cent
-    gross = net if tariff.prices_include_vat else net * (1.0 + tariff.vat_percent / 100.0)
+    vat = 1.0 + tariff.vat_percent / 100.0
+    if tariff.prices_include_vat:  # supplier part is gross already; the grid fee is net and gets the VAT here
+        gross = limited + grid_cent * vat
+    else:
+        gross = (limited + grid_cent) * vat
     return PriceResult(
         base, rule.id if rule else None, after_rule, limited, round(gross, 4), grid_cent, grid_rule
     )

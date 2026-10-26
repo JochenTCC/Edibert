@@ -7,7 +7,7 @@ from conftest import at, make
 
 from edibert.tariff import evaluate, price_cent
 
-STANDARD = {"id": "t", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0}
+STANDARD = {"id": "t", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0, "vat_percent": 20}
 
 
 def slot_series(day: str, ctx):
@@ -92,7 +92,7 @@ def test_validity_window_of_a_rule(ctx_plain):
 def test_monthly_table_is_strict(ctx_plain):
     from edibert.errors import EdibertError, ErrorCode
 
-    tariff = make({"id": "m", "type": "monthly_table", "supplier_id": "s",
+    tariff = make({"id": "m", "type": "monthly_table", "supplier_id": "s", "vat_percent": 20,
                    "monthly_rates": [{"year": 2026, "month": 10, "tariff_cent_kwh": 9.0}]})  # fmt: skip
     assert price_cent(tariff, at("2026-10-12 12:00"), ctx_plain) == 9.0
     november = at("2026-11-02 12:00")

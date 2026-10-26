@@ -263,5 +263,13 @@
   "field.metering_monthly_fee_eur": "Messentgelt",
   "field.grid_monthly_fee_eur": "Netz-Grundpreis",
   "field.other_monthly_fee_eur": "Sonstige Fixkosten",
-  "field.base_cent_kwh": "Basispreis"
+  "field.base_cent_kwh": "Basispreis",
+  "error.VAT_PERCENT_MISSING": "Der Tarif \"{tariff_id}\" hat keinen Mehrwertsteuersatz. Bitte den Satz eintragen (0 ist erlaubt).",
+  "error.GRID_ID_COLLISION": "Die Netz-ID \"{grid_id}\" kommt mehrfach vor.",
+  "error.GRID_ID_PREFIX_MISSING": "Eigene Netzbereiche und Regelsätze müssen mit \"user_\" beginnen (\"{grid_id}\").",
+  "error.GRID_ID_PREFIX_RESERVED": "Die Katalog-Netz-ID \"{grid_id}\" verwendet das reservierte Präfix \"user_\".",
+  "error.FORMAT_MISSING": "Die Datei \"{path}\" hat keine Tarifformat-Version. Bitte zuerst migrieren.",
+  "error.FORMAT_UNSUPPORTED": "Die Datei \"{path}\" hat die Tarifformat-Version {value}; diese Edibert-Version liest {supported}.",
+  "error.MIGRATION_ANSWER_MISSING": "Die Migrationsfrage \"{question_id}\" ist nicht beantwortet.",
+  "question.VAT_PERCENT": "Mehrwertsteuersatz in Prozent für den Tarif \"{label}\" ({tariff_id}, {direction}, Preise {prices}, Land {land})"
 }

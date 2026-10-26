@@ -263,5 +263,13 @@
   "field.metering_monthly_fee_eur": "metering fee",
   "field.grid_monthly_fee_eur": "grid base fee",
   "field.other_monthly_fee_eur": "other fixed costs",
-  "field.base_cent_kwh": "base price"
+  "field.base_cent_kwh": "base price",
+  "error.VAT_PERCENT_MISSING": "Tariff \"{tariff_id}\" has no VAT rate. Enter the VAT rate (0 is allowed).",
+  "error.GRID_ID_COLLISION": "Grid ID \"{grid_id}\" is used more than once.",
+  "error.GRID_ID_PREFIX_MISSING": "Own grid areas and rule sets must start with \"user_\" (\"{grid_id}\").",
+  "error.GRID_ID_PREFIX_RESERVED": "Catalog grid ID \"{grid_id}\" uses the reserved prefix \"user_\".",
+  "error.FORMAT_MISSING": "The file \"{path}\" has no tariff-format version. Migrate it first.",
+  "error.FORMAT_UNSUPPORTED": "The file \"{path}\" has tariff-format version {value}; this version of Edibert reads {supported}.",
+  "error.MIGRATION_ANSWER_MISSING": "The migration question \"{question_id}\" has no answer.",
+  "question.VAT_PERCENT": "VAT rate in percent for tariff \"{label}\" ({tariff_id}, {direction}, {prices} prices, country {land})"
 }

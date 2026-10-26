@@ -4,7 +4,7 @@ import json
 from datetime import timedelta
 
 import pytest
-from conftest import at, load_example, make
+from conftest import at, flat_grid_fee, load_example, make
 
 from edibert.checks import check_grid_fee, check_tariff
 from edibert.errors import EdibertError, ErrorCode, WarningCode
@@ -13,7 +13,7 @@ from edibert.i18n import Translator
 from edibert.series import QUALITY_EXACT, QUALITY_FORECAST, tariff_price_series
 
 FIXED_NIGHT = {
-    "id": "f", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0,
+    "id": "f", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0, "vat_percent": 20,
     "rules": [{"id": "night", "time": {"from": "22:00", "to": "06:00"},
                "effect": {"mode": "absolute_cent", "value": 20.0}}],
 }  # fmt: skip
@@ -117,7 +117,7 @@ def test_forecast_quality_from_a_given_time(ctx_plain):
 
 
 def test_components_add_up_with_grid_fee_and_vat(ctx_plain):
-    fee = resolve_grid_fee(parse_grid_fee_config({"base_cent_kwh": 8.0}))
+    fee = flat_grid_fee(8.0)
     market = market_for_day("2026-10-12", ctx_plain, [10.0])
     series = tariff_price_series(make(SPOT), ctx_plain, at("2026-10-12 00:00"), at("2026-10-12 02:00"), resolution_min=60, market=market, grid_fee=fee)
     point = series.points[0]
@@ -158,7 +158,7 @@ def test_requirement_warning_is_translated():
 
 
 def test_series_collects_warnings_from_tariff_and_grid_fee(ctx_plain):
-    catalog = {"rule_sets": {"S": [{"id": "snap", "status": "verordnet", "requires": ["quarter_hour_meter"],
+    catalog = {"tariff_format": 1, "rule_sets": {"S": [{"id": "snap", "status": "verordnet", "requires": ["quarter_hour_meter"],
                                     "effect": {"mode": "percent_off", "value": 20}}]},
                "areas": [{"id": "A", "base_cent_kwh": {"unmetered_power": 5, "metered_power": 3}, "rule_set": "S"}]}  # fmt: skip
     from edibert.gridfee import parse_grid_fee_catalog

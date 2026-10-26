@@ -10,13 +10,15 @@ from typing import Any
 
 from edibert._fields import as_dict, check_known, invalid
 from edibert.errors import EdibertError, ErrorCode
+from edibert.fileformat import FORMAT_KEY, check_tariff_format
 from edibert.tariff import EXPORT, IMPORT, Tariff, parse_tariff
 
 USER_PREFIX = "user_"
 
-# Root keys of the Earnie catalog that are maintenance data, not tariffs. Ignored here.
+# Root keys of a tariff file. Besides the two lists and the format version these are maintenance data of
+# the Earnie catalog, ignored here. ``earnie_data_model`` is not one of them: only the migration reads it.
 ROOT_FIELDS = (
-    "import_tariffs", "export_tariffs", "catalog_as_of", "user_tariffs_as_of", "earnie_data_model",
+    "import_tariffs", "export_tariffs", FORMAT_KEY, "catalog_as_of", "user_tariffs_as_of",
     "oemag_monthly_feed_in_rates", "monthly_float_reference_cent_kwh",
     "econtrol_referenzmarktwert_pv_monthly", "$schema",
 )  # fmt: skip
@@ -77,24 +79,36 @@ def _add_section(result: TariffSet, raw_list: object, direction: str, origin: st
         result.origin[(direction, tariff.id)] = origin
 
 
-def _add_file(result: TariffSet, path: Path, origin: str) -> None:
-    document = _read_json(path)
-    check_known(document, ROOT_FIELDS, str(path))
-    _add_section(result, document.get("import_tariffs"), IMPORT, origin, f"{path}.import_tariffs")
-    _add_section(result, document.get("export_tariffs"), EXPORT, origin, f"{path}.export_tariffs")
+def _add_document(result: TariffSet, document: Mapping[str, Any], origin: str, where: str) -> None:
+    check_tariff_format(document, where)
+    check_known(document, ROOT_FIELDS, where)
+    _add_section(result, document.get("import_tariffs"), IMPORT, origin, f"{where}.import_tariffs")
+    _add_section(result, document.get("export_tariffs"), EXPORT, origin, f"{where}.export_tariffs")
+
+
+def parse_tariff_documents(
+    catalog: Mapping[str, Any] | None,
+    user: Mapping[str, Any] | None,
+    where: tuple[str, str] = ("tariffs.json", "user_tariffs.json"),
+) -> TariffSet:
+    """Catalog and user document (already read, either may be ``None``) as one set, checked like files."""
+    result = TariffSet()
+    if catalog is not None:
+        _add_document(result, as_dict(catalog, where[0]), "catalog", where[0])
+    if user is not None:
+        _add_document(result, as_dict(user, where[1]), "user", where[1])
+    return result
 
 
 def load_tariffs(catalog: Path | None = None, user: Path | None = None) -> TariffSet:
     """Load the catalog and the user file (optional, may not exist) into one set.
 
-    The same ID in both files is an error, as is a wrong ID prefix; nothing is overridden silently.
+    Both files need a supported ``tariff_format``. The same ID in both files is an error, as is a wrong
+    ID prefix; nothing is overridden silently.
     """
-    result = TariffSet()
-    if catalog is not None:
-        _add_file(result, catalog, "catalog")
-    if user is not None and user.exists():
-        _add_file(result, user, "user")
-    return result
+    catalog_doc = _read_json(catalog) if catalog is not None else None
+    user_doc = _read_json(user) if user is not None and user.exists() else None
+    return parse_tariff_documents(catalog_doc, user_doc, (str(catalog), str(user)))
 
 
 def load_tariff_file(path: Path, direction: str) -> Tariff:

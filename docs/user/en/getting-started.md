@@ -44,6 +44,6 @@ Open **House settings** in the sidebar once, before you rely on the preview:
 - **Time zone** (for example `Europe/Vienna`). All times are local time of the house.
 - **Country** and **federal state / canton.** The region is needed as soon as a tariff has rules for certain days, because public holidays can change the price. Without a region Edibert stops with a clear message instead of guessing.
 - **What the house has**: smart meter, quarter-hour meter, separate meter, controllable device. A tariff that needs something the house does not have gets a hint.
-- **Grid fee** (optional): base price in ct/kWh (net) and time windows, for example the high and low level of section 14a EnWG module 3. It is added to the price before VAT.
+- **Grid fee** (optional): base price in ct/kWh (net) and time windows, for example the high and low level of section 14a EnWG module 3. It is a net price: with a net tariff it is added before VAT, with a gross tariff it gets the tariff's VAT rate and is then added.
 
 Click **Save house settings** to keep them.

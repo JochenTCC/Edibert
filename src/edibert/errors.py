@@ -23,11 +23,19 @@ class ErrorCode(StrEnum):
     UNSUPPORTED_FEATURE = "UNSUPPORTED_FEATURE"  # params: feature, tariff_id
     RULE_VALUE_MISSING = "RULE_VALUE_MISSING"  # params: rule_id
     GRID_AREA_UNKNOWN = "GRID_AREA_UNKNOWN"  # params: area_id
+    VAT_PERCENT_MISSING = "VAT_PERCENT_MISSING"  # params: tariff_id
     # Files and identifiers
     FILE_INVALID = "FILE_INVALID"  # params: path
     ID_COLLISION = "ID_COLLISION"  # params: tariff_id
     ID_PREFIX_MISSING = "ID_PREFIX_MISSING"  # params: tariff_id
     ID_PREFIX_RESERVED = "ID_PREFIX_RESERVED"  # params: tariff_id
+    GRID_ID_COLLISION = "GRID_ID_COLLISION"  # params: grid_id
+    GRID_ID_PREFIX_MISSING = "GRID_ID_PREFIX_MISSING"  # params: grid_id
+    GRID_ID_PREFIX_RESERVED = "GRID_ID_PREFIX_RESERVED"  # params: grid_id
+    # Tariff-format version track (``tariff_format`` root key)
+    FORMAT_MISSING = "FORMAT_MISSING"  # params: path
+    FORMAT_UNSUPPORTED = "FORMAT_UNSUPPORTED"  # params: path, value, supported
+    MIGRATION_ANSWER_MISSING = "MIGRATION_ANSWER_MISSING"  # params: question_id
     # Evaluation
     PRICE_MISSING = "PRICE_MISSING"  # params: slot, tariff_id
     MARKET_PRICE_REQUIRED = "MARKET_PRICE_REQUIRED"  # params: slot, tariff_id

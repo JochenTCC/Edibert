@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -12,12 +10,21 @@ from typing import Any
 from edibert.context import PricingContext
 from edibert.editor.model import RuleDraft, unique_rule_ids
 from edibert.errors import EdibertError, ErrorCode
-from edibert.gridfee import GridFee, parse_grid_fee_config, resolve_grid_fee
+from edibert.fileformat import FORMAT_KEY, TARIFF_FORMAT, write_json_atomic
+from edibert.gridfee import (
+    METERING,
+    USER,
+    GridFee,
+    parse_grid_fee_catalog,
+    parse_grid_fee_config,
+    resolve_grid_fee,
+)
 from edibert.rules import REQUIRES
 
 LANDS = ("AT", "DE", "CH")
 DEFAULT_TIMEZONE = "Europe/Vienna"
 COMMON_TIMEZONES = (DEFAULT_TIMEZONE, "Europe/Berlin", "Europe/Zurich")
+HOUSE_GRID_AREA = "user_house"  # the editor's own grid fee, an in-memory user grid area
 
 
 @dataclass
@@ -35,20 +42,25 @@ class HouseSettings:
     def context(self) -> PricingContext:
         return PricingContext(self.timezone, self.land or None, self.region or None)
 
-    def grid_config_raw(self) -> dict[str, Any]:
-        raw: dict[str, Any] = {
-            "base_cent_kwh": self.grid_base_cent,
-            "quarter_hour_meter": "quarter_hour_meter" in self.capabilities,
-        }
+    def grid_area_document(self) -> dict[str, Any]:
+        """The own grid fee as a ``user_grid_fees.json`` document with one area (and its rules, if any)."""
+        area: dict[str, Any] = {"id": HOUSE_GRID_AREA, "base_cent_kwh": dict.fromkeys(METERING, self.grid_base_cent)}
+        rule_sets: dict[str, Any] = {}
         if self.grid_rules:
-            raw["rules"] = unique_rule_ids([rule.to_raw(f"grid_rule_{index + 1}") for index, rule in enumerate(self.grid_rules)])
-        return raw
+            rule_sets[HOUSE_GRID_AREA] = unique_rule_ids(
+                [rule.to_raw(f"grid_rule_{index + 1}") for index, rule in enumerate(self.grid_rules)]
+            )
+            area["rule_set"] = HOUSE_GRID_AREA
+        return {FORMAT_KEY: TARIFF_FORMAT, "rule_sets": rule_sets, "areas": [area]}
 
     def grid_fee(self) -> GridFee | None:
         """The resolved grid fee, or ``None`` when it is switched off."""
         if not self.grid_enabled:
             return None
-        return resolve_grid_fee(parse_grid_fee_config(self.grid_config_raw()))
+        config = parse_grid_fee_config(
+            {"area_id": HOUSE_GRID_AREA, "quarter_hour_meter": "quarter_hour_meter" in self.capabilities}
+        )
+        return resolve_grid_fee(config, parse_grid_fee_catalog(self.grid_area_document(), USER))
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -86,13 +98,4 @@ def load_house(path: Path) -> HouseSettings:
 
 
 def save_house(path: Path, house: HouseSettings) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    handle, temp_name = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-    try:
-        with os.fdopen(handle, "w", encoding="utf-8", newline="\n") as stream:
-            json.dump(house.to_json(), stream, indent=2, ensure_ascii=False)
-            stream.write("\n")
-        os.replace(temp_name, path)
-    except BaseException:
-        Path(temp_name).unlink(missing_ok=True)
-        raise
+    write_json_atomic(path, house.to_json())

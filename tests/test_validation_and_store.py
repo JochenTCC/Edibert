@@ -10,7 +10,7 @@ from edibert.errors import EdibertError, ErrorCode
 from edibert.store import load_tariffs
 from edibert.tariff import EXPORT, IMPORT, parse_tariff, price_cent
 
-BASE = {"id": "t", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0}
+BASE = {"id": "t", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0, "vat_percent": 20}
 EFFECT = {"mode": "add_cent", "value": 1}
 
 
@@ -50,8 +50,8 @@ def test_invalid_tariffs_fail_with_a_code(raw, code):
 
 
 def test_export_only_type_is_rejected_for_import():
-    assert code_of(parse_tariff, {"id": "x", "type": "fixed", "supplier_id": "s", "k_push_cent": 5}, IMPORT) == ErrorCode.VALUE_INVALID
-    assert parse_tariff({"id": "x", "type": "fixed", "supplier_id": "s", "k_push_cent": 5}, EXPORT).k_push_cent == 5
+    assert code_of(parse_tariff, {"id": "x", "type": "fixed", "supplier_id": "s", "k_push_cent": 5, "vat_percent": 0}, IMPORT) == ErrorCode.VALUE_INVALID
+    assert parse_tariff({"id": "x", "type": "fixed", "supplier_id": "s", "k_push_cent": 5, "vat_percent": 0}, EXPORT).k_push_cent == 5
 
 
 def test_weekday_words_and_groups_are_accepted():
@@ -98,8 +98,8 @@ def write(path, document):
 
 
 def test_load_catalog_and_user_file(tmp_path):
-    catalog = write(tmp_path / "tariffs.json", {"catalog_as_of": "2026", "import_tariffs": [BASE]})
-    user = write(tmp_path / "user_tariffs.json", {"import_tariffs": [{**BASE, "id": "user_mine"}]})
+    catalog = write(tmp_path / "tariffs.json", {"tariff_format": 1, "catalog_as_of": "2026", "import_tariffs": [BASE]})
+    user = write(tmp_path / "user_tariffs.json", {"tariff_format": 1, "import_tariffs": [{**BASE, "id": "user_mine"}]})
     result = load_tariffs(catalog, user)
     assert set(result.imports) == {"t", "user_mine"}
     assert result.origin[(IMPORT, "user_mine")] == "user"
@@ -107,16 +107,16 @@ def test_load_catalog_and_user_file(tmp_path):
 
 
 def test_user_file_is_optional(tmp_path):
-    catalog = write(tmp_path / "tariffs.json", {"import_tariffs": [BASE]})
+    catalog = write(tmp_path / "tariffs.json", {"tariff_format": 1, "import_tariffs": [BASE]})
     assert set(load_tariffs(catalog, tmp_path / "missing.json").imports) == {"t"}
 
 
 def test_id_rules(tmp_path):
-    user_bad = write(tmp_path / "u1.json", {"import_tariffs": [BASE]})
+    user_bad = write(tmp_path / "u1.json", {"tariff_format": 1, "import_tariffs": [BASE]})
     assert code_of(load_tariffs, None, user_bad) == ErrorCode.ID_PREFIX_MISSING
-    catalog_bad = write(tmp_path / "c1.json", {"import_tariffs": [{**BASE, "id": "user_x"}]})
+    catalog_bad = write(tmp_path / "c1.json", {"tariff_format": 1, "import_tariffs": [{**BASE, "id": "user_x"}]})
     assert code_of(load_tariffs, catalog_bad, None) == ErrorCode.ID_PREFIX_RESERVED
-    duplicate = write(tmp_path / "c2.json", {"import_tariffs": [BASE, BASE]})
+    duplicate = write(tmp_path / "c2.json", {"tariff_format": 1, "import_tariffs": [BASE, BASE]})
     assert code_of(load_tariffs, duplicate, None) == ErrorCode.ID_COLLISION
 
 
@@ -124,6 +124,34 @@ def test_broken_files_and_root_fields(tmp_path):
     broken = tmp_path / "broken.json"
     broken.write_text("{ not json", encoding="utf-8")
     assert code_of(load_tariffs, broken, None) == ErrorCode.FILE_INVALID
-    unknown_root = write(tmp_path / "root.json", {"import_tarifs": []})
+    unknown_root = write(tmp_path / "root.json", {"tariff_format": 1, "import_tarifs": []})
     assert code_of(load_tariffs, unknown_root, None) == ErrorCode.TARIFF_UNKNOWN_FIELD
     assert code_of(load_tariffs, tmp_path / "does_not_exist.json", None) == ErrorCode.FILE_INVALID
+
+
+@pytest.mark.parametrize("direction", [IMPORT, EXPORT])
+def test_every_tariff_needs_a_vat_rate(direction):
+    raw = {"id": "x", "type": "fixed_cent" if direction == IMPORT else "fixed", "supplier_id": "s", "fix_cent_kwh": 30.0, "k_push_cent": 5.0}
+    with pytest.raises(EdibertError) as err:
+        parse_tariff(raw, direction)  # prices_include_vat defaults to true
+    assert (err.value.code, err.value.params) == (ErrorCode.VAT_PERCENT_MISSING, {"tariff_id": "x"})
+    for include_vat in (True, False):  # net prices get the rate added, so they need it as much as gross ones
+        assert code_of(parse_tariff, {**raw, "prices_include_vat": include_vat}, direction) == ErrorCode.VAT_PERCENT_MISSING
+    assert parse_tariff({**raw, "vat_percent": 0}, direction).vat_percent == 0.0  # an explicit 0 is fine
+    assert parse_tariff({**raw, "prices_include_vat": False, "vat_percent": 20}, direction).vat_percent == 20.0
+
+
+@pytest.mark.parametrize(
+    ("document", "code"),
+    [
+        ({"import_tariffs": [BASE]}, ErrorCode.FORMAT_MISSING),
+        ({"earnie_data_model": 4, "import_tariffs": [BASE]}, ErrorCode.FORMAT_MISSING),
+        ({"tariff_format": 2, "import_tariffs": [BASE]}, ErrorCode.FORMAT_UNSUPPORTED),
+        ({"tariff_format": 1, "earnie_data_model": 4, "import_tariffs": [BASE]}, ErrorCode.TARIFF_UNKNOWN_FIELD),
+    ],
+)  # fmt: skip
+def test_tariff_files_need_the_tariff_format(tmp_path, document, code):
+    catalog = write(tmp_path / "tariffs.json", document)
+    assert code_of(load_tariffs, catalog, None) == code
+    user = write(tmp_path / "user_tariffs.json", {**document, "import_tariffs": [{**BASE, "id": "user_x"}]})
+    assert code_of(load_tariffs, None, user) == code

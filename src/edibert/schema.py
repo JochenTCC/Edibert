@@ -123,7 +123,7 @@ def tariff_schema() -> dict[str, Any]:
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "title": "Edibert tariff",
         "type": "object",
-        "required": ["id", "type", "supplier_id"],
+        "required": ["id", "type", "supplier_id", "vat_percent"],
         "additionalProperties": False,
         "properties": _tariff_properties(),
     }

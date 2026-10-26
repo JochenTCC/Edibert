@@ -5,7 +5,8 @@
   "required": [
     "id",
     "type",
-    "supplier_id"
+    "supplier_id",
+    "vat_percent"
   ],
   "additionalProperties": false,
   "properties": {

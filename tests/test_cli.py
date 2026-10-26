@@ -54,7 +54,8 @@ def test_bad_time_is_reported(capsys):
 def test_price_with_grid_fee_shows_grid_lines(capsys):
     code, out, _ = run(
         capsys, "--lang", "de", "price", "--tariff", str(EXAMPLES / "spot_evening_surcharge_cap.json"),
-        "--grid-fee", str(EXAMPLES / "grid_fee_modul3_example.json"),
+        "--grid-fee", str(EXAMPLES / "netznutzung_modul3_example.json"),
+        "--user-grid-fees", str(EXAMPLES / "grid_fee_modul3_example.json"),
         "--at", "2026-12-15T16:00", "--tz", "Europe/Vienna", "--epex", "10",
     )  # fmt: skip
     assert code == 0
@@ -115,8 +116,8 @@ def write_publish_files(folder):
     import json
 
     (folder / "house.json").write_text(json.dumps({"timezone": "Europe/Vienna", "land": "AT"}), encoding="utf-8")
-    fixed = {"id": "user_fix", "type": "fixed_cent", "supplier_id": "user_s", "label": "Fix", "fix_cent_kwh": 30.0}
-    (folder / "user_tariffs.json").write_text(json.dumps({"import_tariffs": [fixed]}), encoding="utf-8")
+    fixed = {"id": "user_fix", "type": "fixed_cent", "supplier_id": "user_s", "label": "Fix", "fix_cent_kwh": 30.0, "vat_percent": 20}
+    (folder / "user_tariffs.json").write_text(json.dumps({"tariff_format": 1, "import_tariffs": [fixed]}), encoding="utf-8")
     config = {"mqtt": {"host": "broker.local"}, "tariffs": [{"id": "user_fix"}]}
     (folder / "publish.json").write_text(json.dumps(config), encoding="utf-8")
 

@@ -55,7 +55,7 @@ def test_importing_the_api_loads_no_product_module():
 
 
 def test_api_exports_exactly_the_documented_names():
-    assert api.API_VERSION == 1
+    assert api.API_VERSION == 2
     for name in api.__all__:
         assert hasattr(api, name), name
 
@@ -64,10 +64,10 @@ def test_load_tariffs_keeps_the_origin_and_tolerates_a_missing_user_file(tmp_pat
     catalog = tmp_path / "tariffs.json"
     user = tmp_path / "user_tariffs.json"
     fixed = {"label": "x", "type": "fixed_cent", "land": "AT", "currency": "EUR", "supplier_id": "s", "fix_cent_kwh": 20.0, "vat_percent": 20, "prices_include_vat": False}
-    catalog.write_text(json.dumps({"import_tariffs": [{**fixed, "id": "cat_a"}]}), encoding="utf-8")
+    catalog.write_text(json.dumps({"tariff_format": 1, "import_tariffs": [{**fixed, "id": "cat_a"}]}), encoding="utf-8")
     only_catalog = api.load_tariffs(catalog, user)
     assert list(only_catalog.imports) == ["cat_a"]
-    user.write_text(json.dumps({"import_tariffs": [{**fixed, "id": "user_b"}]}), encoding="utf-8")
+    user.write_text(json.dumps({"tariff_format": 1, "import_tariffs": [{**fixed, "id": "user_b"}]}), encoding="utf-8")
     both = api.load_tariffs(catalog, user)
     assert both.origin == {(api.IMPORT, "cat_a"): "catalog", (api.IMPORT, "user_b"): "user"}
 

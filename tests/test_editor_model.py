@@ -21,7 +21,7 @@ def test_form_roundtrip_keeps_the_tariff(name, direction):
 
 
 def test_unknown_fields_survive_the_form():
-    raw = {"id": "user_x", "label": "X", "type": "monthly_table", "supplier_id": "user_s", "monthly_seed": {"curve": "oemag"},
+    raw = {"id": "user_x", "label": "X", "type": "monthly_table", "supplier_id": "user_s", "vat_percent": 0, "monthly_seed": {"curve": "oemag"},
            "monthly_rates": [{"year": 2026, "month": 10, "tariff_cent_kwh": 9.0}]}  # fmt: skip
     draft = TariffDraft.from_raw(raw, EXPORT)
     assert draft.kind == "monthly"
@@ -110,3 +110,19 @@ def test_a_tariff_needs_a_name():
     assert not result.ok
     assert result.error is not None
     assert (result.error.code, result.error.params["field"]) == (ErrorCode.FIELD_MISSING, "label")
+
+
+def test_house_grid_fee_is_an_in_memory_user_grid_area(ctx_plain):
+    from conftest import at
+
+    from edibert.editor.house import HOUSE_GRID_AREA, HouseSettings
+
+    assert HouseSettings(grid_base_cent=8.0).grid_fee() is None  # switched off
+    night = RuleDraft(id="night", start="00:00", end="06:00", value=2.0)
+    house = HouseSettings(grid_enabled=True, grid_base_cent=8.0, grid_rules=[night])
+    fee = house.grid_fee()
+    assert fee is not None
+    assert fee.area_id == HOUSE_GRID_AREA
+    assert fee.work_cent(ctx_plain.to_local(at("2026-10-12 03:00")), ctx_plain) == (2.0, "night")
+    assert fee.work_cent(ctx_plain.to_local(at("2026-10-12 12:00")), ctx_plain) == (8.0, None)
+    assert house.grid_area_document()["tariff_format"] == 1

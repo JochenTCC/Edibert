@@ -87,7 +87,7 @@ def test_export_pays_nothing_at_negative_price(ctx_de):
 def test_export_spot_formula_and_floor(ctx_plain):
     raw = {
         "id": "x", "type": "spot_hourly", "supplier_id": "s", "feed_in_fee_factor": 0.19,
-        "settlement_fee_cent_kwh": 0.5, "feed_in_fix_cent": 0.1, "price_floor_cent_kwh": 0,
+        "settlement_fee_cent_kwh": 0.5, "feed_in_fix_cent": 0.1, "price_floor_cent_kwh": 0, "vat_percent": 0,
     }  # fmt: skip
     tariff = make(raw, EXPORT)
     assert price_cent(tariff, at("2026-06-20 13:00"), ctx_plain, epex_cent=10.0) == pytest.approx(7.7, abs=1e-4)

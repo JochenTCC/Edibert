@@ -27,6 +27,8 @@ def test_examples_validate(name):
 @pytest.mark.parametrize(
     "bad",
     [
+        {"id": "x", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 1},  # without vat_percent
+        {"id": "x", "type": "fixed_cent", "supplier_id": "s", "prices_include_vat": False, "fix_cent_kwh": 1},
         {"id": "x", "type": "fixed_cent", "supplier_id": "s", "colour": 1},
         {"id": "x", "type": "gold", "supplier_id": "s"},
         {"id": "x", "type": "fixed_cent", "supplier_id": "s", "applies_to": "meter"},
@@ -36,6 +38,12 @@ def test_examples_validate(name):
 )
 def test_schema_rejects_bad_tariffs(bad):
     assert not Draft202012Validator(tariff_schema()).is_valid(bad)
+
+
+def test_schema_accepts_an_explicit_zero_vat_rate():
+    validator = Draft202012Validator(tariff_schema())
+    assert validator.is_valid({"id": "x", "type": "fixed_cent", "supplier_id": "s", "vat_percent": 0})
+    assert validator.is_valid({"id": "x", "type": "fixed_cent", "supplier_id": "s", "prices_include_vat": False, "vat_percent": 20})
 
 
 def test_committed_schema_is_current():

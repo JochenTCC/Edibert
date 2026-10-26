@@ -24,7 +24,7 @@ python -m edibert series --tariff examples/spot_evening_surcharge_cap.json \
 
 ## Netzentgelt
 
-Mit `--grid-fee house_grid.json` (das Objekt `netznutzung`, siehe `examples/grid_fee_modul3_example.json`) wird ein Netzentgelt eingerechnet. Mit `--grid-catalog grid_fees.json` lässt sich ein Katalog-Netzbereich verwenden.
+Mit `--grid-fee house_grid.json` wird ein Netzentgelt eingerechnet. Die Datei enthält das Objekt `netznutzung` des Hausprofils, das per `area_id` einen Netzbereich auswählt (siehe `examples/netznutzung_modul3_example.json`). Der Bereich kommt aus `--grid-catalog grid_fees.json` (Katalog-Netzbereiche) oder `--user-grid-fees user_grid_fees.json` (eigene Netzbereiche, IDs beginnen mit `user_`, siehe `examples/grid_fee_modul3_example.json`); beide Angaben sind kombinierbar. Ein unbekannter Netzbereich bricht den Befehl mit einem Fehler ab.
 
 ## Veröffentlichen
 

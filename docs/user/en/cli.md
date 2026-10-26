@@ -23,7 +23,7 @@ python -m edibert series --tariff examples/spot_evening_surcharge_cap.json \
 
 ## Grid fee
 
-Add `--grid-fee house_grid.json` (the `netznutzung` object, see `examples/grid_fee_modul3_example.json`) to include a grid fee. With `--grid-catalog grid_fees.json` a catalog area can be used.
+Add `--grid-fee house_grid.json` to include a grid fee. The file holds the `netznutzung` object of the house profile, which selects a grid area by `area_id` (see `examples/netznutzung_modul3_example.json`). The area comes from `--grid-catalog grid_fees.json` (catalog areas) or `--user-grid-fees user_grid_fees.json` (own areas with IDs starting with `user_`, see `examples/grid_fee_modul3_example.json`); both may be given. An unknown area stops the command with an error.
 
 ## Publish
 

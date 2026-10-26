@@ -3,7 +3,7 @@
 from datetime import date
 
 import pytest
-from conftest import at, load_example, make
+from conftest import at, flat_grid_fee, load_example, make
 
 from edibert.editor.invoice import BASE_BAND, invoice_bands, invoice_check
 from edibert.editor.plausibility import analyze_rules, plausibility_warnings
@@ -13,9 +13,8 @@ from edibert.editor.preview import (
     representative_dates,
 )
 from edibert.errors import EdibertError, ErrorCode, WarningCode
-from edibert.gridfee import parse_grid_fee_config, resolve_grid_fee
 
-BASE = {"id": "t", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0}
+BASE = {"id": "t", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0, "vat_percent": 20}
 ALL_DAY = {"id": "all", "effect": {"mode": "add_cent", "value": 1.0}}
 NIGHT = {"id": "night", "time": {"from": "22:00", "to": "06:00"}, "effect": {"mode": "absolute_cent", "value": 20.0}}
 
@@ -57,7 +56,7 @@ def test_analysis_without_a_region_ignores_holidays_instead_of_failing(ctx_plain
 def test_unusual_prices_are_flagged(ctx_plain):
     assert [w.code for w in plausibility_warnings(make(BASE, fix_cent_kwh=0.32), ctx_plain, 2026)] == [WarningCode.PRICE_UNUSUAL]
     assert [w.code for w in plausibility_warnings(make(BASE, fix_cent_kwh=92.0), ctx_plain, 2026)] == [WarningCode.PRICE_UNUSUAL]
-    spot_gross = make({"id": "s", "type": "spot_hourly", "supplier_id": "x", "prices_include_vat": True})
+    spot_gross = make({"id": "s", "type": "spot_hourly", "supplier_id": "x", "prices_include_vat": True, "vat_percent": 20})
     assert [w.code for w in plausibility_warnings(spot_gross, ctx_plain, 2026)] == [WarningCode.SPOT_PRICES_GROSS]
 
 
@@ -86,7 +85,7 @@ def test_day_curves_for_fixed_and_spot_tariffs(ctx_de):
 def test_day_curve_on_daylight_saving_days(ctx_plain):
     fixed = make(BASE)
     assert len(day_curve(fixed, ctx_plain, date(2026, 3, 29))) == 92
-    spot = make({"id": "s", "type": "spot_hourly", "supplier_id": "x"})
+    spot = make({"id": "s", "type": "spot_hourly", "supplier_id": "x", "vat_percent": 20})
     assert len(day_curve(spot, ctx_plain, date(2026, 10, 25))) == 100  # the profile is reused for the repeated hour
 
 
@@ -118,13 +117,13 @@ def test_invoice_check_rejects_unknown_bands_and_exports(ctx_plain):
     with pytest.raises(EdibertError) as err:
         invoice_check(tariff, ctx_plain, month, {"night": 10.0}, 10.0)
     assert err.value.code == ErrorCode.VALUE_INVALID
-    export = make({"id": "e", "type": "fixed", "supplier_id": "s", "k_push_cent": 5.0}, direction="export")
+    export = make({"id": "e", "type": "fixed", "supplier_id": "s", "k_push_cent": 5.0, "vat_percent": 0}, direction="export")
     with pytest.raises(EdibertError):
         invoice_check(export, ctx_plain, month, {BASE_BAND: 1.0}, 10.0)
 
 
 def test_invoice_bands_of_a_spot_tariff_need_the_month_average(ctx_plain):
-    spot = make({"id": "s", "type": "spot_hourly", "supplier_id": "x", "settlement_fee_cent_kwh": 1.5})
+    spot = make({"id": "s", "type": "spot_hourly", "supplier_id": "x", "settlement_fee_cent_kwh": 1.5, "vat_percent": 20})
     month = date(2026, 10, 1)
     with pytest.raises(EdibertError) as err:
         invoice_bands(spot, ctx_plain, month)
@@ -133,8 +132,8 @@ def test_invoice_bands_of_a_spot_tariff_need_the_month_average(ctx_plain):
 
 
 def test_invoice_with_grid_fee(ctx_plain):
-    fee = resolve_grid_fee(parse_grid_fee_config({"base_cent_kwh": 8.0}))
-    result = invoice_check(make(BASE), ctx_plain, date(2026, 10, 1), {BASE_BAND: 100.0}, 38.0, grid_fee=fee)
-    assert result.energy_eur == 38.0
+    fee = flat_grid_fee(8.0)
+    result = invoice_check(make(BASE), ctx_plain, date(2026, 10, 1), {BASE_BAND: 100.0}, 39.6, grid_fee=fee)
+    assert result.energy_eur == 39.6  # gross tariff: 30 ct + 8 ct net grid fee with 20 % VAT
     assert result.ok
     assert at("2026-10-01 00:00")  # helper import kept in use

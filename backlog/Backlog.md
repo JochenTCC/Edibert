@@ -25,13 +25,6 @@ Spec: [`docs/spec/tariff-format.md`](../docs/spec/tariff-format.md). Internal de
 
 Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T4/T4b = `0.1.d`.
 
-- [ ] **0.1.i — Tariff-format version, user grid areas and migrations** *(needed first: blocks Earnie epic `Edibert` P2; plan and decisions: Earnie `docs/dev/edibert-integration.md` § P2, Earnie config-migration draft §3.7)*
-  - **Format version:** root key `tariff_format` (int, current `1`) in all tariff-track files (`tariffs.json`, `user_tariffs.json`, `grid_fees.json`, `user_grid_fees.json`); missing key is a coded error, an unknown value is `FORMAT_UNSUPPORTED`; `earnie_data_model` leaves `ROOT_FIELDS` and is read only by the migration (no dual-read)
-  - **User grid areas:** new file `user_grid_fees.json`, same shape as `grid_fees.json` (`rule_sets`, `areas`); IDs start with `user_`, an ID in both files is a load error; merged area view with origin `catalog` / `user`; write function in `edibert.api` for one user area
-  - **Smaller `netznutzung`:** `CONFIG_FIELDS` = `area_id` (required), `power_metering`, `quarter_hour_meter`, `include_status`; `base_cent_kwh`, `rules`, `holidays`, `extra_holiday_dates` are removed (own values live in a user area)
-  - **`vat_percent` mandatory** whenever `prices_include_vat` is true (`0` allowed); coded error instead of today's silent `0` (Earnie memo D3b)
-  - **Migration API:** `edibert.api.plan_migration` / `migrate`, pure (docs in, docs out) with questions and blockers: tag untagged files with `tariff_format: 1`, replace `earnie_data_model` in `tariffs.json`, create user grid areas from values handed in by the caller, ask for a VAT rate on gross user tariffs without one (prefill per country, the user confirms)
-  - Spec `docs/spec/tariff-format.md` (section 2 files + version-track section, section 5a) and `docs/spec/api.md`; tests; tag the next patch version afterwards (proposal `0.1.2`, approval required) so Earnie can raise its pin
 - [ ] **0.1.d — Catalog: contribution path and signed catalog access** *(0.1.c done; legal review first)*
   - Catalog P1: opt-in upload with payload preview per tariff, `individual` flag, no free text and no personal data; GitHub-issue route first
   - **Note:** Edibert and the catalogue are free — donations are highly welcome; regular reminders may appear on running installations

@@ -1,10 +1,8 @@
 {
-  "$comment": "Grid-fee work price with three levels (section 14a Modul 3). Fixture based on a published example of one grid operator; not checked against its price sheet. Standard level is the base, night and high level are rules. Part of the house profile, not of a supplier tariff.",
-  "netznutzung": {
-    "area_id": null,
-    "quarter_hour_meter": true,
-    "base_cent_kwh": 9.98,
-    "rules": [
+  "$comment": "User grid area (shape of user_grid_fees.json) with three work-price levels (section 14a Modul 3). Fixture based on a published example of one grid operator; not checked against its price sheet. Standard level is the base, night and high level are rules. The house profile selects it with netznutzung.area_id, see netznutzung_modul3_example.json.",
+  "tariff_format": 1,
+  "rule_sets": {
+    "user_modul3_example": [
       {
         "id": "nt",
         "label": "Low tariff",
@@ -18,5 +16,14 @@
         "effect": { "mode": "absolute_cent", "value": 14.92 }
       }
     ]
-  }
+  },
+  "areas": [
+    {
+      "id": "user_modul3_example",
+      "label": "Modul 3 example",
+      "land": "DE",
+      "base_cent_kwh": { "unmetered_power": 9.98, "metered_power": 9.98 },
+      "rule_set": "user_modul3_example"
+    }
+  ]
 }
