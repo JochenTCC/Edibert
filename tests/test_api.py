@@ -72,6 +72,25 @@ def test_load_tariffs_keeps_the_origin_and_tolerates_a_missing_user_file(tmp_pat
     assert both.origin == {(api.IMPORT, "cat_a"): "catalog", (api.IMPORT, "user_b"): "user"}
 
 
+def test_parse_tariff_checks_like_a_file_entry_without_the_prefix_rule():
+    fixed = {"id": "__user_fixed__", "label": "Own fixed price", "type": "fixed_cent", "supplier_id": "user",
+             "fix_cent_kwh": 30.0, "prices_include_vat": True, "vat_percent": 20.0, "land": "AT"}  # fmt: skip
+    tariff = api.parse_tariff(fixed, api.IMPORT)
+    assert (tariff.id, tariff.direction, tariff.fix_cent_kwh, tariff.vat_percent) == ("__user_fixed__", api.IMPORT, 30.0, 20.0)
+    export = {"id": "own_feed_in", "type": "fixed", "supplier_id": "user", "k_push_cent": 8.0, "vat_percent": 0}
+    assert api.parse_tariff(export, api.EXPORT).k_push_cent == 8.0
+    with pytest.raises(api.EdibertError) as err:
+        api.parse_tariff({**fixed, "tiers": []}, api.IMPORT)
+    assert err.value.code == api.ErrorCode.UNSUPPORTED_FEATURE
+    with pytest.raises(api.EdibertError) as err:
+        api.parse_tariff({**fixed, "colour": "red"}, api.IMPORT)
+    assert err.value.code == api.ErrorCode.TARIFF_UNKNOWN_FIELD
+    without_vat = {key: value for key, value in fixed.items() if key != "vat_percent"}
+    with pytest.raises(api.EdibertError) as err:
+        api.parse_tariff(without_vat, api.IMPORT)
+    assert err.value.code == api.ErrorCode.VAT_PERCENT_MISSING
+
+
 def test_a_missing_catalog_file_is_an_error(tmp_path):
     with pytest.raises(api.EdibertError) as err:
         api.load_tariffs(tmp_path / "tariffs.json")

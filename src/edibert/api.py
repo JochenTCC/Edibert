@@ -45,7 +45,15 @@ from edibert.migration import (
 )
 from edibert.series import RESOLUTIONS, PricePoint, PriceSeries, tariff_price_series
 from edibert.store import USER_PREFIX, TariffSet
-from edibert.tariff import EXPORT, IMPORT, PriceResult, Tariff, evaluate, price_cent
+from edibert.tariff import (
+    EXPORT,
+    IMPORT,
+    PriceResult,
+    Tariff,
+    evaluate,
+    parse_tariff,
+    price_cent,
+)
 
 API_VERSION = 2  # raised on a breaking change to a name in __all__ (2: tariff_format, area_id required)
 
@@ -87,6 +95,7 @@ __all__ = [
     "load_tariffs",
     "migrate",
     "parse_grid_fee_config",
+    "parse_tariff",
     "plan_migration",
     "price_cent",
     "pricing_context",

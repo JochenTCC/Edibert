@@ -2,6 +2,13 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Library API parse_tariff (0.1.j, 2026-10-26)
+
+- [x] **0.1.j — Library API: `parse_tariff`** (Earnie epic `Edibert` P3a, triage T3; `src/edibert/api.py`, spec `docs/spec/api.md`)
+  - `api.parse_tariff(raw, direction)`: one tariff object checked exactly like a file entry (unknown and unsupported fields, type fields, mandatory `vat_percent`), without the `user_` prefix rule and without `tariff_format`; re-export of `edibert.tariff.parse_tariff`; additive, `API_VERSION` stays 2
+  - Earnie builds its scenario shortcut *Eigener Festpreis* (`__user_fixed__`, no tariff file) with it
+  - Test `tests/test_api.py`; full suite green (308 passed, 1 skipped); released as `0.1.3` with tag `v0.1.3` (approved 2026-10-26)
+
 ### Tariff-format version, user grid areas and migrations (0.1.i, 2026-10-26)
 
 - [x] **0.1.i — Tariff-format version, user grid areas and migrations** (Part A of Earnie epic `Edibert` P2; `src/edibert/fileformat.py`, `src/edibert/migration.py`, `src/edibert/gridfee.py`; spec `docs/spec/tariff-format.md` sections 2, 2a, 5a, `docs/spec/api.md`)
