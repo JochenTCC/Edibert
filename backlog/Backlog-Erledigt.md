@@ -11,6 +11,7 @@ Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes �
   - Compatibility with Earnie: Earnie's P3a fixture (9 tariffs × 4 windows) plus Earnie's values on the monthly-table edge months (export tables ending 2026-09, `monthly_sunny_web_recherche` 2026-10, `at_vkw_strom_duo` 2027-03, an error before a table starts and beyond one step back, a placeholder table for `prior_month` across the year boundary) in `tests/fixtures/earnie_parity/` with the generator `make_fixture.py`; triaged deviation T1 (autumn DST, hourly settled spot) asserted explicitly
   - Additive to `edibert.api`, `API_VERSION` stays 2; tests `tests/test_monthly_fallback.py`, `tests/test_market_archive.py`, `tests/test_earnie_parity.py`, cases in `tests/test_series.py` and `tests/test_ui_app.py`; full suite green (401 passed, 1 skipped; the skipped Streamlit file passes with Streamlit installed, 12 passed)
   - Left open: tariffs that change over time (new prices from a date), now an item under `0.+1`
+  - Released as `0.1.4` with tag `v0.1.4` (approved 2026-10-26)
 
 ### Library API parse_tariff (0.1.j, 2026-10-26)
 
