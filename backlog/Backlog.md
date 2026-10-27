@@ -32,7 +32,7 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
 - [ ] **0.1.e2 — Publish: native Home Assistant integration** *(0.1.e done)*
   - Publish P1: HA custom integration (sensor with `raw_today` / `raw_tomorrow` / `forecast`, action `get_rates(start, end, resolution)`), reading the same price series as the MQTT publisher
   - Clean up retained topics of tariffs removed from `publish.json`
-  - Earnie's OLS model is handed in as a forecaster object (no key); the key only guards plug-ins loaded through entry points; decide how keys are issued and checked
+  - Forecast keys: the key only guards plug-ins loaded through entry points; decide how keys are issued and checked. (Earnie's OLS model runs as an in-process forecaster object without a key since Earnie *Edibert P5*, 2026-10-27; it uses `api.Forecaster` and the free mirror, no Edibert change was needed.)
 - [ ] **0.1.h — Editor: persistence and logic tests for the embedded editor** *(after the Edibert integration in Earnie, Earnie backlog "Edibert integration" → Editor; test concept "Earnie UI-Persistenztests", cases TE1–TE6)*
   - Earnie's UI test suite (AppTest level 1, a few Playwright paths) covers the tariff selection in the Szenarienkonfigurator today (`ui/pages/scenario_editor_tariffs.py`, dependent land/type/tariff selects, own fixed price, next-month rate); when Edibert's editor replaces it, the same cases must run against the embedded editor. Edibert owns the editor, so the cases belong into `tests/test_ui_app.py` here and a smoke test in Earnie
   - **TE1 filter vs. selection:** changing the land or tariff-type filter filters the list; the saved tariff stays selectable or is visibly reset, never silently replaced by another one
