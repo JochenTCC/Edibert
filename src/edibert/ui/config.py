@@ -1,4 +1,4 @@
-"""UI configuration from environment variables (set by ``python -m edibert ui``)."""
+"""UI configuration: from environment variables (``python -m edibert ui``) or built by a host page."""
 
 from __future__ import annotations
 
@@ -6,6 +6,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from edibert.context import PricingContext
+from edibert.gridfee import GridFee
 from edibert.i18n import SOURCE_LANGUAGE, SUPPORTED_LANGUAGES
 
 ENV_DATA_DIR = "EDIBERT_DATA_DIR"
@@ -14,10 +16,22 @@ ENV_LANG = "EDIBERT_LANG"
 
 
 @dataclass(frozen=True)
+class HostHouse:
+    """House facts a host application supplies. The editor shows them read-only and keeps no ``house.json``."""
+
+    context: PricingContext
+    grid_fee: GridFee | None
+    capabilities: tuple[str, ...] = ()
+    description: str = ""
+
+
+@dataclass(frozen=True)
 class UiConfig:
     data_dir: Path
     catalog: Path | None
     language: str
+    key_prefix: str = ""
+    host_house: HostHouse | None = None
 
     @property
     def user_file(self) -> Path:
@@ -28,10 +42,14 @@ class UiConfig:
         return self.data_dir / "house.json"
 
 
+def check_language(language: str, source: str) -> str:
+    if language not in SUPPORTED_LANGUAGES:
+        raise ValueError(f"{source}='{language}' is not supported. Supported: {', '.join(SUPPORTED_LANGUAGES)}.")
+    return language
+
+
 def config_from_env() -> UiConfig:
     """Data folder (default ``./edibert_data``), optional catalog file and start language."""
-    language = os.environ.get(ENV_LANG, SOURCE_LANGUAGE)
-    if language not in SUPPORTED_LANGUAGES:
-        raise ValueError(f"{ENV_LANG}='{language}' is not supported. Supported: {', '.join(SUPPORTED_LANGUAGES)}.")
+    language = check_language(os.environ.get(ENV_LANG, SOURCE_LANGUAGE), ENV_LANG)
     catalog = os.environ.get(ENV_CATALOG)
     return UiConfig(Path(os.environ.get(ENV_DATA_DIR, "edibert_data")), Path(catalog) if catalog else None, language)

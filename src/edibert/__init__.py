@@ -3,4 +3,4 @@
 Draft package. The tariff format is described in ``docs/spec/tariff-format.md``.
 """
 
-__version__ = "0.1.6"
+__version__ = "0.1.7"

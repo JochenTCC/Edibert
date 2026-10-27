@@ -2,6 +2,18 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Editor embed for host pages (0.1.m, 2026-10-27)
+
+- [x] **0.1.m — Editor embed** (Earnie epic `Edibert` P7 Part A; `src/edibert/ui/embed.py`, spec `docs/spec/api.md` section "Editor embed")
+  - `render_editor(UiConfig, list_container=..., open_tariff=...)`: the editor inside a host page without page config, title or language selector; `UiConfig` gains `key_prefix` (required non-empty in the embed; every session and widget key goes through it, so two embeds on one page keep separate state) and `host_house` (`HostHouse`: `PricingContext`, resolved `GridFee`, capabilities, description; shown read-only, no `house.json` read or written)
+  - `open_tariff=(direction, id)` opens a user tariff once per distinct request; unknown ID → new error code `TARIFF_NOT_FOUND` (both catalogs)
+  - `render_preview(tariff, HostHouse, language=..., key_prefix=...)`: hints and price curves for the host's selection preview
+  - Key scope: `state.scope(prefix)` around each render, `state.k(name)` for fixed keys, `state.bound(callback)` for `on_click` (callbacks run outside the render); the standalone page runs the same code with the empty prefix, so its keys are unchanged
+  - Standalone `main()` rebuilt on the shared body (`embed.render_body`); sidebar split into `render_tools` (house or host house, my tariffs, copy, import) and the standalone wrapper
+  - Tests `tests/test_ui_embed.py` (11 AppTest / model cases: all keys prefixed, empty prefix refused, two embeds separate, host house read-only and no `house.json`, save writes `tariff_format` and shows the notice once, rejected input leaves the file unchanged, `open_tariff` once and keeps edits, unknown `open_tariff` error, own house without host, TE4 file side, `render_preview`)
+  - `tests/test_ui_app.py` no longer imports `edibert.ui.app` (importing ran the page against `./edibert_data` in the working directory, so a local data folder without `tariff_format` broke collection); full suite 434 passed, ruff clean
+  - Released as `0.1.7` with tag `v0.1.7` (approved 2026-10-27)
+
 ### Library API MarketSourceError (0.1.l, 2026-10-27)
 
 - [x] **0.1.l — Library: `MarketSourceError` for an injected `get`** (Earnie epic `Edibert` P4a; `src/edibert/api.py`, spec `docs/spec/api.md` section "Live market prices")

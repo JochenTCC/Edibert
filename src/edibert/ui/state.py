@@ -1,8 +1,14 @@
-"""Session state of the editor. One session per browser tab, so nothing here is global."""
+"""Session state of the editor. One session per browser tab, so nothing here is global.
+
+Every key goes through the key prefix of the current render (``scope``), so a host page can embed
+the editor next to its own widgets, even twice. The standalone page uses the empty prefix.
+"""
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 import streamlit as st
 
@@ -18,31 +24,67 @@ STEP = "ui.step"
 HOUSE = "ui.house"
 NOTICE = "ui.notice"
 UID = "ui.uid"
+INIT = "ui.init"
+OPENED = "ui.opened"
+
+# The prefix of the render that is running. Not session data: it is set for the duration of one
+# render call (``scope``) and reset afterwards, so sessions and embeds never see each other's prefix.
+_PREFIX: ContextVar[str] = ContextVar("edibert_ui_prefix", default="")
+
+
+@contextmanager
+def scope(prefix: str) -> Iterator[None]:
+    """Run a render with ``prefix`` in front of every session and widget key."""
+    token = _PREFIX.set(prefix)
+    try:
+        yield
+    finally:
+        _PREFIX.reset(token)
+
+
+def bound(callback: Callable[..., None]) -> Callable[..., None]:
+    """``callback`` for ``on_click``: Streamlit runs callbacks before the next render, outside ``scope``."""
+    prefix = _PREFIX.get()
+
+    def run(*args: object, **kwargs: object) -> None:
+        with scope(prefix):
+            callback(*args, **kwargs)
+
+    return run
+
+
+def k(name: str) -> str:
+    """A fixed key (session value or long-lived widget) in the current scope."""
+    return f"{_PREFIX.get()}{name}"
 
 
 def init(config: UiConfig) -> None:
-    """Create the session defaults once (language from the configuration, saved house settings)."""
+    """Create the session defaults once (language from the configuration, saved or host house settings)."""
     ss = st.session_state
-    if "ui.init" in ss:
+    if config.host_house is not None:
+        ss[k(LANG)] = config.language  # the host decides the language on every run
+    if k(INIT) in ss:
         return
-    ss["ui.init"] = True
-    ss[LANG] = config.language
-    ss[VER] = 0
-    ss[UID] = 0
-    ss[DRAFT] = None
-    ss[STEP] = 1
-    ss[NOTICE] = None
-    ss[HOUSE] = load_house(config.house_file)
-    assign_uids(ss[HOUSE].grid_rules)
+    ss[k(INIT)] = True
+    ss[k(LANG)] = config.language
+    ss[k(VER)] = 0
+    ss[k(UID)] = 0
+    ss[k(DRAFT)] = None
+    ss[k(STEP)] = 1
+    ss[k(NOTICE)] = None
+    ss[k(OPENED)] = None
+    if config.host_house is None:
+        ss[k(HOUSE)] = load_house(config.house_file)
+        assign_uids(ss[k(HOUSE)].grid_rules)
 
 
 def translator() -> Translator:
-    return Translator(st.session_state[LANG])
+    return Translator(st.session_state[k(LANG)])
 
 
 def next_uid() -> int:
-    st.session_state[UID] += 1
-    return st.session_state[UID]
+    st.session_state[k(UID)] += 1
+    return st.session_state[k(UID)]
 
 
 def assign_uids(rules: Iterable[RuleDraft]) -> None:
@@ -55,25 +97,49 @@ def assign_uids(rules: Iterable[RuleDraft]) -> None:
 def adopt(draft: TariffDraft | None) -> None:
     """Make ``draft`` the tariff being edited. New widget keys (version) start the form fresh."""
     ss = st.session_state
-    ss[DRAFT] = draft
-    ss[VER] += 1
-    ss[STEP] = 1
+    ss[k(DRAFT)] = draft
+    ss[k(VER)] += 1
+    ss[k(STEP)] = 1
     if draft is not None:
         assign_uids(draft.rules)
 
 
 def draft() -> TariffDraft | None:
-    return st.session_state[DRAFT]
+    return st.session_state[k(DRAFT)]
 
 
 def house() -> HouseSettings:
-    return st.session_state[HOUSE]
+    return st.session_state[k(HOUSE)]
+
+
+def step() -> int:
+    return st.session_state[k(STEP)]
+
+
+def set_step(number: int) -> None:
+    st.session_state[k(STEP)] = number
+
+
+def opened() -> tuple[str, str] | None:
+    """The last ``open_tariff`` request of the host that was adopted."""
+    return st.session_state[k(OPENED)]
+
+
+def set_opened(request: tuple[str, str] | None) -> None:
+    st.session_state[k(OPENED)] = request
 
 
 def key(name: str) -> str:
     """Widget key tied to the current draft version, independent of the UI language."""
-    return f"{st.session_state[VER]}.{name}"
+    return f"{_PREFIX.get()}{st.session_state[k(VER)]}.{name}"
 
 
 def notify(message: str, kind: str = "success") -> None:
-    st.session_state[NOTICE] = (kind, message)
+    st.session_state[k(NOTICE)] = (kind, message)
+
+
+def take_notice() -> tuple[str, str] | None:
+    """The pending notice (shown once, after the rerun that follows a save)."""
+    notice = st.session_state[k(NOTICE)]
+    st.session_state[k(NOTICE)] = None
+    return notice

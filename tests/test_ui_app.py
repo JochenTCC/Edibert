@@ -9,10 +9,10 @@ import pytest
 pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 
-import edibert.ui.app as app_module
+import edibert.ui as ui_package
 from edibert.ui.config import ENV_CATALOG, ENV_DATA_DIR, ENV_LANG
 
-APP = Path(app_module.__file__)
+APP = Path(ui_package.__file__).with_name("app.py")  # not imported: importing runs the page
 
 
 @pytest.fixture

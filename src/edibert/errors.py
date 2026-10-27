@@ -29,6 +29,7 @@ class ErrorCode(StrEnum):
     ID_COLLISION = "ID_COLLISION"  # params: tariff_id
     ID_PREFIX_MISSING = "ID_PREFIX_MISSING"  # params: tariff_id
     ID_PREFIX_RESERVED = "ID_PREFIX_RESERVED"  # params: tariff_id
+    TARIFF_NOT_FOUND = "TARIFF_NOT_FOUND"  # params: tariff_id
     GRID_ID_COLLISION = "GRID_ID_COLLISION"  # params: grid_id
     GRID_ID_PREFIX_MISSING = "GRID_ID_PREFIX_MISSING"  # params: grid_id
     GRID_ID_PREFIX_RESERVED = "GRID_ID_PREFIX_RESERVED"  # params: grid_id

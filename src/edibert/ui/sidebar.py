@@ -46,29 +46,29 @@ def _regions(land: str) -> list[str]:
 
 def _language(t: Translator) -> None:
     st.selectbox(
-        t.t("ui.language"), list(SUPPORTED_LANGUAGES), format_func=lambda code: t.t(f"language.{code}"), key=state.LANG
+        t.t("ui.language"), list(SUPPORTED_LANGUAGES), format_func=lambda code: t.t(f"language.{code}"), key=state.k(state.LANG)
     )
 
 
 def _house(t: Translator, config: UiConfig) -> None:
     house = state.house()
     with st.expander(t.t("ui.house")):
-        house.timezone = st.selectbox(t.t("ui.timezone"), list(COMMON_TIMEZONES), index=_index(COMMON_TIMEZONES, house.timezone), accept_new_options=True, key="house.timezone")
-        house.land = st.selectbox(t.t("ui.land"), list(LANDS), index=LANDS.index(house.land), key="house.land")
+        house.timezone = st.selectbox(t.t("ui.timezone"), list(COMMON_TIMEZONES), index=_index(COMMON_TIMEZONES, house.timezone), accept_new_options=True, key=state.k("house.timezone"))
+        house.land = st.selectbox(t.t("ui.land"), list(LANDS), index=LANDS.index(house.land), key=state.k("house.land"))
         regions = _regions(house.land)
         house.region = st.selectbox(
             t.t("ui.region"), regions, index=_index(regions, house.region), format_func=lambda c: _region_label(house.land, c),
-            help=t.t("ui.region_help"), key=f"house.region.{house.land}",
+            help=t.t("ui.region_help"), key=state.k(f"house.region.{house.land}"),
         )  # fmt: skip
         house.capabilities = st.multiselect(
-            t.t("ui.capabilities"), REQUIRES, default=house.capabilities, format_func=lambda r: t.t(f"requirement.{r}"), key="house.capabilities"
+            t.t("ui.capabilities"), REQUIRES, default=house.capabilities, format_func=lambda r: t.t(f"requirement.{r}"), key=state.k("house.capabilities")
         )
-        house.grid_enabled = st.checkbox(t.t("ui.grid_enabled"), value=house.grid_enabled, key="house.grid_enabled")
+        house.grid_enabled = st.checkbox(t.t("ui.grid_enabled"), value=house.grid_enabled, key=state.k("house.grid_enabled"))
         if house.grid_enabled:
-            house.grid_base_cent = st.number_input(t.t("ui.grid_base"), min_value=0.0, value=house.grid_base_cent, step=0.1, format="%.2f", key="house.grid_base")
+            house.grid_base_cent = st.number_input(t.t("ui.grid_base"), min_value=0.0, value=house.grid_base_cent, step=0.1, format="%.2f", key=state.k("house.grid_base"))
             st.caption(t.t("ui.grid_rules"))
-            widgets.rule_editor(t, house.grid_rules, "house.grid")
-        if st.button(t.t("ui.house_save"), key="house.save"):
+            widgets.rule_editor(t, house.grid_rules, state.k("house.grid"))
+        if st.button(t.t("ui.house_save"), key=state.k("house.save")):
             save_house(config.house_file, house)
             state.notify(t.t("ui.house_saved"))
 
@@ -98,14 +98,14 @@ def _tariffs(t: Translator, config: UiConfig) -> None:
         for raw in document.get(SECTIONS[direction], []):
             shown = True
             title = f"{t.t(f'ui.direction.{direction}')}: {raw.get('label') or raw['id']}"
-            st.button(title, key=f"open.{direction}.{raw['id']}", on_click=_open, args=(raw, direction), width="stretch")
+            st.button(title, key=state.k(f"open.{direction}.{raw['id']}"), on_click=state.bound(_open), args=(raw, direction), width="stretch")
     if not shown:
         st.caption(t.t("ui.no_tariffs"))
-    st.button(t.t("ui.new_import"), key="new.import", on_click=_new, args=(IMPORT,), width="stretch")
-    st.button(t.t("ui.new_export"), key="new.export", on_click=_new, args=(EXPORT,), width="stretch")
+    st.button(t.t("ui.new_import"), key=state.k("new.import"), on_click=state.bound(_new), args=(IMPORT,), width="stretch")
+    st.button(t.t("ui.new_export"), key=state.k("new.export"), on_click=state.bound(_new), args=(EXPORT,), width="stretch")
     draft = state.draft()
     if draft is not None and draft.id:
-        st.button(t.t("ui.delete"), key="delete", on_click=_delete, args=(config, draft.id, draft.direction))
+        st.button(t.t("ui.delete"), key=state.k("delete"), on_click=state.bound(_delete), args=(config, draft.id, draft.direction))
 
 
 def _copy_catalog(t: Translator, config: UiConfig) -> None:
@@ -117,9 +117,9 @@ def _copy_catalog(t: Translator, config: UiConfig) -> None:
         entries = [(d, raw) for d in (IMPORT, EXPORT) for raw in document.get(SECTIONS[d], [])]
         choice = st.selectbox(
             t.t("ui.copy_pick"), range(len(entries)), format_func=lambda i: f"{t.t(f'ui.direction.{entries[i][0]}')}: {entries[i][1].get('label', entries[i][1]['id'])}",
-            key="copy.pick",
+            key=state.k("copy.pick"),
         )  # fmt: skip
-        if st.button(t.t("ui.copy_button"), key="copy.go"):
+        if st.button(t.t("ui.copy_button"), key=state.k("copy.go")):
             direction, raw = entries[choice]
             taken = user_tariff_ids(config.user_file)[direction]
             _open(copy_as_template(raw, taken, t.t("ui.copy_suffix")), direction)
@@ -128,11 +128,11 @@ def _copy_catalog(t: Translator, config: UiConfig) -> None:
 
 def _import(t: Translator, config: UiConfig) -> None:
     with st.expander(t.t("ui.import_title")):
-        text = st.text_area(t.t("ui.import_paste"), key="import.text")
-        upload = st.file_uploader(t.t("ui.import_file"), type=["json"], key="import.file")
+        text = st.text_area(t.t("ui.import_paste"), key=state.k("import.text"))
+        upload = st.file_uploader(t.t("ui.import_file"), type=["json"], key=state.k("import.file"))
         if upload is not None:
             text = upload.getvalue().decode("utf-8")
-        direction = st.radio(t.t("ui.import_direction"), (IMPORT, EXPORT), format_func=lambda d: t.t(f"ui.direction.{d}"), horizontal=True, key="import.direction")
+        direction = st.radio(t.t("ui.import_direction"), (IMPORT, EXPORT), format_func=lambda d: t.t(f"ui.direction.{d}"), horizontal=True, key=state.k("import.direction"))
         if not text.strip():
             return
         try:
@@ -143,7 +143,7 @@ def _import(t: Translator, config: UiConfig) -> None:
         chosen = []
         for number, item in enumerate(items):
             chosen.extend(_import_item(t, item, number))
-        if st.button(t.t("ui.import_add"), key="import.add", disabled=not chosen):
+        if st.button(t.t("ui.import_add"), key=state.k("import.add"), disabled=not chosen):
             for item in chosen:
                 save_user_tariff(config.user_file, item.raw, item.direction)
             state.notify(t.t("ui.import_done", count=len(chosen)))
@@ -157,18 +157,43 @@ def _import_item(t: Translator, item, number: int) -> list:
         return []
     if item.renamed_from:
         st.info(t.t("ui.import_renamed", old=item.renamed_from, new=name))
-    if item.collides and not st.checkbox(t.t("ui.import_replace", tariff_id=name), key=f"import.replace.{number}"):
+    if item.collides and not st.checkbox(t.t("ui.import_replace", tariff_id=name), key=state.k(f"import.replace.{number}")):
         st.warning(t.t("ui.import_collides", tariff_id=name))
         return []
     st.success(t.t("ui.import_ok", tariff_id=name))
     return [item]
 
 
+def _host_house(t: Translator, config: UiConfig) -> None:
+    """The host's house facts, read-only (the host edits them in its own pages)."""
+    host = config.host_house
+    assert host is not None
+    ctx = host.context
+    with st.expander(t.t("ui.house")):
+        if host.description:
+            st.caption(host.description)
+        st.caption(
+            t.t("ui.host_house", timezone=ctx.timezone, land=ctx.land or "–", region=_region_label(ctx.land or "", ctx.region or ""))
+        )
+        grid = host.grid_fee
+        st.caption(t.t("ui.host_grid", area=grid.area_id) if grid is not None else t.t("ui.host_grid_off"))
+        st.caption(t.t("ui.host_house_hint"))
+
+
+def render_tools(t: Translator, config: UiConfig) -> None:
+    """House settings, my tariffs and new/copy/import, into the current container."""
+    if config.host_house is None:
+        _house(t, config)
+    else:
+        _host_house(t, config)
+    _tariffs(t, config)
+    _copy_catalog(t, config)
+    _import(t, config)
+
+
 def render(t: Translator, config: UiConfig) -> None:
+    """The standalone page's sidebar: language, data folder and the tools."""
     with st.sidebar:
         _language(t)
         st.caption(t.t("ui.data_dir", path=str(config.data_dir)))
-        _house(t, config)
-        _tariffs(t, config)
-        _copy_catalog(t, config)
-        _import(t, config)
+        render_tools(t, config)

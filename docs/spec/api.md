@@ -76,6 +76,18 @@ For Earnie's `MigrationStep` (`runtime_store/migration/types.py`): `detect` is `
 
 The library takes a forecaster **object** implementing `Forecaster.forecast(known, start, end) -> {slot_start_utc: cent/kWh}`. A caller hands in its own model directly (Earnie: OLS model), no key involved. Plug-ins loaded from the entry-point group `edibert.forecasters` and their key (`EDIBERT_FORECAST_KEY`) belong to the product layer (`edibert.publish.forecasters`), not to the library.
 
+## Editor embed (`edibert.ui.embed`)
+
+The Streamlit editor as a component of a host page (new in `0.1.m`; Earnie's *Tarife* page). Not part of `edibert.api` and not counted in `API_VERSION`; needs the `ui` extra (`streamlit`).
+
+* `render_editor(config, *, list_container=None, open_tariff=None)`: tariff list with new / copy / import, the four-step form and the preview with save. No `st.set_page_config`, no title, no language selector: the host owns the page and passes the language in `config`.
+* `UiConfig(data_dir, catalog, language, key_prefix, host_house)`: the editor writes `<data_dir>/user_tariffs.json` (atomic, with `tariff_format`); `catalog` is the copy-as-template source (optional). `key_prefix` must be non-empty (`ValueError` otherwise); every session and widget key of the editor starts with it, so two embeds on one page keep separate state. `language` is `de` or `en` (`ValueError` otherwise) and is applied on every run.
+* `HostHouse(context, grid_fee, capabilities, description)`: house facts of the host (`PricingContext`, resolved `GridFee` or `None`, `REQUIRES` capabilities). With a host house, the editor shows these values read-only and reads or writes no `house.json`; without one, it keeps its own house settings as the standalone page does.
+* `list_container`: Streamlit container for the tariff list and new / copy / import (default: a column left of the form).
+* `open_tariff=(direction, tariff_id)`: opens that user tariff once per distinct request; later reruns with the same request keep the user's edits. An unknown ID is shown as `TARIFF_NOT_FOUND` (`tariff_id`); an unknown direction is `ValueError`.
+* `render_preview(tariff, house, *, language, key_prefix)`: hints and price curves of one parsed `Tariff` for a host house, for the host's preview of a selected tariff.
+* After a save the page reruns and shows the success notice once. The standalone page (`python -m edibert ui`) runs the same code with the empty prefix.
+
 ## Types and constants
 
 `TariffSet`, `Tariff`, `PriceResult`, `PricePoint`, `PriceSeries`, `PricingContext`, `GridArea`, `GridFee`, `GridFeeCatalog`, `GridFeeConfig`, `HoldLastForecaster`, `MirrorForecaster`, `MarketArchive`, `MarketData`, `MarketRange`, `MarketSourceError`, `MigrationPlan`, `MigrationQuestion`, `MigrationBlocker`, `MigrationResult`; `IMPORT`, `EXPORT`, `RESOLUTIONS`, `USER_PREFIX`, `TARIFF_FORMAT` (current version, `1`), `TARIFF_TRACK_FILES`, `STANDARD_VAT_PERCENT` (`{"AT": 20.0, "DE": 19.0, "CH": 8.1}`, prefill only), `METHOD_EXACT`, `METHOD_MIRROR`, `METHOD_HOLD`, `FALLBACK_PRIOR_YEAR` (`prior_year`), `FALLBACK_PRIOR_MONTH` (`prior_month`).

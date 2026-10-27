@@ -81,7 +81,7 @@ def step_windows(t: Translator, draft: TariffDraft) -> None:
     for first in range(0, len(TEMPLATES), 2):
         for column, name in zip(st.columns(2), TEMPLATES[first : first + 2], strict=False):
             column.button(
-                t.t(f"editor.template.{name}"), key=state.key(f"tpl.{name}"), on_click=_add_template, args=(draft, name, t),
+                t.t(f"editor.template.{name}"), key=state.key(f"tpl.{name}"), on_click=state.bound(_add_template), args=(draft, name, t),
                 width="stretch",
             )  # fmt: skip
     if draft.kind == "spot":
@@ -127,10 +127,10 @@ STEPS = {1: ("editor.step.base_price", step_base), 2: ("editor.step.time_windows
 def render_steps(t: Translator, draft: TariffDraft) -> None:
     """Step selector (language-independent keys) and the form of the chosen step."""
     step = st.radio(
-        t.t("ui.step"), list(STEPS), index=st.session_state[state.STEP] - 1, format_func=lambda n: f"{n}. {t.t(STEPS[n][0])}",
-        horizontal=True, key="ui.step_radio",
+        t.t("ui.step"), list(STEPS), index=state.step() - 1, format_func=lambda n: f"{n}. {t.t(STEPS[n][0])}",
+        horizontal=True, key=state.k("ui.step_radio"),
     )  # fmt: skip
-    st.session_state[state.STEP] = step
+    state.set_step(step)
     STEPS[step][1](t, draft)
 
 

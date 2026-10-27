@@ -66,9 +66,9 @@ def _rule_row(t: Translator, rule: RuleDraft, index: int, rules: list[RuleDraft]
     with st.container(border=True):
         label, up, down, remove = st.columns([8, 1, 1, 1])
         rule.label = label.text_input(t.t("ui.rule_label"), value=rule.label, key=key("label"))
-        up.button("↑", key=key("up"), on_click=move_rule, args=(rules, rule.uid, -1), disabled=index == 0, help=t.t("ui.rule_up"))
-        down.button("↓", key=key("down"), on_click=move_rule, args=(rules, rule.uid, 1), disabled=index == len(rules) - 1, help=t.t("ui.rule_down"))
-        remove.button("✕", key=key("del"), on_click=delete_rule, args=(rules, rule.uid), help=t.t("ui.rule_delete"))
+        up.button("↑", key=key("up"), on_click=state.bound(move_rule), args=(rules, rule.uid, -1), disabled=index == 0, help=t.t("ui.rule_up"))
+        down.button("↓", key=key("down"), on_click=state.bound(move_rule), args=(rules, rule.uid, 1), disabled=index == len(rules) - 1, help=t.t("ui.rule_down"))
+        remove.button("✕", key=key("del"), on_click=state.bound(delete_rule), args=(rules, rule.uid), help=t.t("ui.rule_delete"))
         _time_fields(t, rule, key)
         rule.days = st.multiselect(
             t.t("ui.rule_days"), [*DAY_NAMES, HOLIDAY], default=rule.days, format_func=lambda d: t.t(f"weekday.{d}"),
@@ -86,4 +86,4 @@ def rule_editor(t: Translator, rules: list[RuleDraft], prefix: str) -> None:
     st.caption(t.t("ui.first_wins_hint"))
     for index, rule in enumerate(rules):
         _rule_row(t, rule, index, rules, prefix)
-    st.button(t.t("ui.add_rule"), key=f"{prefix}.add", on_click=add_rule, args=(rules,))
+    st.button(t.t("ui.add_rule"), key=f"{prefix}.add", on_click=state.bound(add_rule), args=(rules,))
