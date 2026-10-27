@@ -174,3 +174,10 @@ def test_monthly_table_preview_shows_the_month_rate_fallback(data_dir, tmp_path,
     assert not app.exception
     month = f"{today.year}-{today.month:02d}"
     assert any(month in warning.value and "prior_year" in warning.value for warning in app.warning)
+
+
+def test_new_tariff_starts_with_the_land_of_the_house_settings(data_dir):
+    app = start("en")
+    app.sidebar.selectbox(key="house.land").select("CH").run()
+    create_fixed_tariff(app)
+    assert app.selectbox(key=widget_key(app, "land")).value == "CH"

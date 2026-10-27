@@ -114,6 +114,8 @@
   "ui.step": "Schritt",
   "ui.label": "Name des Tarifs",
   "ui.supplier": "Lieferant",
+  "ui.tariff_land": "Land des Tarifs",
+  "ui.tariff_land_help": "Vorbelegt mit dem Land des Hauses. Tariflisten werden nach Land gefiltert.",
   "ui.kind": "Wie wird der Preis gebildet?",
   "ui.kind.fixed": "Festpreis",
   "ui.kind.spot": "Börsenpreis + Aufschlag",

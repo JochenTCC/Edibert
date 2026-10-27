@@ -2,6 +2,14 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Editor: land of the tariff (0.1.n, 2026-10-27)
+
+- [x] **0.1.n — Land field in the editor** (Earnie epic `Edibert` P7 S2: Earnie requires `land` on every user tariff, the editor did not write it, so a tariff saved in the embed broke Earnie's tariff load)
+  - Step 1 has a visible select *Land des Tarifs* (`""`, AT, DE, CH; key `land`); a new tariff starts with the land of the host house or of the own house settings; clearing it leaves `land` out
+  - Texts `ui.tariff_land`, `ui.tariff_land_help` (en, de); user manual `editor.md` (en, de); spec `docs/spec/api.md` (Editor embed)
+  - Tests: embed start value from the host house and saved land, cleared land not written, standalone start value from the house settings; full suite 437 passed, ruff clean
+  - Released as `0.1.8` with tag `v0.1.8` (approved 2026-10-27)
+
 ### Editor embed for host pages (0.1.m, 2026-10-27)
 
 - [x] **0.1.m — Editor embed** (Earnie epic `Edibert` P7 Part A; `src/edibert/ui/embed.py`, spec `docs/spec/api.md` section "Editor embed")

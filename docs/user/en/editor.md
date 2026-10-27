@@ -5,6 +5,7 @@ Click **New purchase tariff** (price you pay) or **New feed-in tariff** (remuner
 ## Step 1: Base price
 
 - **Name of the tariff** and **Supplier.** The name is required. Your tariff gets an ID like `user_my_tariff`.
+- **Country of the tariff.** A new tariff starts with the country of the house; you can change it or leave it at "–". Tariff lists (for example in Earnie) filter by this country.
 - **How is the price formed?**
   - **Fixed price:** one price in ct/kWh.
   - **Market price + markup:** the day-ahead market price plus a percentage and a fixed amount. For feed-in tariffs: market price minus a share and a fixed amount. Choose whether the tariff is settled every quarter hour or hourly (the mean of the four quarter hours).

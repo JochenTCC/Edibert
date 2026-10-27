@@ -6,6 +6,7 @@ Klicke auf **Neuer Bezugstarif** (Preis, den du zahlst) oder **Neuer Einspeiseta
 ## Schritt 1: Basispreis
 
 - **Name des Tarifs** und **Lieferant.** Der Name ist Pflicht. Dein Tarif bekommt eine ID wie `user_mein_tarif`.
+- **Land des Tarifs.** Ein neuer Tarif startet mit dem Land des Hauses; du kannst es ändern oder auf „–“ lassen. Tariflisten (etwa in Earnie) filtern nach diesem Land.
 - **Wie wird der Preis gebildet?**
   - **Festpreis:** ein Preis in ct/kWh.
   - **Börsenpreis + Aufschlag:** der Day-Ahead-Börsenpreis plus ein Prozentsatz und ein fester Betrag. Bei Einspeisetarifen: Börsenpreis minus ein Anteil und ein fester Betrag. Du wählst, ob viertelstündlich oder stündlich abgerechnet wird (Mittel der vier Viertelstunden).

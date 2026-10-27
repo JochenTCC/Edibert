@@ -85,6 +85,7 @@ The Streamlit editor as a component of a host page (new in `0.1.m`; Earnie's *Ta
 * `HostHouse(context, grid_fee, capabilities, description)`: house facts of the host (`PricingContext`, resolved `GridFee` or `None`, `REQUIRES` capabilities). With a host house, the editor shows these values read-only and reads or writes no `house.json`; without one, it keeps its own house settings as the standalone page does.
 * `list_container`: Streamlit container for the tariff list and new / copy / import (default: a column left of the form).
 * `open_tariff=(direction, tariff_id)`: opens that user tariff once per distinct request; later reruns with the same request keep the user's edits. An unknown ID is shown as `TARIFF_NOT_FOUND` (`tariff_id`); an unknown direction is `ValueError`.
+* New tariffs start with `land` = the land of the host house (`host_house.context.land`), or of the editor's own house settings; the field is visible in step 1 and may be cleared (then `land` is not written).
 * `render_preview(tariff, house, *, language, key_prefix)`: hints and price curves of one parsed `Tariff` for a host house, for the host's preview of a selected tariff.
 * After a save the page reruns and shows the success notice once. The standalone page (`python -m edibert ui`) runs the same code with the empty prefix.
 

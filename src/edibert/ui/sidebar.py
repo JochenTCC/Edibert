@@ -81,8 +81,15 @@ def _open(raw: dict, direction: str) -> None:
     state.adopt(TariffDraft.from_raw(raw, direction))
 
 
-def _new(direction: str) -> None:
-    state.adopt(TariffDraft(direction=direction))
+def _house_land(config: UiConfig) -> str | None:
+    """Land of the house (host profile or own settings): the visible start value of a new tariff."""
+    if config.host_house is not None:
+        return config.host_house.context.land
+    return state.house().land or None
+
+
+def _new(direction: str, land: str | None) -> None:
+    state.adopt(TariffDraft(direction=direction, land=land))
 
 
 def _delete(config: UiConfig, tariff_id: str, direction: str) -> None:
@@ -101,8 +108,8 @@ def _tariffs(t: Translator, config: UiConfig) -> None:
             st.button(title, key=state.k(f"open.{direction}.{raw['id']}"), on_click=state.bound(_open), args=(raw, direction), width="stretch")
     if not shown:
         st.caption(t.t("ui.no_tariffs"))
-    st.button(t.t("ui.new_import"), key=state.k("new.import"), on_click=state.bound(_new), args=(IMPORT,), width="stretch")
-    st.button(t.t("ui.new_export"), key=state.k("new.export"), on_click=state.bound(_new), args=(EXPORT,), width="stretch")
+    st.button(t.t("ui.new_import"), key=state.k("new.import"), on_click=state.bound(_new), args=(IMPORT, _house_land(config)), width="stretch")
+    st.button(t.t("ui.new_export"), key=state.k("new.export"), on_click=state.bound(_new), args=(EXPORT, _house_land(config)), width="stretch")
     draft = state.draft()
     if draft is not None and draft.id:
         st.button(t.t("ui.delete"), key=state.k("delete"), on_click=state.bound(_delete), args=(config, draft.id, draft.direction))

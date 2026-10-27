@@ -7,6 +7,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
+from edibert.editor.house import LANDS
 from edibert.editor.model import FEE_KEYS, KINDS, TariffDraft
 from edibert.editor.templates import TEMPLATES, rules_for_template
 from edibert.i18n import Translator
@@ -56,6 +57,12 @@ def _monthly_fields(t: Translator, draft: TariffDraft) -> None:
 def step_base(t: Translator, draft: TariffDraft) -> None:
     draft.label = st.text_input(t.t("ui.label"), value=draft.label, key=state.key("label"))
     draft.supplier = st.text_input(t.t("ui.supplier"), value=draft.supplier, key=state.key("supplier"))
+    lands = ("", *LANDS)
+    land = st.selectbox(
+        t.t("ui.tariff_land"), lands, index=lands.index(draft.land) if draft.land in lands else 0,
+        format_func=lambda code: code or "–", help=t.t("ui.tariff_land_help"), key=state.key("land"),
+    )  # fmt: skip
+    draft.land = land or None
     draft.kind = st.radio(
         t.t("ui.kind"), KINDS, index=KINDS.index(draft.kind), format_func=lambda k: t.t(f"ui.kind.{k}"),
         horizontal=True, key=state.key("kind"),

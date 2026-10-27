@@ -114,6 +114,8 @@
   "ui.step": "Step",
   "ui.label": "Name of the tariff",
   "ui.supplier": "Supplier",
+  "ui.tariff_land": "Country of the tariff",
+  "ui.tariff_land_help": "Prefilled with the country of the house. Tariff lists are filtered by country.",
   "ui.kind": "How is the price formed?",
   "ui.kind.fixed": "Fixed price",
   "ui.kind.spot": "Market price + markup",

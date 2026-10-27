@@ -182,3 +182,23 @@ def test_render_preview_draws_the_curves_for_the_host(tmp_path):
     assert app.get("vega_lite_chart")
     assert all(key.startswith("host.preview.") for key in app.session_state.keys())  # noqa: SIM118 (AppTest state has no __iter__)
 
+
+
+def test_new_tariff_starts_with_the_land_of_the_host_house_and_saves_it(tmp_path):
+    app = start(tmp_path)
+    create_fixed_tariff(app)
+    land = app.selectbox(key=widget_key(app, "land"))
+    assert land.value == "AT"  # visible start value from the host house
+    land.select("DE").run()
+    save(app)
+    (tariff,) = json.loads((tmp_path / "user_tariffs.json").read_text(encoding="utf-8"))["import_tariffs"]
+    assert tariff["land"] == "DE"
+
+
+def test_land_can_be_left_open(tmp_path):
+    app = start(tmp_path)
+    create_fixed_tariff(app)
+    app.selectbox(key=widget_key(app, "land")).select("").run()
+    save(app)
+    (tariff,) = json.loads((tmp_path / "user_tariffs.json").read_text(encoding="utf-8"))["import_tariffs"]
+    assert "land" not in tariff
