@@ -136,6 +136,19 @@ def test_market_live_has_no_awattar_substitute_for_switzerland(tmp_path):
     assert web.hosts() == ["web-api.tp.entsoe.eu", "api.energy-charts.info"]
 
 
+def test_a_get_raising_market_source_error_falls_through_to_the_next_source(tmp_path):
+    answer = energy_charts_json(utc("2026-12-14T23:00"), 24)
+
+    def get(url, params, timeout):
+        if "entsoe" in url:
+            raise api.MarketSourceError("HTTP 503")
+        return answer
+
+    data = api.market_live("AT", tmp_path, ZoneInfo("Europe/Vienna"), entsoe_token="t", get=get, now=utc("2026-12-15T09:00"))
+    assert (data.source, data.complete) == ("energy-charts", True)
+    assert [note.code for note in data.notes] == [api.WarningCode.MARKET_SOURCE_FAILED]
+
+
 def test_market_live_rejects_an_unknown_zone(tmp_path):
     with pytest.raises(api.EdibertError) as err:
         api.market_live("DE", tmp_path, ZoneInfo("Europe/Berlin"))

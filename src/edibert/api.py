@@ -41,6 +41,7 @@ from edibert.market.forecast import (
 )
 from edibert.market.service import MarketData, MarketService
 from edibert.market.sources import ZONE_BY_LAND, HttpGet, http_get, zone_for_land
+from edibert.market.sources import SourceError as MarketSourceError
 from edibert.migration import (
     STANDARD_VAT_PERCENT,
     MigrationBlocker,
@@ -98,6 +99,7 @@ __all__ = [
     "MarketArchive",
     "MarketData",
     "MarketRange",
+    "MarketSourceError",
     "MigrationBlocker",
     "MigrationPlan",
     "MigrationQuestion",
@@ -191,7 +193,8 @@ def market_live(
     Chain: cache under ``data_dir`` -> ENTSO-E (only with ``entsoe_token``) -> Energy-Charts -> aWATTar
     (AT and DE-LU only). ``history_days`` (0 to 7) adds that many local days before today to the expected
     window, e.g. as mirror sources for a forecaster. ``get`` replaces the HTTP call for every source (a
-    caller's own transport, recording or replay). A partial answer is ``MarketData.complete == False``
+    caller's own transport, recording or replay); it raises :class:`MarketSourceError` when a source fails,
+    so the chain notes it and asks the next source (any other exception ends the call). A partial answer is ``MarketData.complete == False``
     with ``MARKET_DATA_INCOMPLETE``; no price at all is ``MARKET_DATA_UNAVAILABLE``.
     """
     if zone not in ZONE_BY_LAND.values():

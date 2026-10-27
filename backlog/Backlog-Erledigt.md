@@ -2,6 +2,13 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Library API MarketSourceError (0.1.l, 2026-10-27)
+
+- [x] **0.1.l — Library: `MarketSourceError` for an injected `get`** (Earnie epic `Edibert` P4a; `src/edibert/api.py`, spec `docs/spec/api.md` section "Live market prices")
+  - `api.MarketSourceError` (the chain's `SourceError`) in `__all__`; contract: a caller's `get` raises it for a failing request so the chain notes `MARKET_SOURCE_FAILED` and asks the next source; any other exception ends the call; additive, `API_VERSION` stays 2
+  - Test in `tests/test_api.py`; suite green without `tests/test_ui_app.py` (411 passed)
+  - Released as `0.1.6` with tag `v0.1.6` (approved 2026-10-27)
+
 ### Library API market_live (0.1.k, 2026-10-27)
 
 - [x] **0.1.k — Library: public live market chain** (Earnie epic `Edibert` P4a, Part A; `src/edibert/api.py`, `src/edibert/market/service.py`; spec `docs/spec/api.md` section "Live market prices")

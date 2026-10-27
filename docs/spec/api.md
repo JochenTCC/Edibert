@@ -69,7 +69,7 @@ For Earnie's `MigrationStep` (`runtime_store/migration/types.py`): `detect` is `
 * Chain: cache `<data_dir>/market_<zone>.json` -> ENTSO-E (only with `entsoe_token`) -> Energy-Charts -> aWATTar (AT and DE-LU only; CH has no third source and no substitute). The sources are asked in order until one covers the whole window.
 * Window: local midnight `history_days` days before today up to the end of today, or of tomorrow from 12:00 local time on (`tz`). `history_days` is `0` to `7` (the cache keeps 7 days), otherwise `VALUE_INVALID`; the lead days are fetched like today, so a fresh install has them too (for example mirror sources of a forecaster). An unknown zone is `VALUE_INVALID`.
 * A cache that covers the window is used without a request. Otherwise the sources are asked, but not again within 10 minutes of the last request.
-* `get` replaces the HTTP call for every source (`get(url, params, timeout) -> str`), e.g. a caller's own transport with recording or replay; default is plain `urllib`.
+* `get` replaces the HTTP call for every source (`get(url, params, timeout) -> str`), e.g. a caller's own transport with recording or replay; default is plain `urllib`. A failing request (HTTP error, timeout, no connection) must raise `MarketSourceError`: the chain notes it as `MARKET_SOURCE_FAILED` and asks the next source. Any other exception ends the call (new in `0.1.6`).
 * `MarketData`: `zone`, `prices` (`{slot_start_utc: cent/kWh}`, including the cached history), `source` (`entsoe`, `energy-charts`, `awattar`), `fetched_at`, `complete`, `notes`. A source that fails is `MARKET_SOURCE_FAILED` in `notes`; a partial answer is `complete == False` with `MARKET_DATA_INCOMPLETE` (`zone`, `missing_from`); no price at all and no cache is `MARKET_DATA_UNAVAILABLE`.
 
 ## Forecasters
@@ -78,7 +78,7 @@ The library takes a forecaster **object** implementing `Forecaster.forecast(know
 
 ## Types and constants
 
-`TariffSet`, `Tariff`, `PriceResult`, `PricePoint`, `PriceSeries`, `PricingContext`, `GridArea`, `GridFee`, `GridFeeCatalog`, `GridFeeConfig`, `HoldLastForecaster`, `MirrorForecaster`, `MarketArchive`, `MarketData`, `MarketRange`, `MigrationPlan`, `MigrationQuestion`, `MigrationBlocker`, `MigrationResult`; `IMPORT`, `EXPORT`, `RESOLUTIONS`, `USER_PREFIX`, `TARIFF_FORMAT` (current version, `1`), `TARIFF_TRACK_FILES`, `STANDARD_VAT_PERCENT` (`{"AT": 20.0, "DE": 19.0, "CH": 8.1}`, prefill only), `METHOD_EXACT`, `METHOD_MIRROR`, `METHOD_HOLD`, `FALLBACK_PRIOR_YEAR` (`prior_year`), `FALLBACK_PRIOR_MONTH` (`prior_month`).
+`TariffSet`, `Tariff`, `PriceResult`, `PricePoint`, `PriceSeries`, `PricingContext`, `GridArea`, `GridFee`, `GridFeeCatalog`, `GridFeeConfig`, `HoldLastForecaster`, `MirrorForecaster`, `MarketArchive`, `MarketData`, `MarketRange`, `MarketSourceError`, `MigrationPlan`, `MigrationQuestion`, `MigrationBlocker`, `MigrationResult`; `IMPORT`, `EXPORT`, `RESOLUTIONS`, `USER_PREFIX`, `TARIFF_FORMAT` (current version, `1`), `TARIFF_TRACK_FILES`, `STANDARD_VAT_PERCENT` (`{"AT": 20.0, "DE": 19.0, "CH": 8.1}`, prefill only), `METHOD_EXACT`, `METHOD_MIRROR`, `METHOD_HOLD`, `FALLBACK_PRIOR_YEAR` (`prior_year`), `FALLBACK_PRIOR_MONTH` (`prior_month`).
 
 ## Errors and warnings
 
