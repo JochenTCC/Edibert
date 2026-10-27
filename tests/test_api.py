@@ -4,11 +4,15 @@ import ast
 import json
 import subprocess
 import sys
+from datetime import timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
+from market_helpers import FakeWeb, energy_charts_json, utc
 
 from edibert import api
+from edibert.market.sources import SourceError
 
 SRC = Path(__file__).resolve().parents[1] / "src"
 PACKAGE = SRC / "edibert"
@@ -107,3 +111,32 @@ def test_pricing_context_checks_the_region_up_front():
     with pytest.raises(api.EdibertError) as err:
         api.pricing_context("Europe/Vienna", None, "9")
     assert err.value.code == api.ErrorCode.FIELD_MISSING
+
+
+def test_market_live_uses_the_injected_get_for_every_source(tmp_path):
+    web = FakeWeb(entsoe=SourceError("down"), energy_charts=SourceError("down"), awattar=SourceError("down"))
+    with pytest.raises(api.EdibertError) as err:
+        api.market_live("AT", tmp_path, ZoneInfo("Europe/Vienna"), entsoe_token="t", get=web, now=utc("2026-12-15T09:00"))
+    assert err.value.code == api.ErrorCode.MARKET_DATA_UNAVAILABLE
+    assert web.hosts() == ["web-api.tp.entsoe.eu", "api.energy-charts.info", "api.awattar.at"]
+
+
+def test_market_live_returns_market_data_with_the_lead_days(tmp_path):
+    start = utc("2026-12-14T23:00") - timedelta(days=7)
+    web = FakeWeb(energy_charts=energy_charts_json(start, 8 * 24))
+    data = api.market_live("AT", tmp_path, ZoneInfo("Europe/Vienna"), get=web, history_days=7, now=utc("2026-12-15T09:00"))
+    assert isinstance(data, api.MarketData)
+    assert (data.zone, data.complete, len(data.prices)) == ("AT", True, 8 * 96)
+
+
+def test_market_live_has_no_awattar_substitute_for_switzerland(tmp_path):
+    web = FakeWeb(entsoe=SourceError("down"), energy_charts=SourceError("down"))
+    with pytest.raises(api.EdibertError):
+        api.market_live("CH", tmp_path, ZoneInfo("Europe/Zurich"), entsoe_token="t", get=web, now=utc("2026-12-15T09:00"))
+    assert web.hosts() == ["web-api.tp.entsoe.eu", "api.energy-charts.info"]
+
+
+def test_market_live_rejects_an_unknown_zone(tmp_path):
+    with pytest.raises(api.EdibertError) as err:
+        api.market_live("DE", tmp_path, ZoneInfo("Europe/Berlin"))
+    assert err.value.code == api.ErrorCode.VALUE_INVALID

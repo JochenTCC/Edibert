@@ -10,12 +10,14 @@ The API knows neither the editor UI nor the MQTT publisher. All problems are cod
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from edibert import gridfee as _gridfee
 from edibert import store as _store
-from edibert._fields import missing
+from edibert._fields import invalid, missing
 from edibert.context import HolidayCalendar, PricingContext
 from edibert.errors import EdibertError, EdibertWarning, ErrorCode, WarningCode
 from edibert.fileformat import TARIFF_FORMAT, TARIFF_TRACK_FILES
@@ -37,7 +39,8 @@ from edibert.market.forecast import (
     MirrorForecaster,
     builtin_forecaster,
 )
-from edibert.market.sources import zone_for_land
+from edibert.market.service import MarketData, MarketService
+from edibert.market.sources import ZONE_BY_LAND, HttpGet, http_get, zone_for_land
 from edibert.migration import (
     STANDARD_VAT_PERCENT,
     MigrationBlocker,
@@ -93,6 +96,7 @@ __all__ = [
     "GridFeeConfig",
     "HoldLastForecaster",
     "MarketArchive",
+    "MarketData",
     "MarketRange",
     "MigrationBlocker",
     "MigrationPlan",
@@ -113,6 +117,7 @@ __all__ = [
     "load_grid_fee_catalog",
     "load_grid_fees",
     "load_tariffs",
+    "market_live",
     "market_range",
     "market_zone",
     "migrate",
@@ -168,6 +173,33 @@ def market_zone(land: str) -> str:
     Any other country is ``MARKET_ZONE_UNKNOWN``.
     """
     return zone_for_land(land)
+
+
+def market_live(
+    zone: str,
+    data_dir: Path,
+    tz: ZoneInfo,
+    *,
+    entsoe_token: str = "",
+    get: HttpGet | None = None,
+    history_days: int = 0,
+    timeout: float = 30,
+    now: datetime | None = None,
+) -> MarketData:
+    """Day-ahead prices of ``zone`` for today and, from the 12:00 publish on, tomorrow (live operation).
+
+    Chain: cache under ``data_dir`` -> ENTSO-E (only with ``entsoe_token``) -> Energy-Charts -> aWATTar
+    (AT and DE-LU only). ``history_days`` (0 to 7) adds that many local days before today to the expected
+    window, e.g. as mirror sources for a forecaster. ``get`` replaces the HTTP call for every source (a
+    caller's own transport, recording or replay). A partial answer is ``MarketData.complete == False``
+    with ``MARKET_DATA_INCOMPLETE``; no price at all is ``MARKET_DATA_UNAVAILABLE``.
+    """
+    if zone not in ZONE_BY_LAND.values():
+        raise invalid("zone", zone)
+    service = MarketService(
+        zone, Path(data_dir), entsoe_token=entsoe_token, get=get or http_get, timeout=timeout, history_days=history_days
+    )
+    return service.load(tz, now)
 
 
 def pricing_context(timezone: str, land: str | None = None, region: str | None = None) -> PricingContext:

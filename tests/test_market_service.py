@@ -131,3 +131,39 @@ def test_switzerland_has_no_third_source(tmp_path):
     with pytest.raises(EdibertError):
         MarketService("CH", tmp_path, get=web).load(VIENNA, MORNING)
     assert web.hosts() == ["api.energy-charts.info"]
+
+
+WEEK = timedelta(days=7)
+
+
+def test_history_days_fetch_the_lead_days_on_a_fresh_install(tmp_path):
+    web = FakeWeb(energy_charts=energy_charts_json(DAY_START - WEEK, 8 * 24))
+    data = MarketService("AT", tmp_path, get=web, history_days=7).load(VIENNA, MORNING)
+    assert (data.source, data.complete) == ("energy-charts", True)
+    assert web.calls[0][1]["start"] == "2026-12-07"  # 2026-12-08 00:00 Vienna is 12-07 23:00 UTC
+    assert DAY_START - WEEK in data.prices
+    assert len(data.prices) == 8 * 96
+
+
+def test_a_cache_without_the_lead_days_is_asked_again(tmp_path):
+    service(tmp_path, FakeWeb(energy_charts=full_day_ahead(24))).load(VIENNA, MORNING)
+    web = FakeWeb(energy_charts=energy_charts_json(DAY_START - WEEK, 8 * 24))
+    data = MarketService("AT", tmp_path, get=web, history_days=7).load(VIENNA, MORNING + timedelta(minutes=11))
+    assert (data.complete, len(web.calls)) == (True, 1)
+    cached = MarketService("AT", tmp_path, get=FakeWeb(), history_days=7).load(VIENNA, MORNING + timedelta(minutes=12))
+    assert (cached.complete, cached.prices) == (True, data.prices)
+
+
+def test_missing_lead_days_are_reported_as_incomplete(tmp_path):
+    web = FakeWeb(energy_charts=full_day_ahead(24), awattar=SourceError("down"))
+    data = MarketService("AT", tmp_path, get=web, history_days=2).load(VIENNA, MORNING)
+    assert data.complete is False
+    assert data.notes[-1].code == WarningCode.MARKET_DATA_INCOMPLETE
+    assert data.notes[-1].params["missing_from"].startswith("2026-12-13T00:00")
+
+
+@pytest.mark.parametrize("days", [-1, 8])
+def test_history_days_outside_the_kept_history_are_invalid(tmp_path, days):
+    with pytest.raises(EdibertError) as err:
+        MarketService("AT", tmp_path, history_days=days)
+    assert err.value.code == ErrorCode.VALUE_INVALID

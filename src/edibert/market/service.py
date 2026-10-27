@@ -15,6 +15,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from edibert._fields import invalid
 from edibert.errors import EdibertError, EdibertWarning, ErrorCode, WarningCode
 from edibert.market.cache import CacheEntry, cache_path, read_cache, write_cache
 from edibert.market.sources import (
@@ -88,7 +89,10 @@ class MarketService:
         timeout: float = 30,
         retry_minutes: int = RETRY_MINUTES,
         clock: Callable[[], datetime] | None = None,
+        history_days: int = 0,
     ) -> None:
+        if not 0 <= history_days <= HISTORY_DAYS:
+            raise invalid("history_days", history_days)
         self.zone = zone
         self.path = cache_path(data_dir, zone)
         self.token = entsoe_token.strip()
@@ -96,19 +100,25 @@ class MarketService:
         self.timeout = timeout
         self.retry = timedelta(minutes=retry_minutes)
         self.clock = clock or (lambda: datetime.now(UTC))
+        self.history = timedelta(days=history_days)
 
     def load(self, tz: ZoneInfo, now: datetime | None = None) -> MarketData:
-        """Prices covering today and, once published, tomorrow. See the module description."""
+        """Prices covering today and, once published, tomorrow. See the module description.
+
+        With ``history_days`` the expected window starts that many local days before today (mirror
+        sources of a forecaster); those days are fetched like today, not only taken from the cache.
+        """
         moment = now or self.clock()
         start, end = expected_window(moment, tz)
-        slots = window_slots(start, end)
+        first = (start.replace(tzinfo=None) - self.history).replace(tzinfo=tz)
+        slots = window_slots(first, end)
         notes: list[EdibertWarning] = []
         cached = self._read(notes)
         if cached and not _missing(cached.prices, slots):
             return MarketData(self.zone, cached.prices, cached.source, cached.fetched_at, True, tuple(notes))
         if cached and moment - cached.checked_at < self.retry:
             return self._partial(cached.prices, cached.source, cached.fetched_at, slots, tz, notes)
-        candidates = self._fetch_all(start, end, slots, notes)
+        candidates = self._fetch_all(first, end, slots, notes)
         for source, prices in candidates:
             if not _missing(prices, slots):
                 merged = self._save(source, prices, cached, moment, moment, start)

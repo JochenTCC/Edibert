@@ -24,6 +24,7 @@ Only the names in `api.__all__` are covered by `api.API_VERSION` (currently `2`;
 | `parse_tariff(raw, direction) -> Tariff` | One tariff object (`direction` = `IMPORT` / `EXPORT`), checked exactly like an entry of a tariff file (unknown fields, type fields, `vat_percent`, …), but without the `user_` prefix rule and without `tariff_format`: both belong to files. For tariffs a caller builds itself (Earnie: the scenario shortcut *Eigener Festpreis*). |
 | `evaluate(tariff, slot_start, ctx, epex_cent=None, grid_fee=None) -> PriceResult` / `price_cent(...) -> float` | One slot, with or without the intermediate steps. `PriceResult.warnings` holds `MONTH_RATE_FALLBACK` when the monthly rate came from another month (`price_cent` drops it; use `evaluate` or the series when the fallback matters). |
 | `market_zone(land) -> str` | Bidding zone of a country: `AT` → `AT`, `DE` → `DE-LU`, `CH` → `CH`; anything else is `MARKET_ZONE_UNKNOWN`. |
+| `market_live(zone, data_dir, tz, *, entsoe_token="", get=None, history_days=0, timeout=30, now=None) -> MarketData` | Day-ahead prices for live operation: today and, from the 12:00 publish on, tomorrow, plus `history_days` lead days; see below. |
 | `market_range(zone, start, end, cache_dir) -> MarketRange` | Day-ahead prices for any range (simulation, backtesting); shorthand for `MarketArchive(zone, cache_dir).prices(start, end)`, see below. |
 | `known_at(prices, moment, tz) -> dict` | The prices a caller could know at `moment` (backtesting): up to 12:00 local time they end with today, from 12:00 with tomorrow (Earnie's `build_market_data_as_of`). `moment` must be aware. |
 | `builtin_forecaster(method, tz) -> Forecaster` | The free methods `mirror` and `hold`; anything else is `VALUE_INVALID`. |
@@ -61,13 +62,23 @@ For Earnie's `MigrationStep` (`runtime_store/migration/types.py`): `detect` is `
 * HTTP 429: waits for `Retry-After` (seconds) or `60 s x attempt`, up to `max_attempts` requests per month; then, like any source failure, `MARKET_SOURCE_FAILED`. `get`, `sleep` and `clock` are injectable for tests.
 * `MarketRange`: `zone`, `start`, `end` (UTC), `prices` (`{slot_start_utc: cent/kWh}`, only slots with a price), `missing` (slots without one), `notes` (warnings), property `complete`. Missing slots are reported as `MARKET_RANGE_INCOMPLETE` (`zone`, `missing_from`, `missing_slots`); no price at all in the range is `MARKET_DATA_UNAVAILABLE`. `prices` goes straight into `tariff_price_series(market=...)`, which fails with `PRICE_MISSING` on a missing slot.
 
+## Live market prices
+
+`market_live(zone, data_dir, tz, ...)` returns `MarketData` for live operation (new in `0.1.k`; the publisher uses the same chain).
+
+* Chain: cache `<data_dir>/market_<zone>.json` -> ENTSO-E (only with `entsoe_token`) -> Energy-Charts -> aWATTar (AT and DE-LU only; CH has no third source and no substitute). The sources are asked in order until one covers the whole window.
+* Window: local midnight `history_days` days before today up to the end of today, or of tomorrow from 12:00 local time on (`tz`). `history_days` is `0` to `7` (the cache keeps 7 days), otherwise `VALUE_INVALID`; the lead days are fetched like today, so a fresh install has them too (for example mirror sources of a forecaster). An unknown zone is `VALUE_INVALID`.
+* A cache that covers the window is used without a request. Otherwise the sources are asked, but not again within 10 minutes of the last request.
+* `get` replaces the HTTP call for every source (`get(url, params, timeout) -> str`), e.g. a caller's own transport with recording or replay; default is plain `urllib`.
+* `MarketData`: `zone`, `prices` (`{slot_start_utc: cent/kWh}`, including the cached history), `source` (`entsoe`, `energy-charts`, `awattar`), `fetched_at`, `complete`, `notes`. A source that fails is `MARKET_SOURCE_FAILED` in `notes`; a partial answer is `complete == False` with `MARKET_DATA_INCOMPLETE` (`zone`, `missing_from`); no price at all and no cache is `MARKET_DATA_UNAVAILABLE`.
+
 ## Forecasters
 
 The library takes a forecaster **object** implementing `Forecaster.forecast(known, start, end) -> {slot_start_utc: cent/kWh}`. A caller hands in its own model directly (Earnie: OLS model), no key involved. Plug-ins loaded from the entry-point group `edibert.forecasters` and their key (`EDIBERT_FORECAST_KEY`) belong to the product layer (`edibert.publish.forecasters`), not to the library.
 
 ## Types and constants
 
-`TariffSet`, `Tariff`, `PriceResult`, `PricePoint`, `PriceSeries`, `PricingContext`, `GridArea`, `GridFee`, `GridFeeCatalog`, `GridFeeConfig`, `HoldLastForecaster`, `MirrorForecaster`, `MarketArchive`, `MarketRange`, `MigrationPlan`, `MigrationQuestion`, `MigrationBlocker`, `MigrationResult`; `IMPORT`, `EXPORT`, `RESOLUTIONS`, `USER_PREFIX`, `TARIFF_FORMAT` (current version, `1`), `TARIFF_TRACK_FILES`, `STANDARD_VAT_PERCENT` (`{"AT": 20.0, "DE": 19.0, "CH": 8.1}`, prefill only), `METHOD_EXACT`, `METHOD_MIRROR`, `METHOD_HOLD`, `FALLBACK_PRIOR_YEAR` (`prior_year`), `FALLBACK_PRIOR_MONTH` (`prior_month`).
+`TariffSet`, `Tariff`, `PriceResult`, `PricePoint`, `PriceSeries`, `PricingContext`, `GridArea`, `GridFee`, `GridFeeCatalog`, `GridFeeConfig`, `HoldLastForecaster`, `MirrorForecaster`, `MarketArchive`, `MarketData`, `MarketRange`, `MigrationPlan`, `MigrationQuestion`, `MigrationBlocker`, `MigrationResult`; `IMPORT`, `EXPORT`, `RESOLUTIONS`, `USER_PREFIX`, `TARIFF_FORMAT` (current version, `1`), `TARIFF_TRACK_FILES`, `STANDARD_VAT_PERCENT` (`{"AT": 20.0, "DE": 19.0, "CH": 8.1}`, prefill only), `METHOD_EXACT`, `METHOD_MIRROR`, `METHOD_HOLD`, `FALLBACK_PRIOR_YEAR` (`prior_year`), `FALLBACK_PRIOR_MONTH` (`prior_month`).
 
 ## Errors and warnings
 
