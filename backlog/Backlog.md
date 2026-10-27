@@ -15,7 +15,7 @@ Spec: [`docs/spec/tariff-format.md`](../docs/spec/tariff-format.md). Internal de
 - [ ] **HACS publishing requirements** — no license requirement found in the docs; check default-store CI checks (brands, manifest, info) before any HACS release
 - [ ] **Capacity charge AT 2027: verify against the final regulation** — the SNE-G-V and the per-area SNE-V 2027 are drafts as of 2026-10; confirm the billing formula (EUR/kW/year ÷ 12 × monthly peak?), the minimum (2 kW or 20 % of contracted power), the 10 kW band limit, the introduction date per grid area and whether opt-out customers are billed on the measured peak; then update spec section 5b and the grid-fee catalog `status`
 - [ ] **14a-Atlas license** — may its data be used for a DE grid-fee catalog? Do not scrape until clarified
-- [ ] **Shared library (weather)** — built when the forecast plug-in needs it; location open (proposal: standalone package without Earnie imports in the Earnie repo first, own repository later); no shared cache building block in advance
+- [ ] **Shared library (weather)** — built in the Earnie repo as the standalone package `opendata` (Earnie *Edibert P6*, 2026-10-27): no Earnie imports, Open-Meteo archive and forecast, Energy-Charts `public_power` / `price`, one retry policy, disk cache for settled archive days. Open: own repository and PyPI name; whether Edibert's `MarketArchive` (Day-Ahead cache) moves onto it
 - [ ] **License when Earnie contains the library** — PolyForm Noncommercial for Edibert versus Earnie's own license; as the owner a separate grant is possible; decide before both ship as one product
 - [ ] **Editor technology** — headless form model plus Streamlit first (decided); later Home Assistant config flow or ingress page for stand-alone use
 
