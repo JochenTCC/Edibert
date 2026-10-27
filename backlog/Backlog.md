@@ -42,6 +42,11 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
   - **TE5 month boundary:** planning time at month end 23:30 and 00:30 yields the next month in the planning time zone, not UTC (inject the clock)
   - **TE6 scenario switch:** no values of the previous scenario remain (`session_scope` pattern, Earnie rule `streamlit-ui-state.mdc`)
   - Same checks as the Earnie suite for every save path: rejected input shows an error and leaves the file unchanged (T3); a success message set right before `st.rerun()` is never visible, so use a flash message; stable language-independent widget keys (already the rule here)
+- [ ] **0.1.k — Library: public live market chain** *(needed by Earnie Edibert P4a; plan: Earnie `docs/dev/edibert-integration.md` § P4a)*
+  - Add a live function to `edibert.api` (e.g. `market_live(zone, data_dir, tz, *, entsoe_token, get, history_days, now=None) -> MarketData`) and `MarketData` to `__all__`; additive, `API_VERSION` unchanged
+  - `history_days`: the fetch window starts `history_days` before today 00:00 (Earnie's mirror sources, 7 days), not only from the cache; the completeness check stays today / tomorrow after the 12:00 publish
+  - The injected `get` is used for every source (Earnie passes its shadow record / replay transport); CH keeps no third source (no aWATTar AT substitute)
+  - Tests: lead-time window, fresh install without cache, injected `get` per source, CH without aWATTar, partial result reported; `docs/spec/api.md` updated; tag proposal `v0.1.5` (version bump only with approval)
 - [ ] **0.1.r — Quality / release hardening** *(skill `quality-gate`; after 0.1.a–0.1.e)*
   - Coverage baseline, dead-code audit, simplification, KPI refactor, docs review, SonarCloud snapshot
 - [ ] **0.1.0 — Release** *(user decision; version bump only with approval)*
