@@ -9,7 +9,7 @@ Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes �
   - `MarketService(history_days=0..7)`: the expected window starts that many local days before today and the lead days are fetched like today (fresh install included); outside 0..7 is `VALUE_INVALID`; the publisher keeps `0`
   - The injected `get` serves every source (Earnie's shadow record / replay transport); CH keeps no third source; unknown zone is `VALUE_INVALID`
   - Tests in `tests/test_market_service.py` and `tests/test_api.py`; suite green without `tests/test_ui_app.py` (410 passed), which fails to collect locally because the ignored `edibert_data/user_tariffs.json` has no `tariff_format` (local data, unrelated)
-  - Release: tag proposal `v0.1.5`, waiting for approval
+  - Released as `0.1.5` with tag `v0.1.5` (approved 2026-10-27)
 
 ### Tariff supply for the past and the future (0.1.g, 2026-10-26)
 

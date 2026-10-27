@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "edibert"
-version = "0.1.4"
+version = "0.1.5"
 description = "Tarif-Editor und Preisdienst für Smart-Home-Systeme (Home Assistant, MQTT), Schwerpunkt DE/AT/CH"
 readme = "README.md"
 requires-python = ">=3.11"
