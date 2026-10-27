@@ -2,6 +2,15 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Editor: host hooks for delete and change (0.1.o, 2026-10-27)
+
+- [x] **0.1.o — Delete guard and change hook in the embed** (Earnie epic `Edibert` P7 S4: Earnie asks before a user tariff that a scenario uses is deleted, names the scenarios, and checks plausibility after every write)
+  - `UiConfig.delete_guard(direction, tariff_id) -> str | None`: a text holds the delete and shows it as a warning with *Trotzdem löschen* / *Nicht löschen* (keys `delete.confirm`, `delete.cancel`); `None` or no guard deletes right away as before; opening another tariff drops a pending confirmation
+  - `UiConfig.on_change(action, direction, tariff_id)`: `"save"` after a save and per imported tariff, `"delete"` after a delete, before the rerun; exceptions are not caught
+  - Texts `ui.delete_anyway`, `ui.delete_cancel` (en, de); user manual `editor.md` (en, de); spec `docs/spec/api.md` (Editor embed)
+  - Tests in `tests/test_ui_embed.py` (save reported, delete without warning immediate and reported, guard asks, cancel keeps, confirm deletes); full suite 440 passed, ruff clean
+  - Released as `0.1.9` with tag `v0.1.9` (approved 2026-10-27)
+
 ### Editor: land of the tariff (0.1.n, 2026-10-27)
 
 - [x] **0.1.n — Land field in the editor** (Earnie epic `Edibert` P7 S2: Earnie requires `land` on every user tariff, the editor did not write it, so a tariff saved in the embed broke Earnie's tariff load)

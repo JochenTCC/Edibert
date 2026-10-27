@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -27,11 +28,21 @@ class HostHouse:
 
 @dataclass(frozen=True)
 class UiConfig:
+    """Where the editor reads and writes, and what a host page hooks into.
+
+    ``delete_guard(direction, tariff_id)``: a warning text when deleting that user tariff needs a
+    confirmation (e.g. the host's scenarios that use it), or ``None`` to delete right away.
+    ``on_change(action, direction, tariff_id)``: called after the editor wrote ``user_tariffs.json``
+    (``action`` is ``"save"`` or ``"delete"``), before the page reruns.
+    """
+
     data_dir: Path
     catalog: Path | None
     language: str
     key_prefix: str = ""
     host_house: HostHouse | None = None
+    delete_guard: Callable[[str, str], str | None] | None = None
+    on_change: Callable[[str, str, str], None] | None = None
 
     @property
     def user_file(self) -> Path:

@@ -26,6 +26,7 @@ NOTICE = "ui.notice"
 UID = "ui.uid"
 INIT = "ui.init"
 OPENED = "ui.opened"
+PENDING_DELETE = "ui.pending_delete"
 
 # The prefix of the render that is running. Not session data: it is set for the duration of one
 # render call (``scope``) and reset afterwards, so sessions and embeds never see each other's prefix.
@@ -73,6 +74,7 @@ def init(config: UiConfig) -> None:
     ss[k(STEP)] = 1
     ss[k(NOTICE)] = None
     ss[k(OPENED)] = None
+    ss[k(PENDING_DELETE)] = None
     if config.host_house is None:
         ss[k(HOUSE)] = load_house(config.house_file)
         assign_uids(ss[k(HOUSE)].grid_rules)
@@ -100,6 +102,7 @@ def adopt(draft: TariffDraft | None) -> None:
     ss[k(DRAFT)] = draft
     ss[k(VER)] += 1
     ss[k(STEP)] = 1
+    ss[k(PENDING_DELETE)] = None
     if draft is not None:
         assign_uids(draft.rules)
 
@@ -127,6 +130,15 @@ def opened() -> tuple[str, str] | None:
 
 def set_opened(request: tuple[str, str] | None) -> None:
     st.session_state[k(OPENED)] = request
+
+
+def pending_delete() -> tuple[str, str, str] | None:
+    """``(direction, tariff_id, warning)`` of a delete that waits for the user's confirmation."""
+    return st.session_state[k(PENDING_DELETE)]
+
+
+def set_pending_delete(pending: tuple[str, str, str] | None) -> None:
+    st.session_state[k(PENDING_DELETE)] = pending
 
 
 def key(name: str) -> str:

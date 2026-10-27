@@ -95,6 +95,8 @@
   "ui.new_import": "New purchase tariff",
   "ui.new_export": "New feed-in tariff",
   "ui.delete": "Delete this tariff",
+  "ui.delete_anyway": "Delete anyway",
+  "ui.delete_cancel": "Keep the tariff",
   "ui.copy_catalog": "Copy a catalog tariff",
   "ui.no_catalog": "No catalog configured. Start with --catalog FILE.",
   "ui.copy_pick": "Tariff",

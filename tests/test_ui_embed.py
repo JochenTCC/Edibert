@@ -17,8 +17,14 @@ from edibert.ui.embed import render_editor
 PREFIX = "host.tariffs."
 
 
-def host_page(data_dir: str, prefixes: list[str], open_tariff: list[str] | None = None, host: bool = True) -> None:
-    """A host page: one own widget, then the editor once per prefix (AppTest runs this as a script)."""
+def host_page(
+    data_dir: str, prefixes: list[str], open_tariff: list[str] | None = None, host: bool = True, guard: str | None = None
+) -> None:
+    """A host page: one own widget, then the editor once per prefix (AppTest runs this as a script).
+
+    ``guard``: warning text of the host's delete guard (``None``: no guard). Every ``on_change`` call is
+    recorded in ``host.changes``.
+    """
     from pathlib import Path
 
     import streamlit as st
@@ -30,12 +36,19 @@ def host_page(data_dir: str, prefixes: list[str], open_tariff: list[str] | None 
     st.text_input("Host field", key="host.field")
     house = HostHouse(PricingContext("Europe/Vienna", "AT", "8"), None, (), "Hausprofil Test") if host else None
     request = (open_tariff[0], open_tariff[1]) if open_tariff else None
+    changes = st.session_state.setdefault("host.changes", [])
+    delete_guard = (lambda direction, tariff_id: f"{guard}: {direction}/{tariff_id}") if guard else None
     for prefix in prefixes:
-        render_editor(UiConfig(Path(data_dir), None, "de", prefix, house), open_tariff=request)
+        config = UiConfig(
+            Path(data_dir), None, "de", prefix, house, delete_guard=delete_guard, on_change=lambda *call: changes.append(call)
+        )
+        render_editor(config, open_tariff=request)
 
 
-def start(data_dir: Path, prefixes: list[str] | None = None, open_tariff: list[str] | None = None, host: bool = True) -> AppTest:
-    kwargs = {"data_dir": str(data_dir), "prefixes": prefixes or [PREFIX], "open_tariff": open_tariff, "host": host}
+def start(
+    data_dir: Path, prefixes: list[str] | None = None, open_tariff: list[str] | None = None, host: bool = True, guard: str | None = None
+) -> AppTest:
+    kwargs = {"data_dir": str(data_dir), "prefixes": prefixes or [PREFIX], "open_tariff": open_tariff, "host": host, "guard": guard}
     app = AppTest.from_function(host_page, kwargs=kwargs, default_timeout=60)
     app.run()
     assert not app.exception
@@ -63,7 +76,7 @@ def test_every_editor_key_carries_the_prefix(tmp_path):
     app.button(key=widget_key(app, "tpl.night")).click().run()
     save(app)
     assert not app.exception
-    foreign = [key for key in app.session_state.keys() if not key.startswith((PREFIX, "host.field"))]  # noqa: SIM118 (AppTest state has no __iter__)
+    foreign = [key for key in app.session_state.keys() if not key.startswith((PREFIX, "host.field", "host.changes"))]  # noqa: SIM118 (AppTest state has no __iter__)
     assert foreign == []
 
 
@@ -202,3 +215,38 @@ def test_land_can_be_left_open(tmp_path):
     save(app)
     (tariff,) = json.loads((tmp_path / "user_tariffs.json").read_text(encoding="utf-8"))["import_tariffs"]
     assert "land" not in tariff
+
+
+def _user_ids(data_dir: Path) -> list[str]:
+    return [raw["id"] for raw in read_document(data_dir / "user_tariffs.json")["import_tariffs"]]
+
+
+def test_save_reports_the_change_to_the_host(tmp_path):
+    app = start(tmp_path)
+    create_fixed_tariff(app)
+    save(app)
+    assert app.session_state["host.changes"] == [("save", IMPORT, "user_mein_tarif")]
+
+
+def test_without_a_guard_warning_delete_is_immediate_and_reported(tmp_path):
+    tariff_id = _saved_tariff(tmp_path)
+    app = start(tmp_path, open_tariff=[IMPORT, tariff_id])
+    app.button(key=f"{PREFIX}delete").click().run()
+    assert _user_ids(tmp_path) == []
+    assert app.session_state["host.changes"] == [("delete", IMPORT, tariff_id)]
+
+
+def test_guard_warning_asks_before_deleting(tmp_path):
+    tariff_id = _saved_tariff(tmp_path)
+    app = start(tmp_path, open_tariff=[IMPORT, tariff_id], guard="Wird verwendet")
+    app.button(key=f"{PREFIX}delete").click().run()
+    assert _user_ids(tmp_path) == [tariff_id]
+    assert [w.value for w in app.warning] == [f"Wird verwendet: {IMPORT}/{tariff_id}"]
+    app.button(key=f"{PREFIX}delete.cancel").click().run()
+    assert _user_ids(tmp_path) == [tariff_id]
+    assert not app.warning
+    app.button(key=f"{PREFIX}delete").click().run()
+    app.button(key=f"{PREFIX}delete.confirm").click().run()
+    assert _user_ids(tmp_path) == []
+    assert app.session_state["host.changes"] == [("delete", IMPORT, tariff_id)]
+    assert app.session_state[PREFIX + "ui.draft"] is None

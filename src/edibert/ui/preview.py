@@ -132,6 +132,8 @@ def _save(t: Translator, draft: TariffDraft, validation: Validation, config: UiC
     if st.button(t.t("ui.save"), type="primary", key=state.k("ui.save")):
         save_user_tariff(config.user_file, validation.raw, draft.direction)
         draft.id = validation.raw["id"]
+        if config.on_change is not None:
+            config.on_change("save", draft.direction, draft.id)
         state.notify(t.t("ui.saved", tariff_id=draft.id))
         st.rerun()
 

@@ -95,6 +95,8 @@
   "ui.new_import": "Neuer Bezugstarif",
   "ui.new_export": "Neuer Einspeisetarif",
   "ui.delete": "Diesen Tarif löschen",
+  "ui.delete_anyway": "Trotzdem löschen",
+  "ui.delete_cancel": "Nicht löschen",
   "ui.copy_catalog": "Katalogtarif kopieren",
   "ui.no_catalog": "Kein Katalog eingerichtet. Start mit --catalog DATEI.",
   "ui.copy_pick": "Tarif",

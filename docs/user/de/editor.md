@@ -40,4 +40,4 @@ Feste Monatskosten: Grundpreis, Messentgelt, Netz-Grundpreis, Sonstiges. Gib sie
 
 ## Speichern
 
-**Tarif speichern** schreibt den Tarif in `user_tariffs.json`. Der Knopf erscheint, sobald der Tarif gültig ist. Einen gespeicherten Tarif öffnest du unter **Meine Tarife**; **Diesen Tarif löschen** entfernt ihn.
+**Tarif speichern** schreibt den Tarif in `user_tariffs.json`. Der Knopf erscheint, sobald der Tarif gültig ist. Einen gespeicherten Tarif öffnest du unter **Meine Tarife**; **Diesen Tarif löschen** entfernt ihn. Ist der Editor in eine andere Anwendung eingebettet und nutzt diese den Tarif noch (zum Beispiel in einem Szenario), fragt der Editor vorher nach und nennt, wo der Tarif verwendet wird; gelöscht wird erst mit **Trotzdem löschen**.

@@ -39,4 +39,4 @@ Fixed monthly costs: base fee, metering fee, grid base fee, other. Enter them li
 
 ## Save
 
-**Save tariff** writes the tariff to `user_tariffs.json`. The button appears when the tariff is valid. Open a saved tariff from **My tariffs** to change it; **Delete this tariff** removes it.
+**Save tariff** writes the tariff to `user_tariffs.json`. The button appears when the tariff is valid. Open a saved tariff from **My tariffs** to change it; **Delete this tariff** removes it. When the editor is embedded in another application that still uses the tariff (in a scenario, for example), the editor asks first and says where the tariff is used; it is deleted only with **Delete anyway**.

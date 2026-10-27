@@ -95,6 +95,32 @@ def _new(direction: str, land: str | None) -> None:
 def _delete(config: UiConfig, tariff_id: str, direction: str) -> None:
     delete_user_tariff(config.user_file, tariff_id, direction)
     state.adopt(None)
+    if config.on_change is not None:
+        config.on_change("delete", direction, tariff_id)
+
+
+def _ask_delete(config: UiConfig, tariff_id: str, direction: str) -> None:
+    """Delete, or hold the delete for confirmation when the host's guard returns a warning."""
+    warning = config.delete_guard(direction, tariff_id) if config.delete_guard is not None else None
+    if warning is None:
+        _delete(config, tariff_id, direction)
+    else:
+        state.set_pending_delete((direction, tariff_id, warning))
+
+
+def _cancel_delete() -> None:
+    state.set_pending_delete(None)
+
+
+def _delete_buttons(t: Translator, config: UiConfig, draft: TariffDraft) -> None:
+    args = (config, draft.id, draft.direction)
+    pending = state.pending_delete()
+    if pending is None or pending[:2] != (draft.direction, draft.id):
+        st.button(t.t("ui.delete"), key=state.k("delete"), on_click=state.bound(_ask_delete), args=args)
+        return
+    st.warning(pending[2])
+    st.button(t.t("ui.delete_anyway"), key=state.k("delete.confirm"), type="primary", on_click=state.bound(_delete), args=args)
+    st.button(t.t("ui.delete_cancel"), key=state.k("delete.cancel"), on_click=state.bound(_cancel_delete))
 
 
 def _tariffs(t: Translator, config: UiConfig) -> None:
@@ -112,7 +138,7 @@ def _tariffs(t: Translator, config: UiConfig) -> None:
     st.button(t.t("ui.new_export"), key=state.k("new.export"), on_click=state.bound(_new), args=(EXPORT, _house_land(config)), width="stretch")
     draft = state.draft()
     if draft is not None and draft.id:
-        st.button(t.t("ui.delete"), key=state.k("delete"), on_click=state.bound(_delete), args=(config, draft.id, draft.direction))
+        _delete_buttons(t, config, draft)
 
 
 def _copy_catalog(t: Translator, config: UiConfig) -> None:
@@ -153,6 +179,8 @@ def _import(t: Translator, config: UiConfig) -> None:
         if st.button(t.t("ui.import_add"), key=state.k("import.add"), disabled=not chosen):
             for item in chosen:
                 save_user_tariff(config.user_file, item.raw, item.direction)
+                if config.on_change is not None:
+                    config.on_change("save", item.direction, item.raw["id"])
             state.notify(t.t("ui.import_done", count=len(chosen)))
             st.rerun()
 
