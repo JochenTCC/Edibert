@@ -132,7 +132,7 @@
   "ui.settlement": "Settlement",
   "ui.mtu.15min": "every 15 minutes",
   "ui.mtu.60min": "hourly (mean of the four quarter hours)",
-  "ui.monthly_hint": "One price per month. A missing month stops the calculation instead of guessing.",
+  "ui.monthly_hint": "One price per month. For a missing month Edibert takes the same month of the previous year, else the previous month, and shows a warning; if neither exists, the calculation stops.",
   "ui.vat_included": "Prices include VAT",
   "ui.vat_percent": "VAT (%)",
   "ui.vat_hint_spot": "Market-price tariffs usually state net prices plus VAT.",

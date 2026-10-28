@@ -132,7 +132,7 @@
   "ui.settlement": "Abrechnung",
   "ui.mtu.15min": "viertelstündlich",
   "ui.mtu.60min": "stündlich (Mittel der vier Viertelstunden)",
-  "ui.monthly_hint": "Ein Preis je Monat. Fehlt ein Monat, bricht die Berechnung ab, statt zu raten.",
+  "ui.monthly_hint": "Ein Preis je Monat. Fehlt ein Monat, nimmt Edibert denselben Monat des Vorjahres, sonst den Vormonat, und zeigt eine Warnung; gibt es keinen von beiden, bricht die Berechnung ab.",
   "ui.vat_included": "Preise enthalten USt",
   "ui.vat_percent": "USt (%)",
   "ui.vat_hint_spot": "Börsentarife nennen meist Nettopreise zuzüglich USt.",

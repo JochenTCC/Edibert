@@ -176,6 +176,18 @@ def test_monthly_table_preview_shows_the_month_rate_fallback(data_dir, tmp_path,
     assert any(month in warning.value and "prior_year" in warning.value for warning in app.warning)
 
 
+@pytest.mark.parametrize(("lang", "fallback", "stale"), [("en", "previous year", "instead of guessing"), ("de", "Vorjahres", "statt zu raten")])
+def test_monthly_step_hint_describes_the_month_rate_fallback(data_dir, lang, fallback, stale):
+    """Regression: ``ui.monthly_hint`` still said a missing month stops the calculation (stale since 0.1.g)."""
+    app = start(lang)
+    app.sidebar.button(key="new.import").click().run()
+    app.radio(key=widget_key(app, "kind")).set_value("monthly").run()
+    assert not app.exception
+    (hint,) = [caption.value for caption in app.caption if caption.value.startswith(("One price per month", "Ein Preis je Monat"))]
+    assert fallback in hint
+    assert stale not in hint
+
+
 def test_new_tariff_starts_with_the_land_of_the_house_settings(data_dir):
     app = start("en")
     app.sidebar.selectbox(key="house.land").select("CH").run()

@@ -13,10 +13,10 @@ Group open bugs by topic chapters (`## Bug <Topic>`). Each code bugfix gets a re
 Fix is implemented and committed, acceptance (real tariff check, Home Assistant test, reporter confirmation) is outstanding. Do not archive before acceptance.
 
 - [ ] **Gross tariff: net grid fee added without VAT** *(fixed in 0.1.i, 2026-10-26)* — `tariff.evaluate` added the net grid fee to a gross supplier price without VAT (30 ct + 8 ct = 38 ct instead of 39.6 ct at 20 %); Earnie puts the VAT on it (`grid_fee_on_tariff_basis`). Now: gross prices get `grid_fee * (1 + vat_percent/100)`, net prices `(supplier + grid fee) * (1 + vat_percent/100)`; `vat_cent` of a gross price point is the VAT on the grid fee. Affects editor preview, invoice check and the MQTT publisher. Regression test: `tests/test_grid_fee_vat_regression.py`. Acceptance: Earnie P3a comparison against Earnie's engine with a gross tariff and a grid fee
+- [ ] **Editor hint on missing months is stale** *(found in Earnie P7 S1, 2026-10-27; fixed in 0.1.h S1, 2026-10-28)* — `ui.monthly_hint` (en, de) said a missing month stops the calculation; since `0.1.g` a missing month uses the prior-year / prior-month rate with the warning `MONTH_RATE_FALLBACK`. Now both catalogs say so, in the wording of the user manual (`docs/user/*/editor.md`). Regression test: `tests/test_ui_app.py::test_monthly_step_hint_describes_the_month_rate_fallback` (en, de). Acceptance: the monthly step in the editor (standalone and embedded in Earnie) shows the new text
 
 ## New Bugs (do not remove - even if empty)
 
-- [ ] **Editor hint on missing months is stale** *(found in Earnie P7 S1, 2026-10-27)* — `ui.monthly_hint` (en, de) says a missing month stops the calculation; since `0.1.g` a missing month uses the prior-year / prior-month rate with the warning `MONTH_RATE_FALLBACK`, and only a table without any usable month fails (`PRICE_MISSING`). Fix both catalogs; regression test: catalog text check in `tests/test_i18n_catalogs.py` or a UI test that the monthly step shows the fallback wording.
 
 ## Minor improvements (do not remove - even if empty)
 - [ ] The entry "Feiertage zählen" on 4. Erweitert can be removed - it's easier for user to include Feiertage in Zeitfenster for Sonntage
