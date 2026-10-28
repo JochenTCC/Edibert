@@ -47,7 +47,7 @@ def _monthly_fields(t: Translator, draft: TariffDraft) -> None:
     st.caption(t.t("ui.monthly_hint"))
     today = date.today()
     frame = pd.DataFrame(
-        draft.monthly_rates or [(today.year, today.month, 0.0)], columns=["year", "month", "cent"]
+        state.table_start("rates", draft.monthly_rates or [(today.year, today.month, 0.0)]), columns=["year", "month", "cent"]
     ).astype({"year": "Int64", "month": "Int64", "cent": "Float64"})  # nullable: an empty cell stays visible
     edited = st.data_editor(frame, num_rows="dynamic", hide_index=True, key=state.key("rates"))
     draft.monthly_rates = [

@@ -34,6 +34,18 @@ Streamlit AppTest:
 - [ ] python -m pytest tests/test_ui_app.py -q
 ```
 
+## Browser tests (`st.data_editor`)
+
+AppTest cannot edit `st.data_editor` tables. The monthly-rate table is covered at model level and in the browser by `tests/test_ui_browser.py` (Playwright, headless Chromium, marker `browser`, left out of the normal run by `addopts`):
+
+```powershell
+pip install -e ".[ui,browser]"
+python -m playwright install chromium
+$env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; python -m pytest -m browser tests/test_ui_browser.py -q
+```
+
+Each test starts `streamlit run` on a free port with an empty data folder (English). The grid is a canvas: cells are reached by coordinates (35 px rows) and the keyboard (`Enter` opens the cell editor `input.gdg-input`); wait for each rerun (`settle`). Run them when the table, its columns or the editor layout change, and in the quality gate. Not in CI yet.
+
 ## Out of scope
 
-Pixel layout and chart details (check those in the browser by hand), and deep editing of `st.data_editor` tables (AppTest cannot edit them; test the model instead).
+Pixel layout and chart details (check those in the browser by hand).

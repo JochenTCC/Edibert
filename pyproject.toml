@@ -23,6 +23,9 @@ mqtt = [
 ui = [
     "streamlit>=1.40",
 ]
+browser = [
+    "playwright>=1.49",
+]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
@@ -39,6 +42,8 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = ["browser: drives the editor in headless Chromium (Playwright); opt-in with -m browser"]
+addopts = "-m 'not browser'"
 
 [tool.coverage.run]
 source = ["."]

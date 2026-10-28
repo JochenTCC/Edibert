@@ -27,6 +27,7 @@ UID = "ui.uid"
 INIT = "ui.init"
 OPENED = "ui.opened"
 PENDING_DELETE = "ui.pending_delete"
+RATES_BASE = "ui.rates_base"
 
 # The prefix of the render that is running. Not session data: it is set for the duration of one
 # render call (``scope``) and reset afterwards, so sessions and embeds never see each other's prefix.
@@ -144,6 +145,22 @@ def set_pending_delete(pending: tuple[str, str, str] | None) -> None:
 def key(name: str) -> str:
     """Widget key tied to the current draft version, independent of the UI language."""
     return f"{_PREFIX.get()}{st.session_state[k(VER)]}.{name}"
+
+
+def table_start(name: str, rows: list[tuple]) -> list[tuple]:
+    """The rows the table widget ``key(name)`` starts from, fixed while it stays on the page.
+
+    ``st.data_editor`` with dynamic rows takes its identity from its data and keeps the edits as changes
+    to that data. Rebuilding the start from the draft on every run would give it a new identity after
+    each edited cell and drop the next one (a new row lost its month after the year was typed). A table
+    that was not on the last run (new draft version, other price kind) starts from ``rows`` again.
+    """
+    ss = st.session_state
+    widget = key(name)
+    stored = ss.get(k(RATES_BASE))
+    if stored is None or stored[0] != widget or widget not in ss:
+        stored = ss[k(RATES_BASE)] = (widget, list(rows))
+    return stored[1]
 
 
 def notify(message: str, kind: str = "success") -> None:

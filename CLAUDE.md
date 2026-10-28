@@ -44,6 +44,8 @@ $env:PYTHONPATH='src'; python -m pytest -q
 
 UTF-8 env is required on Windows (see skill `windows-unicode-console`).
 
+Browser tests of the monthly-rate table (opt-in, Playwright): `python -m pytest -m browser tests/test_ui_browser.py` (setup in skill `streamlit-apptest`).
+
 ## Shell
 
 Windows PowerShell 5.x: no `&&` / `||` (`.cursor/rules/powershell-shell.mdc`). In the Bash tool (Git Bash) POSIX syntax is fine.
