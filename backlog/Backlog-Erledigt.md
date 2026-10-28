@@ -2,6 +2,16 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Editor: persistence and logic tests, monthly-rate table (0.1.h, 2026-10-28)
+
+- [x] **0.1.h — Editor: persistence and logic tests for the embedded editor** (after Earnie *Edibert P7*; split decided 2026-10-27, Earnie `docs/dev/edibert-integration.md` § P7 D1: TE1–TE3, TE5, TE6 belong to Earnie's UI suite; Edibert keeps TE4 and the save-path checks, covered by `0.1.m` in `tests/test_ui_embed.py`)
+  - S1: stale `ui.monthly_hint` (en, de) now describes the month-rate fallback in the wording of the user manual; regression test `tests/test_ui_app.py::test_monthly_step_hint_describes_the_month_rate_fallback`; bug in Backlog-Bugfixes under *Verifications Pending*
+  - S2: the monthly-rate table fails loud: a row with an empty cell or a month outside 1..12 is no longer dropped (`FIELD_MISSING` / `VALUE_INVALID`, no save button; only a completely empty added row is ignored); a month listed twice is the new error `MONTH_RATE_DUPLICATE` (`field`, `month`) when the file loads, instead of "the later row wins"; an empty `year` / `month` is `FIELD_MISSING`; spec `tariff-format.md` section 3 and error-code list, user manual `editor.md` (en, de); tests in `tests/test_monthly_fallback.py`, `tests/test_editor_model.py`
+  - S3: browser tests `tests/test_ui_browser.py` (Playwright, headless Chromium, marker `browser`, opt-in via `addopts`, extra `browser`): new row saved with every cell (TE4 end to end), reopened table takes a new row, deleted row leaves the file, edits survive a switch to another price kind and back, month 13 and a duplicate month show the error without a save button; setup in skill `streamlit-apptest` and `CLAUDE.md`
+  - S3 found a regression of S2: the table was rebuilt from the draft on every run, so it got a new identity after each cell and dropped the next edit (a new row lost its month); it now starts from rows kept while the table stays on the page (`state.table_start`)
+  - Full suite 450 passed (6 browser tests deselected); browser tests 6 passed in the cloud container (Linux); version unchanged
+  - Follow-ups (CI job, Windows run, Earnie data check, error row number) → Backlog-Bugfixes, chapter *Bug Editor monthly-rate table*
+
 ### Editor: host hooks for delete and change (0.1.o, 2026-10-27)
 
 - [x] **0.1.o — Delete guard and change hook in the embed** (Earnie epic `Edibert` P7 S4: Earnie asks before a user tariff that a scenario uses is deleted, names the scenarios, and checks plausibility after every write)
