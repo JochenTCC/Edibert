@@ -17,4 +17,5 @@ def main() -> None:
         st.set_page_config(page_title=t.t("ui.title"), layout="wide")
         sidebar.render(t, config)
         st.title(t.t("ui.title"))
+        sidebar.render_tools(t, config)
         render_body(t, config)

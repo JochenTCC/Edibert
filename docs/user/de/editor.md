@@ -1,12 +1,23 @@
-<!-- source: docs/user/en/editor.md @ 0.1.c -->
+<!-- source: docs/user/en/editor.md @ 0.1.p -->
 # Der Tarif-Editor
 
 Klicke auf **Neuer Bezugstarif** (Preis, den du zahlst) oder **Neuer Einspeisetarif** (Vergütung, die du bekommst). Das Formular hat vier Schritte. Alles, was du änderst, wird sofort geprüft, und die Vorschau rechts aktualisiert sich.
+
+## Tarifliste, Katalog und Import
+
+Die Zeile über dem Formular enthält drei Werkzeuge:
+
+- **Meine Tarife:** deine gespeicherten Tarife und die Knöpfe für einen neuen Tarif. Börsentarife zeigen ihr Abrechnungsintervall (viertelstündlich oder stündlich).
+- **Katalogtarif kopieren:** nach **Land** (startet mit dem Land des Hauses), **Richtung** und **Art** filtern, dann einen Tarif als Vorlage für einen eigenen kopieren. Die Liste ist nach Namen sortiert; ohne Richtungsfilter kommen erst alle Bezugstarife, dann alle Einspeisetarife. Ein Katalogtarif, den es nur in einigen Bundesländern oder Kantonen gibt, erscheint nur, wenn das Haus in einem davon liegt; ist in den Hauseinstellungen kein Bundesland / Kanton gesetzt, erscheint er auch.
+- **JSON importieren:** Tarife einfügen oder hochladen.
+
+**Ungespeicherte Änderungen.** Solange der offene Tarif vom gespeicherten Stand abweicht, zeigt der Editor **Nicht gespeichert**. Ein kopierter Katalogtarif gilt als nicht gespeichert, bis du ihn speicherst. Öffnest du einen anderen Tarif, legst einen neuen an oder kopierst einen, fragt der Editor vorher: **Speichern**, **Verwerfen** oder **Abbrechen**. Das Verlassen der ganzen Seite (eine andere Seite der einbettenden Anwendung, Browser-Tab schließen) kann der Editor nicht abfangen; vorher speichern.
 
 ## Schritt 1: Basispreis
 
 - **Name des Tarifs** und **Lieferant.** Der Name ist Pflicht. Dein Tarif bekommt eine ID wie `user_mein_tarif`.
 - **Land des Tarifs.** Ein neuer Tarif startet mit dem Land des Hauses; du kannst es ändern oder auf „–“ lassen. Tariflisten (etwa in Earnie) filtern nach diesem Land.
+- **Bundesländer / Kantone.** Nur ausfüllen, wenn der Tarif nur in einem Teil des Landes angeboten wird (etwa von einem regionalen Versorger). Leer heißt: ganzes Land.
 - **Wie wird der Preis gebildet?**
   - **Festpreis:** ein Preis in ct/kWh.
   - **Börsenpreis + Aufschlag:** der Day-Ahead-Börsenpreis plus ein Prozentsatz und ein fester Betrag. Bei Einspeisetarifen: Börsenpreis minus ein Anteil und ein fester Betrag. Du wählst, ob viertelstündlich oder stündlich abgerechnet wird (Mittel der vier Viertelstunden).

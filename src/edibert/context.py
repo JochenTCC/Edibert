@@ -11,6 +11,14 @@ from edibert._fields import invalid
 from edibert.errors import EdibertError, ErrorCode
 
 
+def region_codes(land: str) -> tuple[str, ...]:
+    """Federal states / cantons of ``land`` (subdivision codes of the ``holidays`` package); empty if unknown."""
+    try:
+        return tuple(sorted(holidays_lib.country_holidays(land).subdivisions))
+    except NotImplementedError:
+        return ()
+
+
 class HolidayCalendar:
     """Public holidays of one country/region (``holidays`` package, offline) plus extra dates."""
 

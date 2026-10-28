@@ -38,6 +38,15 @@
         "CH"
       ]
     },
+    "regions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "currency": {
       "enum": [
         "EUR",

@@ -71,6 +71,8 @@ def _curves(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFe
         t.t("ui.preview_month"), list(range(1, 13)), index=date.today().month - 1, format_func=lambda m: t.t(f"month.{m}"),
         key=state.k("ui.preview_month"),
     )  # fmt: skip
+    if tariff.is_spot:
+        st.caption(t.t("ui.preview_mtu", interval=t.t(f"ui.mtu_short.{tariff.settlement_mtu}")))
     if tariff.uses_market_price:
         st.caption(t.t("ui.preview_spot_note"))
     frame = _chart_frame(t, tariff, ctx, grid_fee, month)
@@ -128,13 +130,19 @@ def _invoice(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridF
                 st.warning(t.t("ui.invoice_off", tolerance=t.number(TOLERANCE_PERCENT, 1)))
 
 
+def store(t: Translator, config: UiConfig, draft: TariffDraft, validation: Validation) -> None:
+    """Write the validated draft to the user file, tell the host and leave the success notice."""
+    save_user_tariff(config.user_file, validation.raw, draft.direction)
+    draft.id = validation.raw["id"]
+    state.mark_saved()
+    if config.on_change is not None:
+        config.on_change("save", draft.direction, draft.id)
+    state.notify(t.t("ui.saved", tariff_id=draft.id))
+
+
 def _save(t: Translator, draft: TariffDraft, validation: Validation, config: UiConfig) -> None:
     if st.button(t.t("ui.save"), type="primary", key=state.k("ui.save")):
-        save_user_tariff(config.user_file, validation.raw, draft.direction)
-        draft.id = validation.raw["id"]
-        if config.on_change is not None:
-            config.on_change("save", draft.direction, draft.id)
-        state.notify(t.t("ui.saved", tariff_id=draft.id))
+        store(t, config, draft, validation)
         st.rerun()
 
 

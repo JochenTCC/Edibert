@@ -157,6 +157,7 @@ class TariffDraft:
     last_verified: str | None = None
     behavior_notes: str = ""
     land: str | None = None
+    regions: list[str] = field(default_factory=list)
     currency: str | None = None
     id: str | None = None
     extra: dict[str, Any] = field(default_factory=dict)
@@ -165,7 +166,7 @@ class TariffDraft:
     def from_raw(cls, raw: Mapping[str, Any], direction: str) -> TariffDraft:
         kind_by_type = {value: key for key, value in TYPE_BY_KIND[direction].items()}
         known = {
-            "id", "label", "type", "supplier_id", "land", "currency", "fix_cent_kwh", "k_push_cent",
+            "id", "label", "type", "supplier_id", "land", "regions", "currency", "fix_cent_kwh", "k_push_cent",
             "markup_percent", "settlement_fee_cent_kwh", "feed_in_fee_factor", "feed_in_fix_cent",
             "monthly_rates", "settlement_mtu", "prices_include_vat", "vat_percent", "rules",
             "price_floor_cent_kwh", "price_cap_cent_kwh", "requires", "holidays", "extra_holiday_dates",
@@ -199,6 +200,7 @@ class TariffDraft:
             last_verified=raw.get("last_verified"),
             behavior_notes=str(raw.get("behavior_notes", "")),
             land=raw.get("land"),
+            regions=list(raw.get("regions") or []),
             currency=raw.get("currency"),
             id=raw.get("id"),
             extra={key: value for key, value in raw.items() if key not in known},
@@ -240,6 +242,8 @@ class TariffDraft:
         for key, value in (("land", self.land), ("currency", self.currency)):
             if value:
                 raw[key] = value
+        if self.regions:
+            raw["regions"] = list(self.regions)
         raw.update(self._price_fields())
         raw["prices_include_vat"] = self.prices_include_vat
         raw["vat_percent"] = self.vat_percent

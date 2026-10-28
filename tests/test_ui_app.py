@@ -37,7 +37,7 @@ def widget_key(app: AppTest, name: str) -> str:
 
 
 def create_fixed_tariff(app: AppTest, label: str = "Mein Tarif", price: float = 30.0) -> None:
-    app.sidebar.button(key="new.import").click().run()
+    app.button(key="new.import").click().run()
     app.text_input(key=widget_key(app, "label")).set_value(label).run()
     app.number_input(key=widget_key(app, "price")).set_value(price).run()
 
@@ -46,7 +46,7 @@ def test_start_page_in_both_languages(data_dir):
     english = start("en")
     assert english.info[0].value.startswith("Create a new tariff")
     german = start("de")
-    assert german.info[0].value.startswith("Lege einen neuen Tarif an")
+    assert german.info[0].value.startswith("Lege oben einen neuen Tarif an")
     assert german.title[0].value == "Edibert Tarif-Editor"
 
 
@@ -60,13 +60,13 @@ def test_create_and_save_a_fixed_tariff(data_dir):
     (tariff,) = saved["import_tariffs"]
     assert (tariff["id"], tariff["type"], tariff["fix_cent_kwh"]) == ("user_mein_tarif", "fixed_cent", 30.0)
     assert any("user_mein_tarif" in message.value for message in app.success)
-    listed = app.sidebar.button(key="open.import.user_mein_tarif")  # listed under "My tariffs"
+    listed = app.button(key="open.import.user_mein_tarif")  # listed under "My tariffs"
     assert listed.label == "Purchase: Mein Tarif"
 
 
 def test_invalid_input_shows_a_translated_error_and_no_save_button(data_dir):
     app = start("de")
-    app.sidebar.button(key="new.import").click().run()
+    app.button(key="new.import").click().run()
     assert app.error  # no name yet: the first coded problem is shown in German
     assert not [b for b in app.button if b.key == "ui.save"]
 
@@ -122,18 +122,18 @@ def test_house_region_removes_the_hint_and_is_saved(data_dir):
 def test_import_pasted_tariff(data_dir):
     app = start("en")
     raw = {"id": "my day night", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0, "vat_percent": 20}
-    app.sidebar.text_area(key="import.text").set_value(json.dumps(raw)).run()
-    assert any("renamed" in info.value for info in app.sidebar.info)
-    app.sidebar.button(key="import.add").click().run()
+    app.text_area(key="import.text").set_value(json.dumps(raw)).run()
+    assert any("renamed" in info.value for info in app.info)
+    app.button(key="import.add").click().run()
     saved = json.loads((data_dir / "user_tariffs.json").read_text(encoding="utf-8"))
     assert [t["id"] for t in saved["import_tariffs"]] == ["user_my_day_night"]
 
 
 def test_import_of_broken_json_is_reported(data_dir):
     app = start("de")
-    app.sidebar.text_area(key="import.text").set_value("{ nope").run()
+    app.text_area(key="import.text").set_value("{ nope").run()
     assert not app.exception
-    assert any("JSON" in error.value for error in app.sidebar.error)
+    assert any("JSON" in error.value for error in app.error)
 
 
 def test_copy_a_catalog_tariff(data_dir, tmp_path, monkeypatch):
@@ -144,14 +144,14 @@ def test_copy_a_catalog_tariff(data_dir, tmp_path, monkeypatch):
     )
     monkeypatch.setenv(ENV_CATALOG, str(catalog))
     app = start("en")
-    app.sidebar.button(key="copy.go").click().run()
+    app.button(key="copy.go").click().run()
     assert not app.exception
     assert app.text_input(key=widget_key(app, "label")).value == "Demo (copy)"
 
 
 def test_spot_tariff_preview_and_invoice_check(data_dir):
     app = start("en")
-    app.sidebar.button(key="new.import").click().run()
+    app.button(key="new.import").click().run()
     app.text_input(key=widget_key(app, "label")).set_value("Spot").run()
     app.radio(key=widget_key(app, "kind")).set_value("spot").run()
     app.checkbox(key=widget_key(app, "vat_included")).set_value(False).run()
@@ -170,7 +170,7 @@ def test_monthly_table_preview_shows_the_month_rate_fallback(data_dir, tmp_path,
     catalog.write_text(json.dumps({"tariff_format": 1, "import_tariffs": [tariff]}), encoding="utf-8")
     monkeypatch.setenv(ENV_CATALOG, str(catalog))
     app = start("en")
-    app.sidebar.button(key="copy.go").click().run()
+    app.button(key="copy.go").click().run()
     assert not app.exception
     month = f"{today.year}-{today.month:02d}"
     assert any(month in warning.value and "prior_year" in warning.value for warning in app.warning)

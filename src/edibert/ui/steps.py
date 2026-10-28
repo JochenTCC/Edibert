@@ -7,6 +7,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
+from edibert.context import region_codes
 from edibert.editor.house import LANDS
 from edibert.editor.model import FEE_KEYS, KINDS, TariffDraft
 from edibert.editor.templates import TEMPLATES, rules_for_template
@@ -14,6 +15,7 @@ from edibert.i18n import Translator
 from edibert.rules import HOLIDAY_MODES, REQUIRES
 from edibert.tariff import EXPORT, IMPORT
 from edibert.ui import state, widgets
+from edibert.ui.sidebar import region_label
 
 
 def _number(t: Translator, label_key: str, value: float, name: str, **options) -> float:
@@ -54,6 +56,19 @@ def _monthly_fields(t: Translator, draft: TariffDraft) -> None:
     ]
 
 
+def _regions_field(t: Translator, draft: TariffDraft) -> None:
+    """Federal states / cantons the tariff is offered in (empty = the whole land); the key follows the land."""
+    if draft.land is None:
+        draft.regions = []
+        return
+    land = draft.land
+    options = list(region_codes(land))
+    draft.regions = st.multiselect(
+        t.t("ui.tariff_regions"), options, default=[code for code in draft.regions if code in options],
+        format_func=lambda code: region_label(land, code), help=t.t("ui.tariff_regions_help"), key=state.key(f"regions.{land}"),
+    )  # fmt: skip
+
+
 def step_base(t: Translator, draft: TariffDraft) -> None:
     draft.label = st.text_input(t.t("ui.label"), value=draft.label, key=state.key("label"))
     draft.supplier = st.text_input(t.t("ui.supplier"), value=draft.supplier, key=state.key("supplier"))
@@ -63,6 +78,7 @@ def step_base(t: Translator, draft: TariffDraft) -> None:
         format_func=lambda code: code or "–", help=t.t("ui.tariff_land_help"), key=state.key("land"),
     )  # fmt: skip
     draft.land = land or None
+    _regions_field(t, draft)
     draft.kind = st.radio(
         t.t("ui.kind"), KINDS, index=KINDS.index(draft.kind), format_func=lambda k: t.t(f"ui.kind.{k}"),
         horizontal=True, key=state.key("kind"),

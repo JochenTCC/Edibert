@@ -67,6 +67,8 @@ def render_body(t: Translator, config: UiConfig) -> None:
     if draft is None:
         st.info(t.t("ui.start_hint"))
         return
+    if state.unsaved():
+        st.caption(f":orange[● {t.t('ui.unsaved_mark')}]")
     editor, side = st.columns([5, 7])
     with editor:
         render_steps(t, draft)
@@ -78,8 +80,8 @@ def render_editor(config: UiConfig, *, list_container: Any = None, open_tariff: 
     """The editor inside a host page.
 
     ``config.key_prefix`` must be non-empty; ``config.host_house`` (optional) replaces the editor's own
-    house settings, and then nothing is read from or written to ``house.json``. The tariff list,
-    new/copy/import go into ``list_container`` (default: a column left of the form).
+    house settings, and then nothing is read from or written to ``house.json``. The house settings and
+    the row with the tariff list, new/copy/import go into ``list_container`` (default: above form and preview).
     ``open_tariff=(direction, id)`` opens that user tariff once per distinct request; an unknown ID is shown
     as an error.
     """
@@ -89,14 +91,10 @@ def render_editor(config: UiConfig, *, list_container: Any = None, open_tariff: 
         state.init(config)
         t = state.translator()
         _open_requested(t, config, open_tariff)
-        if list_container is None:
-            list_container, body = st.columns([3, 12])
-        else:
-            body = st.container()
-        with list_container:
+        with list_container if list_container is not None else st.container():
+            sidebar.render_house(t, config)
             sidebar.render_tools(t, config)
-        with body:
-            render_body(t, config)
+        render_body(t, config)
 
 
 def render_preview(tariff: Tariff, house: HostHouse, *, language: str, key_prefix: str) -> None:

@@ -2,6 +2,18 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Editor: findings from the first dogfooding in Earnie (0.1.p, 2026-10-28)
+
+- [x] **0.1.p — Editor findings from the embedded editor on Earnie's *Tarife* page**
+  - Copy from catalog: filters *Land* (preset to the house land), *Richtung* (import / export) and *Art* (price kinds of the editor, market prices split by settlement interval: `fixed`, `spot:15min`, `spot:60min`, `monthly`); sorted by label, without a direction filter imports first; logic in `src/edibert/editor/catalog.py` (no UI)
+  - Layout: tariff list with new / delete, copy from catalog and import in a row above form and preview (`sidebar.render_tools`), standalone page and embed alike; the standalone sidebar keeps language, data folder and house settings
+  - Tariff format: optional `regions` (subdivision codes of the house field `region`, needs `land`, strict: empty, duplicate or unknown code `VALUE_INVALID`, missing land `FIELD_MISSING`); form field in step 1; schema regenerated; spec section 4 and development document 4.3 updated. The copy list hides tariffs whose regions do not contain the house region (a house without region sees all). Areas below a federal state (Kleinwalsertal) cannot be expressed
+  - Market tariffs show the settlement interval in *Meine Tarife*, in the catalog list and as caption *Abrechnung: …* in the preview
+  - Unsaved changes: *Nicht gespeichert* mark while the draft differs from its saved state (a catalog copy counts as unsaved); open / new / copy show a prompt with save / discard / cancel (`leave.*`); delete and import do not leave the draft and are not held; *Diesen Tarif löschen* shows only for a tariff that is in the user file (an unsaved catalog copy offered it before)
+  - Texts in both catalogs; user manual `editor.md` (en, de); spec `docs/spec/api.md` (Editor embed)
+  - Tests: `tests/test_editor_catalog.py` (type keys, order, region filter, `regions` parsing), `tests/test_ui_embed.py` (filters, prompt cancel / discard / save, invalid draft, no prompt after open or save, regions saved, interval badge)
+  - Open: the catalog entries in Earnie's `share/config/tariffs.json` get `regions` only after an Edibert release with the field and Earnie's pin bump (Earnie loads the catalog with Edibert's strict parser)
+
 ### Editor: host hooks for delete and change (0.1.o, 2026-10-27)
 
 - [x] **0.1.o — Delete guard and change hook in the embed** (Earnie epic `Edibert` P7 S4: Earnie asks before a user tariff that a scenario uses is deleted, names the scenarios, and checks plausibility after every write)

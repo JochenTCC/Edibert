@@ -69,6 +69,7 @@ def _tariff_properties() -> dict[str, Any]:
         "label": _TEXT,
         "type": {"enum": sorted(set(IMPORT_TYPES) | set(EXPORT_TYPES))},
         "land": {"enum": ["AT", "DE", "CH"]},
+        "regions": {"type": "array", "minItems": 1, "uniqueItems": True, "items": _TEXT},
         "currency": {"enum": ["EUR", "CHF"]},
         "supplier_id": _TEXT,
         "notes": {"type": "string"},

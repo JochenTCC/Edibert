@@ -2,10 +2,21 @@
 
 Click **New purchase tariff** (price you pay) or **New feed-in tariff** (remuneration you get). The form has four steps. Everything you change is checked at once, and the preview on the right updates.
 
+## Tariff list, catalog and import
+
+The row above the form holds three tools:
+
+- **My tariffs:** your saved tariffs, plus the buttons for a new tariff. Market-price tariffs show their settlement interval (quarter-hourly or hourly).
+- **Copy a catalog tariff:** filter by **Country** (starts with the country of the house), **Direction** and **Type**, then copy a tariff as the start of your own. The list is sorted by name; without a direction filter all purchase tariffs come first, then all feed-in tariffs. A catalog tariff offered only in some federal states or cantons is listed only when the house is in one of them; without a federal state / canton in the house settings it is listed too.
+- **Import JSON:** paste or upload tariffs.
+
+**Unsaved changes.** While the open tariff differs from its saved state, the editor shows **Not saved**. A copied catalog tariff counts as not saved until you save it. When you open another tariff, start a new one or copy one, the editor asks first: **Save**, **Discard** or **Cancel**. Leaving the whole page (another page of the host application, closing the browser tab) cannot be caught; save before you go.
+
 ## Step 1: Base price
 
 - **Name of the tariff** and **Supplier.** The name is required. Your tariff gets an ID like `user_my_tariff`.
 - **Country of the tariff.** A new tariff starts with the country of the house; you can change it or leave it at "–". Tariff lists (for example in Earnie) filter by this country.
+- **Federal states / cantons.** Fill in only if the tariff is offered in part of the country (for example a regional utility). Empty means the whole country.
 - **How is the price formed?**
   - **Fixed price:** one price in ct/kWh.
   - **Market price + markup:** the day-ahead market price plus a percentage and a fixed amount. For feed-in tariffs: market price minus a share and a fixed amount. Choose whether the tariff is settled every quarter hour or hourly (the mean of the four quarter hours).

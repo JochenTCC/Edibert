@@ -27,6 +27,8 @@ UID = "ui.uid"
 INIT = "ui.init"
 OPENED = "ui.opened"
 PENDING_DELETE = "ui.pending_delete"
+PENDING_LEAVE = "ui.pending_leave"
+BASELINE = "ui.baseline"
 
 # The prefix of the render that is running. Not session data: it is set for the duration of one
 # render call (``scope``) and reset afterwards, so sessions and embeds never see each other's prefix.
@@ -75,6 +77,8 @@ def init(config: UiConfig) -> None:
     ss[k(NOTICE)] = None
     ss[k(OPENED)] = None
     ss[k(PENDING_DELETE)] = None
+    ss[k(PENDING_LEAVE)] = None
+    ss[k(BASELINE)] = None
     if config.host_house is None:
         ss[k(HOUSE)] = load_house(config.house_file)
         assign_uids(ss[k(HOUSE)].grid_rules)
@@ -96,15 +100,31 @@ def assign_uids(rules: Iterable[RuleDraft]) -> None:
             rule.uid = next_uid()
 
 
-def adopt(draft: TariffDraft | None) -> None:
-    """Make ``draft`` the tariff being edited. New widget keys (version) start the form fresh."""
+def adopt(draft: TariffDraft | None, *, saved: bool = True) -> None:
+    """Make ``draft`` the tariff being edited. New widget keys (version) start the form fresh.
+
+    ``saved=False`` (a catalog copy): the draft counts as unsaved before the first change.
+    """
     ss = st.session_state
     ss[k(DRAFT)] = draft
     ss[k(VER)] += 1
     ss[k(STEP)] = 1
     ss[k(PENDING_DELETE)] = None
+    ss[k(PENDING_LEAVE)] = None
+    ss[k(BASELINE)] = draft.to_raw() if draft is not None and saved else None
     if draft is not None:
         assign_uids(draft.rules)
+
+
+def mark_saved() -> None:
+    """The open draft is now what the file holds."""
+    st.session_state[k(BASELINE)] = draft().to_raw()  # type: ignore[union-attr]
+
+
+def unsaved() -> bool:
+    """True while the open draft differs from its saved (or freshly opened) state."""
+    current = draft()
+    return current is not None and current.to_raw() != st.session_state[k(BASELINE)]
 
 
 def draft() -> TariffDraft | None:
@@ -139,6 +159,15 @@ def pending_delete() -> tuple[str, str, str] | None:
 
 def set_pending_delete(pending: tuple[str, str, str] | None) -> None:
     st.session_state[k(PENDING_DELETE)] = pending
+
+
+def pending_leave() -> tuple | None:
+    """The action (open, new, copy) that waits because the open draft is not saved."""
+    return st.session_state[k(PENDING_LEAVE)]
+
+
+def set_pending_leave(action: tuple | None) -> None:
+    st.session_state[k(PENDING_LEAVE)] = action
 
 
 def key(name: str) -> str:

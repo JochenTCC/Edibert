@@ -10,7 +10,7 @@ from streamlit.testing.v1 import AppTest
 
 from edibert.editor.model import TariffDraft, validate
 from edibert.editor.userstore import read_document, save_user_tariff
-from edibert.tariff import IMPORT
+from edibert.tariff import EXPORT, IMPORT
 from edibert.ui.config import UiConfig
 from edibert.ui.embed import render_editor
 
@@ -18,7 +18,12 @@ PREFIX = "host.tariffs."
 
 
 def host_page(
-    data_dir: str, prefixes: list[str], open_tariff: list[str] | None = None, host: bool = True, guard: str | None = None
+    data_dir: str,
+    prefixes: list[str],
+    open_tariff: list[str] | None = None,
+    host: bool = True,
+    guard: str | None = None,
+    catalog: str | None = None,
 ) -> None:
     """A host page: one own widget, then the editor once per prefix (AppTest runs this as a script).
 
@@ -40,15 +45,23 @@ def host_page(
     delete_guard = (lambda direction, tariff_id: f"{guard}: {direction}/{tariff_id}") if guard else None
     for prefix in prefixes:
         config = UiConfig(
-            Path(data_dir), None, "de", prefix, house, delete_guard=delete_guard, on_change=lambda *call: changes.append(call)
+            Path(data_dir), Path(catalog) if catalog else None, "de", prefix, house, delete_guard=delete_guard, on_change=lambda *call: changes.append(call)
         )
         render_editor(config, open_tariff=request)
 
 
 def start(
-    data_dir: Path, prefixes: list[str] | None = None, open_tariff: list[str] | None = None, host: bool = True, guard: str | None = None
+    data_dir: Path,
+    prefixes: list[str] | None = None,
+    open_tariff: list[str] | None = None,
+    host: bool = True,
+    guard: str | None = None,
+    catalog: Path | None = None,
 ) -> AppTest:
-    kwargs = {"data_dir": str(data_dir), "prefixes": prefixes or [PREFIX], "open_tariff": open_tariff, "host": host, "guard": guard}
+    kwargs = {
+        "data_dir": str(data_dir), "prefixes": prefixes or [PREFIX], "open_tariff": open_tariff, "host": host, "guard": guard,
+        "catalog": str(catalog) if catalog else None,
+    }  # fmt: skip
     app = AppTest.from_function(host_page, kwargs=kwargs, default_timeout=60)
     app.run()
     assert not app.exception
@@ -250,3 +263,124 @@ def test_guard_warning_asks_before_deleting(tmp_path):
     assert _user_ids(tmp_path) == []
     assert app.session_state["host.changes"] == [("delete", IMPORT, tariff_id)]
     assert app.session_state[PREFIX + "ui.draft"] is None
+
+
+def _catalog(tmp_path: Path) -> Path:
+    def entry(tariff_id: str, label: str, tariff_type: str = "fixed_cent", land: str = "AT", **extra) -> dict:
+        return {"id": tariff_id, "label": label, "type": tariff_type, "land": land, "supplier_id": "demo", "vat_percent": 20, **extra}
+
+    document = {
+        "tariff_format": 1,
+        "import_tariffs": [
+            entry("at_zeta", "Zeta", fix_cent_kwh=12.0),
+            entry("at_wien", "Nur Wien", regions=["9"], fix_cent_kwh=11.0),
+            entry("de_delta", "Delta", land="DE", fix_cent_kwh=30.0),
+            entry("at_beta", "Beta", "spot_hourly", settlement_mtu="60min"),
+        ],
+        "export_tariffs": [entry("at_alpha", "Alpha", "spot_hourly", settlement_mtu="15min")],
+    }
+    path = tmp_path / "tariffs.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    return path
+
+
+def unsaved_marked(app: AppTest) -> bool:
+    return any("Nicht gespeichert" in caption.value for caption in app.caption)
+
+
+def leave_prompt_shown(app: AppTest) -> bool:
+    return any(b.key == f"{PREFIX}leave.discard" for b in app.button)
+
+
+def test_copy_list_starts_with_the_house_land_and_region_imports_first(tmp_path):
+    app = start(tmp_path / "data", catalog=_catalog(tmp_path))
+    assert app.selectbox(key=f"{PREFIX}copy.land.AT").value == "AT"
+    pick = app.selectbox(key=f"{PREFIX}copy.pick.AT.None.None")
+    # "Nur Wien" is offered in another federal state than the house (8), "Delta" in another land
+    assert pick.options == ["Bezug: Beta · stündlich", "Bezug: Zeta", "Einspeisung: Alpha · viertelstündlich"]
+
+
+def test_direction_filter_narrows_the_type_options(tmp_path):
+    app = start(tmp_path / "data", catalog=_catalog(tmp_path))
+    app.selectbox(key=f"{PREFIX}copy.direction").select(EXPORT).run()
+    assert app.selectbox(key=f"{PREFIX}copy.type.AT.export").options == ["Alle", "Börsenpreis + Aufschlag · viertelstündlich"]
+    app.selectbox(key=f"{PREFIX}copy.land.AT").select("").run()
+    app.selectbox(key=f"{PREFIX}copy.direction").select(IMPORT).run()
+    app.selectbox(key=f"{PREFIX}copy.type..import").select("fixed").run()
+    assert app.selectbox(key=f"{PREFIX}copy.pick.None.import.fixed").options == ["Bezug: Delta", "Bezug: Zeta"]
+
+
+def test_catalog_copy_is_unsaved_and_asks_before_it_is_left(tmp_path):
+    app = start(tmp_path / "data", catalog=_catalog(tmp_path))
+    app.button(key=f"{PREFIX}copy.go").click().run()
+    assert app.text_input(key=widget_key(app, "label")).value == "Beta (Kopie)"
+    assert unsaved_marked(app)
+    app.button(key=f"{PREFIX}new.import").click().run()
+    assert leave_prompt_shown(app)
+    assert app.text_input(key=widget_key(app, "label")).value == "Beta (Kopie)"
+    app.button(key=f"{PREFIX}leave.cancel").click().run()
+    assert not leave_prompt_shown(app)
+    app.button(key=f"{PREFIX}new.import").click().run()
+    app.button(key=f"{PREFIX}leave.discard").click().run()
+    assert app.text_input(key=widget_key(app, "label")).value == ""
+    assert not unsaved_marked(app)
+    assert not (tmp_path / "data" / "user_tariffs.json").exists()
+
+
+def test_save_in_the_prompt_writes_the_draft_and_then_leaves(tmp_path):
+    app = start(tmp_path)
+    create_fixed_tariff(app)
+    assert unsaved_marked(app)
+    app.button(key=f"{PREFIX}new.export").click().run()
+    app.button(key=f"{PREFIX}leave.save").click().run()
+    (tariff,) = read_document(tmp_path / "user_tariffs.json")["import_tariffs"]
+    assert tariff["id"] == "user_mein_tarif"
+    assert app.session_state[PREFIX + "ui.draft"].direction == EXPORT
+    assert ("save", IMPORT, "user_mein_tarif") in app.session_state["host.changes"]
+
+
+def test_an_invalid_draft_cannot_be_saved_from_the_prompt(tmp_path):
+    app = start(tmp_path)
+    app.button(key=f"{PREFIX}new.import").click().run()
+    app.number_input(key=widget_key(app, "price")).set_value(20.0).run()  # changed, but no name
+    app.button(key=f"{PREFIX}new.export").click().run()
+    assert app.button(key=f"{PREFIX}leave.save").disabled
+
+
+def test_saved_or_opened_tariff_is_left_without_asking(tmp_path):
+    tariff_id = _saved_tariff(tmp_path)
+    app = start(tmp_path, open_tariff=[IMPORT, tariff_id])
+    app.run()
+    assert not unsaved_marked(app)
+    create_fixed_tariff(app)  # new tariff: leaves the opened one at once
+    assert not leave_prompt_shown(app)
+    save(app)
+    assert not unsaved_marked(app)
+    app.button(key=f"{PREFIX}open.import.{tariff_id}").click().run()
+    assert not leave_prompt_shown(app)
+    assert app.text_input(key=widget_key(app, "label")).value == "Gespeichert"
+
+
+def test_regions_of_a_tariff_are_saved(tmp_path):
+    app = start(tmp_path)
+    create_fixed_tariff(app)
+    app.multiselect(key=widget_key(app, "regions.AT")).select("8").run()
+    save(app)
+    (tariff,) = read_document(tmp_path / "user_tariffs.json")["import_tariffs"]
+    assert tariff["regions"] == ["8"]
+
+
+def test_market_tariff_shows_its_settlement_interval(tmp_path):
+    raw = {"id": "user_spot", "label": "Spot", "type": "spot_hourly", "supplier_id": "user_s", "settlement_mtu": "60min", "vat_percent": 20}
+    save_user_tariff(tmp_path / "user_tariffs.json", raw, IMPORT)
+    app = start(tmp_path, open_tariff=[IMPORT, "user_spot"])
+    assert app.button(key=f"{PREFIX}open.import.user_spot").label == "Bezug: Spot · stündlich"
+    assert any(caption.value == "Abrechnung: stündlich" for caption in app.caption)
+
+
+def test_an_unsaved_catalog_copy_offers_no_delete(tmp_path):
+    app = start(tmp_path / "data", catalog=_catalog(tmp_path))
+    app.button(key=f"{PREFIX}copy.go").click().run()
+    assert not [b for b in app.button if b.key == f"{PREFIX}delete"]
+    save(app)
+    assert [b for b in app.button if b.key == f"{PREFIX}delete"]

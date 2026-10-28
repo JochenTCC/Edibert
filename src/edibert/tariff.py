@@ -18,7 +18,7 @@ from edibert._fields import (
     invalid,
     missing,
 )
-from edibert.context import PricingContext
+from edibert.context import PricingContext, region_codes
 from edibert.errors import EdibertError, EdibertWarning, ErrorCode, WarningCode
 from edibert.rules import (
     REQUIRES,
@@ -45,7 +45,7 @@ SPOT_EXPORT_TYPES = ("spot_hourly", "ex_post_spot")
 
 FEE_FIELDS = ("monthly_fee_eur", "grid_monthly_fee_eur", "metering_monthly_fee_eur", "other_monthly_fee_eur")
 TARIFF_FIELDS = (
-    "id", "label", "type", "land", "currency", "supplier_id", "notes",
+    "id", "label", "type", "land", "regions", "currency", "supplier_id", "notes",
     "settlement_fee_cent_kwh", "markup_percent", "prices_include_vat", "vat_percent", "settlement_mtu",
     "fix_cent_kwh", "k_push_cent", "monthly_rates", "monthly_seed",
     "feed_in_fee_factor", "feed_in_fix_cent",
@@ -68,6 +68,7 @@ class Tariff:
     label: str
     supplier_id: str
     land: str | None
+    regions: tuple[str, ...]  # federal states / cantons of ``land``; empty = the whole land
     currency: str | None
     settlement_fee_cent_kwh: float
     markup_percent: float
@@ -205,6 +206,7 @@ def _build(raw: Mapping[str, Any], direction: str, tariff_type: str, tid: str) -
         label=get_str(raw, "label", tid) or tid,
         supplier_id=get_str(raw, "supplier_id", tid, required=True) or tid,
         land=get_str(raw, "land", tid),
+        regions=_parse_regions(raw, tid),
         currency=get_str(raw, "currency", tid),
         settlement_fee_cent_kwh=get_number(raw, "settlement_fee_cent_kwh", tid) or 0.0,
         markup_percent=get_number(raw, "markup_percent", tid) or 0.0,
@@ -228,6 +230,23 @@ def _build(raw: Mapping[str, Any], direction: str, tariff_type: str, tid: str) -
         extra_holiday_dates=parse_extra_dates(raw.get("extra_holiday_dates"), f"{tid}.extra_holiday_dates"),
         individual=get_bool(raw, "individual", tid, False),
     )
+
+
+def _parse_regions(raw: Mapping[str, Any], tid: str) -> tuple[str, ...]:
+    """``regions``: a non-empty list of subdivision codes of the tariff's ``land``; absent = whole land."""
+    value = raw.get("regions")
+    if value is None:
+        return ()
+    land = get_str(raw, "land", tid)
+    if land is None:
+        raise missing(f"{tid}.land")
+    if not isinstance(value, list) or not value or len(set(value)) != len(value):
+        raise invalid(f"{tid}.regions", value)
+    known = region_codes(land)
+    for code in value:
+        if code not in known:
+            raise invalid(f"{tid}.regions", code)
+    return tuple(value)
 
 
 def _previous_month(year: int, month: int) -> tuple[int, int]:
