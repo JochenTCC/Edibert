@@ -26,7 +26,9 @@ Before sending, Edibert shows the **exact content**. Nothing is sent without you
 
 1. Check for duplicates and plausibility.
 2. Acceptance only after a passed invoice check or confirmation by a second user (`verified`).
-3. Accepted contributions give you time-limited access to the catalog and its updates. **Planned reward:** one month of free catalog access per accepted, verified tariff whose price varies over time (spot, monthly table or time-window rules); tariffs with a constant price all the time do not count. Details follow with the terms.
+3. Accepted contributions give you time-limited access to the catalog and its updates.
+
+Which terms apply: contributions through Edibert fall under Edibert's own contribution terms (see the README, section License; published after legal review). Contributions made from within Earnie are, until then, covered by the draft in Earnie's [`LICENSE.md`](https://github.com/JochenTCC/Earnie/blob/main/LICENSE.md) § 3 paragraphs 4–8; once Edibert's terms are published they take precedence there too.
 
 Until the upload function exists, the route is a GitHub issue using the "tariff contribution" template (to follow).
 
