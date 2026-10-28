@@ -24,6 +24,7 @@ class ErrorCode(StrEnum):
     RULE_VALUE_MISSING = "RULE_VALUE_MISSING"  # params: rule_id
     GRID_AREA_UNKNOWN = "GRID_AREA_UNKNOWN"  # params: area_id
     VAT_PERCENT_MISSING = "VAT_PERCENT_MISSING"  # params: tariff_id
+    MONTH_RATE_DUPLICATE = "MONTH_RATE_DUPLICATE"  # params: field, month (YYYY-MM)
     # Files and identifiers
     FILE_INVALID = "FILE_INVALID"  # params: path
     ID_COLLISION = "ID_COLLISION"  # params: tariff_id

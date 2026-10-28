@@ -141,7 +141,7 @@ class TariffDraft:
     fee_cent: float = 0.0  # settlement_fee_cent_kwh
     feed_in_fee_factor: float = 0.0
     feed_in_fix_cent: float = 0.0
-    monthly_rates: list[tuple[int, int, float]] = field(default_factory=list)
+    monthly_rates: list[tuple[int | None, int | None, float | None]] = field(default_factory=list)  # None: empty cell
     settlement_mtu: str = "15min"
     prices_include_vat: bool = True
     vat_percent: float = 0.0

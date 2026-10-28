@@ -276,6 +276,7 @@
   "field.other_monthly_fee_eur": "Sonstige Fixkosten",
   "field.base_cent_kwh": "Basispreis",
   "error.VAT_PERCENT_MISSING": "Der Tarif \"{tariff_id}\" hat keinen Mehrwertsteuersatz. Bitte den Satz eintragen (0 ist erlaubt).",
+  "error.MONTH_RATE_DUPLICATE": "Der Monat {month} steht zweimal in der Monatstabelle („{field}“). Bitte nur eine Zeile je Monat.",
   "error.GRID_ID_COLLISION": "Die Netz-ID \"{grid_id}\" kommt mehrfach vor.",
   "error.GRID_ID_PREFIX_MISSING": "Eigene Netzbereiche und Regelsätze müssen mit \"user_\" beginnen (\"{grid_id}\").",
   "error.GRID_ID_PREFIX_RESERVED": "Die Katalog-Netz-ID \"{grid_id}\" verwendet das reservierte Präfix \"user_\".",

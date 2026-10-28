@@ -127,3 +127,24 @@ def test_warning_text(ctx_plain, language):
     text = Translator(language).t(f"warning.{note.code}", **note.params)
     assert "2026-11" in text
     assert "2026-10" in text
+
+
+def test_a_month_listed_twice_is_an_error():
+    """The later row used to win silently; a duplicate month now fails to load."""
+    with pytest.raises(EdibertError) as err:
+        table((2026, 10, 10.0), (2026, 11, 11.0), (2026, 10, 12.0))
+    assert err.value.code == ErrorCode.MONTH_RATE_DUPLICATE
+    assert err.value.params == {"field": "m.monthly_rates[2]", "month": "2026-10"}
+
+
+def test_the_same_month_in_another_year_is_no_duplicate():
+    assert table((2025, 10, 7.0), (2026, 10, 10.0)).monthly_rates == {(2025, 10): 7.0, (2026, 10): 10.0}
+
+
+@pytest.mark.parametrize("key", ["year", "month"])
+def test_an_empty_year_or_month_is_a_missing_field(key):
+    raw = {"id": "m", "type": "monthly_table", "supplier_id": "s", "vat_percent": 20,
+           "monthly_rates": [{"year": 2026, "month": 10, "tariff_cent_kwh": 10.0} | {key: None}]}  # fmt: skip
+    with pytest.raises(EdibertError) as err:
+        make(raw, "import")
+    assert (err.value.code, err.value.params) == (ErrorCode.FIELD_MISSING, {"field": f"m.monthly_rates[0].{key}"})

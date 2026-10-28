@@ -126,3 +126,24 @@ def test_house_grid_fee_is_an_in_memory_user_grid_area(ctx_plain):
     assert fee.work_cent(ctx_plain.to_local(at("2026-10-12 03:00")), ctx_plain) == (2.0, "night")
     assert fee.work_cent(ctx_plain.to_local(at("2026-10-12 12:00")), ctx_plain) == (8.0, None)
     assert house.grid_area_document()["tariff_format"] == 1
+
+
+def _monthly_draft(*rates: tuple) -> TariffDraft:
+    return TariffDraft(direction=IMPORT, label="Table", kind="monthly", vat_percent=20.0, monthly_rates=list(rates))
+
+
+@pytest.mark.parametrize(
+    ("rates", "code", "field"),
+    [
+        ([(2026, 10, 10.0), (2026, 13, 11.0)], ErrorCode.VALUE_INVALID, "user_table.monthly_rates[1].month"),
+        ([(2026, 10, None)], ErrorCode.FIELD_MISSING, "user_table.monthly_rates[0].tariff_cent_kwh"),
+        ([(None, 10, 10.0)], ErrorCode.FIELD_MISSING, "user_table.monthly_rates[0].year"),
+        ([(2026, 10, 10.0), (2026, 10, 12.0)], ErrorCode.MONTH_RATE_DUPLICATE, "user_table.monthly_rates[1]"),
+    ],
+)
+def test_invalid_monthly_rows_are_reported_not_dropped(rates, code, field):
+    """The editor used to drop a row with an empty cell or a month outside 1..12 without a word."""
+    validation = validate(_monthly_draft(*rates))
+    assert not validation.ok
+    assert validation.error.code == code
+    assert validation.error.params["field"] == field

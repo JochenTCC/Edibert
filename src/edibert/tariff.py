@@ -130,13 +130,23 @@ def _parse_monthly_rates(raw: object, path: str) -> dict[tuple[int, int], float]
         where = f"{path}[{index}]"
         data = as_dict(row, where)
         check_known(data, ("year", "month", "tariff_cent_kwh"), where)
-        year, month = data.get("year"), data.get("month")
+        for key in ("year", "month"):
+            if data.get(key) is None:
+                raise missing(f"{where}.{key}")
+        year, month = data["year"], data["month"]
         if isinstance(year, bool) or not isinstance(year, int):
             raise invalid(f"{where}.year", year)
         if isinstance(month, bool) or not isinstance(month, int) or not 1 <= month <= 12:
             raise invalid(f"{where}.month", month)
         value = get_number(data, "tariff_cent_kwh", where, required=True)
         assert value is not None
+        if (year, month) in table:
+            raise EdibertError(
+                ErrorCode.MONTH_RATE_DUPLICATE,
+                f"Month {year}-{month:02d} is listed twice in '{path}'.",
+                field=where,
+                month=f"{year}-{month:02d}",
+            )
         table[(year, month)] = value
     return table
 

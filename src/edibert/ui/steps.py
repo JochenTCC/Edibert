@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -47,11 +48,18 @@ def _monthly_fields(t: Translator, draft: TariffDraft) -> None:
     today = date.today()
     frame = pd.DataFrame(
         draft.monthly_rates or [(today.year, today.month, 0.0)], columns=["year", "month", "cent"]
-    ).astype({"year": "int64", "month": "int64", "cent": "float64"})
+    ).astype({"year": "Int64", "month": "Int64", "cent": "Float64"})  # nullable: an empty cell stays visible
     edited = st.data_editor(frame, num_rows="dynamic", hide_index=True, key=state.key("rates"))
     draft.monthly_rates = [
-        (int(row.year), int(row.month), float(row.cent)) for row in edited.dropna().itertuples() if 1 <= int(row.month) <= 12
+        (_cell(row.year, int), _cell(row.month, int), _cell(row.cent, float))
+        for row in edited.itertuples()
+        if not (pd.isna(row.year) and pd.isna(row.month) and pd.isna(row.cent))  # a row added but left empty
     ]
+
+
+def _cell(value: object, kind: type) -> Any:
+    """An empty cell stays ``None``, so ``validate`` reports the row (``FIELD_MISSING``) instead of dropping it."""
+    return None if pd.isna(value) else kind(value)
 
 
 def step_base(t: Translator, draft: TariffDraft) -> None:
