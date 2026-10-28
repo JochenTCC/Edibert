@@ -39,7 +39,7 @@ def ids(entries: list[CatalogEntry]) -> list[str]:
 def test_type_keys_use_the_price_kinds_and_split_market_prices_by_interval():
     assert [type_key(e.raw, e.direction) for e in ENTRIES] == ["spot:15min", "fixed", "spot:60min", "fixed", "fixed", "monthly"]
     assert type_keys_of(ENTRIES) == ["fixed", "spot:15min", "spot:60min", "monthly"]
-    assert type_key(tariff("x", "x", "monthly_market"), IMPORT) == "spot:15min"  # interval defaults to 15 minutes
+    assert type_key(tariff("x", "x", "spot_hourly"), IMPORT) == "spot:15min"  # interval defaults to 15 minutes
 
 
 def test_settlement_interval_only_for_market_prices():

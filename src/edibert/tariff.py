@@ -38,10 +38,10 @@ if TYPE_CHECKING:
 IMPORT = "import"
 EXPORT = "export"
 
-IMPORT_TYPES = ("fixed_cent", "spot_hourly", "ex_post_spot", "monthly_market", "monthly_table")
-EXPORT_TYPES = ("fixed", "spot_hourly", "ex_post_spot", "monthly_table")
-SPOT_IMPORT_TYPES = ("spot_hourly", "ex_post_spot", "monthly_market")
-SPOT_EXPORT_TYPES = ("spot_hourly", "ex_post_spot")
+IMPORT_TYPES = ("fixed_cent", "spot_hourly", "monthly_table")
+EXPORT_TYPES = ("fixed", "spot_hourly", "monthly_table")
+SPOT_IMPORT_TYPES = ("spot_hourly",)
+SPOT_EXPORT_TYPES = ("spot_hourly",)
 
 FEE_FIELDS = ("monthly_fee_eur", "grid_monthly_fee_eur", "metering_monthly_fee_eur", "other_monthly_fee_eur")
 TARIFF_FIELDS = (

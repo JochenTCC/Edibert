@@ -23,10 +23,8 @@
     },
     "type": {
       "enum": [
-        "ex_post_spot",
         "fixed",
         "fixed_cent",
-        "monthly_market",
         "monthly_table",
         "spot_hourly"
       ]
