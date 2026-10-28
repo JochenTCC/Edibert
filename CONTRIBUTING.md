@@ -26,7 +26,7 @@ Before sending, Edibert shows the **exact content**. Nothing is sent without you
 
 1. Check for duplicates and plausibility.
 2. Acceptance only after a passed invoice check or confirmation by a second user (`verified`).
-3. Accepted contributions give you time-limited access to the catalog and its updates.
+3. Accepted contributions give you time-limited access to the catalog and its updates. **Planned reward:** one month of free catalog access per accepted, verified tariff whose price varies over time (spot, monthly table or time-window rules); tariffs with a constant price all the time do not count. Details follow with the terms.
 
 Until the upload function exists, the route is a GitHub issue using the "tariff contribution" template (to follow).
 
