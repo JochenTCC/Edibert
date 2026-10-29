@@ -2,6 +2,15 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Tariff database client, sharing (0.1.d Catalog P6, 2026-10-29)
+
+- [x] **0.1.d Catalog P6 — sharing client** (built in a separate session on branch `catalog/0.1d-p6-sharing-client`, merged into `main`)
+  - `edibert.contribution`: `contribution_payload()` from a field whitelist (no free text, no local ID, no comments, rule labels dropped); `individual` tariffs refused with `CONTRIBUTION_INDIVIDUAL`; `payload_text()` is both the preview and the text sent; `contribution_items()`, `initially_selected()`
+  - Default by the embedding program: `ShareDefault` (`SHARE` / `OPT_IN`), a **required** parameter `share_default` of `ui.embed.render_editor` (no default); the stand-alone page passes `SHARE`. **Earnie must pass `ShareDefault.OPT_IN` when it raises the Edibert pin** (concept decision 2026-10-29)
+  - Transport: `ContributionTransport` protocol and `send_selected()`; `UiConfig.contribution_transport` is `None` until the server exists (P7), so sending is off and says so (`CONTRIBUTION_TRANSPORT_OFF`)
+  - Editor share section (`ui/share.py`): per-tariff checkbox and the exact JSON per selected tariff; texts en/de, `docs/spec/api.md`, user manual `editor.md` (en, de)
+  - Tests: `tests/test_contribution.py`, `tests/test_ui_embed.py`
+
 ### Tariff database client, part 1 (0.1.d Catalog P1–P5, 2026-10-29)
 
 - [x] **0.1.d Catalog P1–P5 — identity, validity versions, `db_ref`, signed packages, import** (spec section 4a and 11; legal questions assumed settled for planning, the legal review item stays open)
