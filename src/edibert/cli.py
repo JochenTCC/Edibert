@@ -2,6 +2,7 @@
 
 * ``python -m edibert price --tariff FILE --at 2026-10-12T23:30 --tz Europe/Vienna``
 * ``python -m edibert series --tariff FILE --from 2026-12-15T00:00 --to 2026-12-16T00:00 --tz Europe/Vienna``
+* ``python -m edibert capacity --grid-fee FILE --month 2027-01 --tz Europe/Vienna --peak-so-far 4.2 --as-of 2027-01-14T18:00``
 * ``python -m edibert schema``
 * ``python -m edibert publish --data-dir DIR [--once] [--dry-run]``
 """
@@ -15,10 +16,17 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
-from edibert._fields import invalid
+from edibert._fields import invalid, missing
+from edibert.capacity import (
+    CapacityState,
+    capacity_charge_eur,
+    capacity_ladder,
+    charge_for_month,
+)
+from edibert.checks import check_grid_fee
 from edibert.context import PricingContext
 from edibert.errors import EdibertError
 from edibert.gridfee import (
@@ -70,6 +78,18 @@ def build_parser() -> argparse.ArgumentParser:
     series.add_argument("--forecast-method", help="method of the forecast prices (mirror, hold, plug-in name)")
     series.add_argument("--format", choices=("table", "json"), default="table")
     series.add_argument("--has", action="append", help="house capability, repeatable (e.g. smart_meter); enables the requirement check")
+    capacity = sub.add_parser("capacity", help="capacity charge of one month: amount for a peak and the cost ladder")
+    capacity.add_argument("--grid-fee", type=Path, required=True, help="JSON file with the house-profile field 'netznutzung'")
+    capacity.add_argument("--grid-catalog", type=Path, help="grid_fees.json with catalog areas")
+    capacity.add_argument("--user-grid-fees", type=Path, help="user_grid_fees.json with own grid areas (user_...)")
+    capacity.add_argument("--tz", required=True, help="IANA time zone of the house, e.g. Europe/Vienna")
+    capacity.add_argument("--month", required=True, help="calendar month, YYYY-MM")
+    capacity.add_argument("--peak-so-far", type=float, help="measured month-to-date peak in kW (needs --as-of)")
+    capacity.add_argument("--as-of", help="time of the month-to-date peak state, ISO 8601 (naive = local time)")
+    capacity.add_argument("--power", type=float, help="month peak in kW to compute the month amount for")
+    capacity.add_argument("--step", type=float, help="extra ladder rungs every STEP kW (needs --max)")
+    capacity.add_argument("--max", dest="max_kw", type=float, help="highest ladder rung in kW (with --step)")
+    capacity.add_argument("--format", choices=("table", "json"), default="table")
     sub.add_parser("schema", help="print the JSON Schema of a tariff entry")
     ui = sub.add_parser("ui", help="start the tariff editor in the browser (needs: pip install 'edibert[ui]')")
     ui.add_argument("--data-dir", type=Path, default=Path("edibert_data"), help="folder for user_tariffs.json and house.json")
@@ -158,6 +178,53 @@ def run_series(args: argparse.Namespace, t: Translator) -> tuple[list[str], list
     return _series_lines(t, series), notes
 
 
+def _parse_month(text: str) -> date:
+    try:
+        return datetime.strptime(text, "%Y-%m").date()
+    except ValueError as exc:
+        raise invalid("--month", text) from exc
+
+
+def _capacity_state(args: argparse.Namespace) -> CapacityState | None:
+    if args.peak_so_far is None and args.as_of is None:
+        return None
+    if args.peak_so_far is None:
+        raise missing("--peak-so-far")
+    as_of = _parse_time(args.as_of, "--as-of")
+    if as_of is None:
+        raise missing("--as-of")
+    return CapacityState(args.peak_so_far, as_of)
+
+
+def run_capacity(args: argparse.Namespace, t: Translator) -> tuple[list[str], list[str]]:
+    ctx = PricingContext(args.tz)
+    grid_fee = resolve_grid_fee(load_grid_fee_config(args.grid_fee), load_grid_fees(args.grid_catalog, args.user_grid_fees))
+    notes = [t.warning(item) for item in check_grid_fee(grid_fee)]
+    month = _parse_month(args.month)
+    charge = charge_for_month(grid_fee.capacity, month, grid_fee.area_id)
+    if charge is None:
+        return [t.t("cli.capacity_none", area_id=grid_fee.area_id, month=args.month)], notes
+    ladder = capacity_ladder(charge, _capacity_state(args), month, ctx, step_kw=args.step, max_kw=args.max_kw)
+    amount = capacity_charge_eur(charge, args.power) if args.power is not None else None
+    if args.format == "json":
+        result = ladder.to_dict()
+        if amount is not None:
+            result["power_kw"], result["amount_eur"] = args.power, amount
+        return [json.dumps(result, indent=2, ensure_ascii=False)], notes
+    lines = [t.t("cli.capacity_title", charge_id=charge.id, month=args.month, free=t.number(ladder.free_up_to_kw))]
+    if amount is not None:
+        lines.append(t.t("cli.capacity_amount", power=t.number(args.power), eur=t.number(amount)))
+    for rung in ladder.rungs:
+        row = t.t(
+            "cli.capacity_row",
+            kw=t.number(rung.up_to_kw),
+            extra=t.number(rung.extra_eur),
+            marginal=t.number(rung.marginal_eur_per_kw),
+        )
+        lines.append(f"{row}  [{t.t('cli.capacity_reached')}]" if rung.reached else row)
+    return lines, notes
+
+
 def run_ui(args: argparse.Namespace, t: Translator) -> int:
     """Start Streamlit with the editor page. Settings travel as environment variables."""
     if importlib.util.find_spec("streamlit") is None:
@@ -190,6 +257,8 @@ def main(argv: list[str] | None = None) -> int:
             return run_publish(args, t)
         if args.command == "price":
             lines, notes = run_price(args, t), []
+        elif args.command == "capacity":
+            lines, notes = run_capacity(args, t)
         else:
             lines, notes = run_series(args, t)
     except (EdibertError, OSError) as err:

@@ -25,6 +25,7 @@ from edibert._fields import (
     invalid,
     missing,
 )
+from edibert.capacity import CapacityCharge, parse_capacity_charges
 from edibert.context import PricingContext
 from edibert.errors import EdibertError, ErrorCode
 from edibert.fileformat import (
@@ -53,7 +54,7 @@ GRID_HOLIDAY_MODE = "sunday"  # a holiday counts as a Sunday for grid rules; are
 
 CONFIG_FIELDS = ("area_id", "power_metering", "quarter_hour_meter", "include_status")
 DOCUMENT_FIELDS = (FORMAT_KEY, "description", "rule_sets", "areas")
-AREA_FIELDS = ("id", "label", "land", "base_cent_kwh", "rule_set", "source")
+AREA_FIELDS = ("id", "label", "land", "base_cent_kwh", "rule_set", "source", "capacity_charges")
 
 
 @dataclass(frozen=True)
@@ -74,6 +75,7 @@ class GridArea:
     base_cent_kwh: Mapping[str, float]
     rule_set: str | None
     source: str
+    capacity_charges: tuple[CapacityCharge, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -94,12 +96,19 @@ class SkippedRule:
 
 @dataclass(frozen=True)
 class GridFee:
-    """A resolved grid fee: base work price plus the rules that are in effect."""
+    """A resolved grid fee: base work price plus the rules that are in effect.
+
+    ``capacity`` holds the capacity-charge entries in effect (section 5b), ``capacity_skipped`` the entries left
+    out by status (ID to status). ``quarter_hour_meter`` says whether the house can supply the month-to-date peak.
+    """
 
     area_id: str
     base_cent_kwh: float
     rules: tuple[Rule, ...]
     skipped: tuple[SkippedRule, ...]
+    capacity: tuple[CapacityCharge, ...] = ()
+    capacity_skipped: Mapping[str, str] = field(default_factory=dict)
+    quarter_hour_meter: bool = True
 
     def work_cent(self, local: datetime, ctx: PricingContext) -> tuple[float, str | None]:
         """Net work price and the id of the rule that applied for the slot at ``local``."""
@@ -155,7 +164,9 @@ def _collision(grid_id: str) -> EdibertError:
     return EdibertError(ErrorCode.GRID_ID_COLLISION, f"Grid ID '{grid_id}' is used more than once.", grid_id=grid_id)
 
 
-def _parse_area(raw: object, where: str, rule_sets: Mapping[str, tuple[Rule, ...]]) -> GridArea:
+def _parse_area(
+    raw: object, where: str, rule_sets: Mapping[str, tuple[Rule, ...]], *, require_status: bool
+) -> GridArea:
     data = as_dict(raw, where)
     area_id = get_str(data, "id", where, required=True)
     assert area_id is not None
@@ -176,14 +187,17 @@ def _parse_area(raw: object, where: str, rule_sets: Mapping[str, tuple[Rule, ...
         base_cent_kwh={key: value for key, value in prices.items() if value is not None},
         rule_set=rule_set,
         source=get_str(data, "source", where) or "",
+        capacity_charges=parse_capacity_charges(
+            data.get("capacity_charges", []), f"{where}.capacity_charges", require_status=require_status
+        ),
     )
 
 
 def parse_grid_fee_catalog(doc: object, origin: str = CATALOG, where: str | None = None) -> GridFeeCatalog:
     """Validate ``grid_fees.json`` (``origin="catalog"``) or ``user_grid_fees.json`` (``origin="user"``).
 
-    Both need a supported ``tariff_format``. Catalog rules need a ``status``; user rules may omit it and
-    then always apply. Area and rule-set IDs follow the ``user_`` prefix rule of their origin; an area may
+    Both need a supported ``tariff_format``. Catalog rules and capacity charges need a ``status``; user
+    entries may omit it and then always apply. Area and rule-set IDs follow the ``user_`` prefix rule of their origin; an area may
     only use a rule set of its own file.
     """
     if origin not in (CATALOG, USER):
@@ -206,7 +220,7 @@ def parse_grid_fee_catalog(doc: object, origin: str = CATALOG, where: str | None
         raise invalid(f"{where}.areas", areas_raw)
     areas: dict[str, GridArea] = {}
     for index, item in enumerate(areas_raw):
-        area = _parse_area(item, f"{where}.areas[{index}]", rule_sets)
+        area = _parse_area(item, f"{where}.areas[{index}]", rule_sets, require_status=origin == CATALOG)
         _check_grid_id(area.id, origin)
         if area.id in areas:
             raise _collision(area.id)
@@ -321,7 +335,9 @@ def _filter_rules(rules: tuple[Rule, ...], config: GridFeeConfig) -> tuple[list[
 def resolve_grid_fee(config: GridFeeConfig, catalog: GridFeeCatalog) -> GridFee:
     """Combine the profile field and the selected area (catalog or user) into an evaluable grid fee.
 
-    The base price comes from the area (by metering type) and the area's rule set applies.
+    The base price comes from the area (by metering type) and the area's rule set applies. Capacity
+    charges are filtered by ``include_status`` like the rules; a missing ``quarter_hour_meter`` never skips one
+    (the operator bills the peak anyway), it only means the house cannot supply the state.
     """
     if config.area_id not in catalog.areas:
         raise EdibertError(
@@ -331,4 +347,20 @@ def resolve_grid_fee(config: GridFeeConfig, catalog: GridFeeCatalog) -> GridFee:
     base = area.base_cent_kwh[config.power_metering]
     rules = catalog.rule_sets.get(area.rule_set, ()) if area.rule_set else ()
     active, skipped = _filter_rules(rules, config)
-    return GridFee(config.area_id, float(base), tuple(active), tuple(skipped))
+    capacity = tuple(
+        charge for charge in area.capacity_charges if charge.status is None or charge.status in config.include_status
+    )
+    capacity_skipped = {
+        charge.id: charge.status
+        for charge in area.capacity_charges
+        if charge.status is not None and charge.status not in config.include_status
+    }
+    return GridFee(
+        config.area_id,
+        float(base),
+        tuple(active),
+        tuple(skipped),
+        capacity=capacity,
+        capacity_skipped=capacity_skipped,
+        quarter_hour_meter=config.quarter_hour_meter,
+    )

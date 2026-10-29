@@ -1,0 +1,29 @@
+{
+  "$comment": "User grid area (shape of user_grid_fees.json) with a capacity charge (section 5b): a monthly price per kW of the highest quarter-hour import power, two bands split at 10 kW, minimum 2 kW (SNE-G-V, Netzebene 7). Placeholder prices, not taken from any SNE-T-V; the per-area values are published by the regulator. The house profile selects the area with netznutzung.area_id.",
+  "tariff_format": 1,
+  "rule_sets": {},
+  "areas": [
+    {
+      "id": "user_capacity_example",
+      "label": "Capacity charge example",
+      "land": "AT",
+      "base_cent_kwh": { "unmetered_power": 4.5, "metered_power": 4.5 },
+      "capacity_charges": [
+        {
+          "id": "lp_2027",
+          "label": "Capacity price 2027",
+          "basis": "monthly_peak_15min",
+          "min_kw": 2.0,
+          "bands": [
+            { "up_to_kw": 10, "cent_per_kw_month": 150 },
+            { "up_to_kw": null, "cent_per_kw_month": 300 }
+          ],
+          "valid_from": "2027-01-01",
+          "valid_to": "2027-12-31",
+          "status": "entwurf",
+          "source": "placeholder"
+        }
+      ]
+    }
+  ]
+}

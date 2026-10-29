@@ -25,6 +25,14 @@ python -m edibert series --tariff examples/spot_evening_surcharge_cap.json \
 
 Add `--grid-fee house_grid.json` to include a grid fee. The file holds the `netznutzung` object of the house profile, which selects a grid area by `area_id` (see `examples/netznutzung_modul3_example.json`). The area comes from `--grid-catalog grid_fees.json` (catalog areas) or `--user-grid-fees user_grid_fees.json` (own areas with IDs starting with `user_`, see `examples/grid_fee_modul3_example.json`); both may be given. An unknown area stops the command with an error.
 
+## Capacity charge
+
+```bash
+python -m edibert capacity --grid-fee house_grid.json --user-grid-fees examples/grid_fee_capacity_example.json --tz Europe/Vienna --month 2027-01 --peak-so-far 4.2 --as-of 2027-01-14T18:00 --power 12
+```
+
+For grid areas with a capacity charge (a monthly price per kW of the highest quarter hour of the month). The command shows the charge of the month `--month` (`YYYY-MM`): with `--power` the month amount for that peak, and a table of what each higher peak would cost on top. `--peak-so-far` is the highest measured quarter hour of the month so far, in kW, and needs `--as-of`, the time of that reading; without it the table shows the full month amounts. `--step 2 --max 16` adds rows every 2 kW up to 16 kW. `--format json` prints the table as JSON. Amounts are net. A month without a matching entry in the grid area stops the command with an error; for a month before the charge starts the command says that there is none.
+
 ## Publish
 
 ```bash

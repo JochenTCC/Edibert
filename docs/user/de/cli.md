@@ -26,6 +26,14 @@ python -m edibert series --tariff examples/spot_evening_surcharge_cap.json \
 
 Mit `--grid-fee house_grid.json` wird ein Netzentgelt eingerechnet. Die Datei enthält das Objekt `netznutzung` des Hausprofils, das per `area_id` einen Netzbereich auswählt (siehe `examples/netznutzung_modul3_example.json`). Der Bereich kommt aus `--grid-catalog grid_fees.json` (Katalog-Netzbereiche) oder `--user-grid-fees user_grid_fees.json` (eigene Netzbereiche, IDs beginnen mit `user_`, siehe `examples/grid_fee_modul3_example.json`); beide Angaben sind kombinierbar. Ein unbekannter Netzbereich bricht den Befehl mit einem Fehler ab.
 
+## Leistungspreis
+
+```bash
+python -m edibert capacity --grid-fee house_grid.json --user-grid-fees examples/grid_fee_capacity_example.json --tz Europe/Vienna --month 2027-01 --peak-so-far 4.2 --as-of 2027-01-14T18:00 --power 12
+```
+
+Für Netzbereiche mit Leistungspreis (ein Monatspreis je kW der höchsten Viertelstunde des Monats). Der Befehl zeigt den Leistungspreis des Monats `--month` (`JJJJ-MM`): mit `--power` den Monatsbetrag für diese Spitze, dazu eine Tabelle, was jede höhere Spitze zusätzlich kosten würde. `--peak-so-far` ist die bisher höchste gemessene Viertelstunde des Monats in kW und braucht `--as-of`, den Zeitpunkt dieses Werts; ohne sie zeigt die Tabelle die vollen Monatsbeträge. `--step 2 --max 16` ergänzt Zeilen alle 2 kW bis 16 kW. `--format json` gibt die Tabelle als JSON aus. Die Beträge sind netto. Ein Monat ohne passenden Eintrag im Netzbereich bricht den Befehl mit einem Fehler ab; für einen Monat vor dem Start des Leistungspreises meldet der Befehl, dass es keinen gibt.
+
 ## Veröffentlichen
 
 ```bash

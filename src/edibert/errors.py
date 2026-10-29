@@ -42,6 +42,9 @@ class ErrorCode(StrEnum):
     MARKET_PRICE_REQUIRED = "MARKET_PRICE_REQUIRED"  # params: slot, tariff_id
     HOLIDAY_REGION_MISSING = "HOLIDAY_REGION_MISSING"  # params: none
     HOLIDAY_REGION_UNKNOWN = "HOLIDAY_REGION_UNKNOWN"  # params: land, region
+    CAPACITY_CHARGE_MISSING = "CAPACITY_CHARGE_MISSING"  # params: area_id, month
+    CAPACITY_STATE_MISSING = "CAPACITY_STATE_MISSING"  # params: month
+    CAPACITY_STATE_MONTH_MISMATCH = "CAPACITY_STATE_MONTH_MISMATCH"  # params: month, state_month
     # Market data and publishing
     MARKET_DATA_UNAVAILABLE = "MARKET_DATA_UNAVAILABLE"  # params: zone
     MARKET_ZONE_UNKNOWN = "MARKET_ZONE_UNKNOWN"  # params: land
@@ -81,6 +84,9 @@ class WarningCode(StrEnum):
     FORECAST_FAILED = "FORECAST_FAILED"  # params: name, reason
     MONTH_RATE_FALLBACK = "MONTH_RATE_FALLBACK"  # params: tariff_id, direction, month, used_month, rule
     MARKET_RANGE_INCOMPLETE = "MARKET_RANGE_INCOMPLETE"  # params: zone, missing_from, missing_slots
+    GRID_CAPACITY_SKIPPED_STATUS = "GRID_CAPACITY_SKIPPED_STATUS"  # params: charge_id, status
+    CAPACITY_BANDS_NOT_CONVEX = "CAPACITY_BANDS_NOT_CONVEX"  # params: charge_id
+    CAPACITY_STATE_UNAVAILABLE = "CAPACITY_STATE_UNAVAILABLE"  # params: area_id
 
 
 @dataclass(frozen=True)

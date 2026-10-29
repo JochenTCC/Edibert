@@ -2,6 +2,19 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Capacity charge AT 2027: engine (0.1.q, 2026-10-29)
+
+- [x] **0.1.q — Capacity charge engine** (engine part of the `0.+1` item *Capacity charge AT 2027*, pulled ahead of `0.1.0` because Earnie's max-power tariff builds on it; spec section 5b)
+  - Grid areas in `grid_fees.json` / `user_grid_fees.json` take `capacity_charges`: `id`, `label`, `basis` (`monthly_peak_15min`), `min_kw`, `bands[]` with `up_to_kw` and `cent_per_kw_month`, `valid_from` / `valid_to` on whole months, `status`, `source`, `note`. Strict loading: unknown fields, an open band that is not the last, bands not ascending, overlapping entries, negative values are errors; catalog entries need a `status`
+  - Decisions from the final SNE-G-V (BGBl. II Nr. 299/2026, maintainer 2026-10-29): rates in cent per kW and month as the ordinance sets them (no `eur_per_kw_year` and no `/12`); no `min_percent_of_contracted` (the 20 % rule applies to Netzebenen 1 to 6 only), so no `contracted_kw` in the house profile; month amount rounded to cents (section 28 (2))
+  - `resolve_grid_fee` filters entries by `include_status` (`GRID_CAPACITY_SKIPPED_STATUS`); a missing `quarter_hour_meter` keeps the charge and warns `CAPACITY_STATE_UNAVAILABLE`; falling band rates warn `CAPACITY_BANDS_NOT_CONVEX`
+  - `charge_for_month` (none before the first entry starts, `CAPACITY_CHARGE_MISSING` for a later uncovered month), `capacity_charge_eur`, `capacity_ladder` (relative to the measured `CapacityState`, absolute without one; `CAPACITY_STATE_MONTH_MISMATCH`, `CAPACITY_STATE_MISSING`), `parse_capacity_state`; all in `edibert.api` (additions, `API_VERSION` stays 2)
+  - `tariff_price_series(..., capacity_state=...)`: `capacity` block per calendar month for import tariffs (state month relative, later months from a peak of 0, earlier months absolute); slot prices unchanged
+  - CLI `python -m edibert capacity` (month amount for `--power`, ladder, `--step` / `--max`, JSON); texts in both catalogs; example `examples/grid_fee_capacity_example.json`
+  - Docs: spec section 5b, 7, 8, 9; `docs/spec/api.md`; user manual `cli.md` (en, de). The tariff schema covers tariff entries only, so it is unchanged
+  - Tests: `tests/test_capacity.py`
+  - Open in `0.+1`: editor, Home Assistant publishing, comparison with a consumption file
+
 ### Editor: findings from the first dogfooding in Earnie (0.1.p, 2026-10-28)
 
 - [x] **0.1.p — Editor findings from the embedded editor on Earnie's *Tarife* page**

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Collection
 
+from edibert.capacity import check_capacity
 from edibert.errors import EdibertWarning, WarningCode
 from edibert.gridfee import SKIP_NO_QUARTER_HOUR_METER, SKIP_STATUS, GridFee
 from edibert.tariff import Tariff
@@ -49,7 +50,8 @@ def check_tariff(tariff: Tariff, capabilities: Collection[str] | None = None) ->
 
 
 def check_grid_fee(grid_fee: GridFee) -> list[EdibertWarning]:
-    """Warnings for rules that were left out of a resolved grid fee."""
+    """Warnings for rules and capacity charges that were left out of a resolved grid fee, non-convex capacity
+    bands, and a capacity charge the house cannot supply the state for."""
     found: list[EdibertWarning] = []
     for skipped in grid_fee.skipped:
         if skipped.reason == SKIP_STATUS:
@@ -59,4 +61,5 @@ def check_grid_fee(grid_fee: GridFee) -> list[EdibertWarning]:
         else:
             continue
         found.append(EdibertWarning(code, f"Grid rule '{skipped.rule_id}' skipped: {skipped.reason}.", params))
+    found += check_capacity(grid_fee.capacity, grid_fee.capacity_skipped, grid_fee.area_id, grid_fee.quarter_hour_meter)
     return found

@@ -18,6 +18,17 @@ from zoneinfo import ZoneInfo
 from edibert import gridfee as _gridfee
 from edibert import store as _store
 from edibert._fields import invalid, missing
+from edibert.capacity import (
+    CapacityBand,
+    CapacityCharge,
+    CapacityLadder,
+    CapacityState,
+    LadderRung,
+    capacity_charge_eur,
+    capacity_ladder,
+    charge_for_month,
+    parse_capacity_state,
+)
 from edibert.context import HolidayCalendar, PricingContext
 from edibert.errors import EdibertError, EdibertWarning, ErrorCode, WarningCode
 from edibert.fileformat import TARIFF_FORMAT, TARIFF_TRACK_FILES
@@ -87,6 +98,10 @@ __all__ = [
     "TARIFF_FORMAT",
     "TARIFF_TRACK_FILES",
     "USER_PREFIX",
+    "CapacityBand",
+    "CapacityCharge",
+    "CapacityLadder",
+    "CapacityState",
     "EdibertError",
     "EdibertWarning",
     "ErrorCode",
@@ -96,6 +111,7 @@ __all__ = [
     "GridFeeCatalog",
     "GridFeeConfig",
     "HoldLastForecaster",
+    "LadderRung",
     "MarketArchive",
     "MarketData",
     "MarketRange",
@@ -113,6 +129,9 @@ __all__ = [
     "TariffSet",
     "WarningCode",
     "builtin_forecaster",
+    "capacity_charge_eur",
+    "capacity_ladder",
+    "charge_for_month",
     "evaluate",
     "flat_user_grid_area",
     "known_at",
@@ -123,6 +142,7 @@ __all__ = [
     "market_range",
     "market_zone",
     "migrate",
+    "parse_capacity_state",
     "parse_grid_fee_config",
     "parse_tariff",
     "plan_migration",
