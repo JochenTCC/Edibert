@@ -11,12 +11,13 @@ from typing import Any
 
 import streamlit as st
 
+from edibert.contribution import ShareDefault, check_share_default
 from edibert.editor.model import TariffDraft
 from edibert.editor.userstore import SECTIONS, read_document
 from edibert.errors import EdibertError, ErrorCode
 from edibert.i18n import Translator
 from edibert.tariff import EXPORT, IMPORT, Tariff
-from edibert.ui import preview, sidebar, state
+from edibert.ui import preview, share, sidebar, state
 from edibert.ui.config import HostHouse, UiConfig, check_language
 from edibert.ui.steps import render_steps
 
@@ -76,15 +77,23 @@ def render_body(t: Translator, config: UiConfig) -> None:
         preview.render(t, draft, config)
 
 
-def render_editor(config: UiConfig, *, list_container: Any = None, open_tariff: tuple[str, str] | None = None) -> None:
+def render_editor(
+    config: UiConfig,
+    *,
+    share_default: ShareDefault,
+    list_container: Any = None,
+    open_tariff: tuple[str, str] | None = None,
+) -> None:
     """The editor inside a host page.
 
     ``config.key_prefix`` must be non-empty; ``config.host_house`` (optional) replaces the editor's own
     house settings, and then nothing is read from or written to ``house.json``. The house settings and
     the row with the tariff list, new/copy/import go into ``list_container`` (default: above form and preview).
     ``open_tariff=(direction, id)`` opens that user tariff once per distinct request; an unknown ID is shown
-    as an error.
+    as an error. ``share_default`` (required, no default) says whether saved tariffs start selected in the
+    share section: ``ShareDefault.OPT_IN`` for Earnie, ``ShareDefault.SHARE`` for stand-alone Edibert.
     """
+    check_share_default(share_default)
     _check_prefix(config.key_prefix)
     check_language(config.language, "language")
     with state.scope(config.key_prefix):
@@ -94,6 +103,7 @@ def render_editor(config: UiConfig, *, list_container: Any = None, open_tariff: 
         with list_container if list_container is not None else st.container():
             sidebar.render_house(t, config)
             sidebar.render_tools(t, config)
+            share.render(t, config, share_default)
         render_body(t, config)
 
 

@@ -6,10 +6,14 @@ import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from edibert.context import PricingContext
 from edibert.gridfee import GridFee
 from edibert.i18n import SOURCE_LANGUAGE, SUPPORTED_LANGUAGES
+
+if TYPE_CHECKING:
+    from edibert.contribution import ContributionTransport
 
 ENV_DATA_DIR = "EDIBERT_DATA_DIR"
 ENV_CATALOG = "EDIBERT_CATALOG"
@@ -34,6 +38,8 @@ class UiConfig:
     confirmation (e.g. the host's scenarios that use it), or ``None`` to delete right away.
     ``on_change(action, direction, tariff_id)``: called after the editor wrote ``user_tariffs.json``
     (``action`` is ``"save"`` or ``"delete"``), before the page reruns.
+    ``contribution_transport``: sends shared tariffs to the free catalog; ``None`` = no endpoint configured,
+    sharing is off and the share section says so.
     """
 
     data_dir: Path
@@ -43,6 +49,7 @@ class UiConfig:
     host_house: HostHouse | None = None
     delete_guard: Callable[[str, str], str | None] | None = None
     on_change: Callable[[str, str, str], None] | None = None
+    contribution_transport: ContributionTransport | None = None
 
     @property
     def user_file(self) -> Path:

@@ -12,6 +12,14 @@ The row above the form holds three tools:
 
 **Unsaved changes.** While the open tariff differs from its saved state, the editor shows **Not saved**. A copied catalog tariff counts as not saved until you save it. When you open another tariff, start a new one or copy one, the editor asks first: **Save**, **Discard** or **Cancel**. Leaving the whole page (another page of the host application, closing the browser tab) cannot be caught; save before you go.
 
+## Share with the free catalog
+
+Below the tool row, **Share with the free catalog** lists your saved tariffs. Each one has a checkbox; while it is ticked, the box below it shows exactly what would be sent. Only price data is sent: type, prices, time windows (without their names), fees, VAT, country, supplier and product name, source and last-checked date. Your notes, the conditions text, comments and the tariff's own ID are never sent. A tariff marked **This tariff is personal** is never shared and has no checkbox; neither has a tariff with an error.
+
+Whether the tariffs start ticked depends on the program: the stand-alone Edibert ticks them (you leave out what you do not want to share), Earnie leaves them unticked (you choose what to share). **Send selected tariffs** sends the ticked ones.
+
+There is no catalog server yet, so sharing is off: the section says so, and the send button stays disabled. You can still check what would be sent; nothing leaves your computer.
+
 ## Step 1: Base price
 
 - **Name of the tariff** and **Supplier.** The name is required. Your tariff gets an ID like `user_my_tariff`.

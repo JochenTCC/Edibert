@@ -61,6 +61,9 @@ class ErrorCode(StrEnum):
     FORECAST_KEY_MISSING = "FORECAST_KEY_MISSING"  # params: env
     MQTT_LIBRARY_MISSING = "MQTT_LIBRARY_MISSING"  # params: none
     MQTT_CONNECTION_FAILED = "MQTT_CONNECTION_FAILED"  # params: host, port
+    # Sharing with the free catalog (Catalog P6)
+    CONTRIBUTION_INDIVIDUAL = "CONTRIBUTION_INDIVIDUAL"  # params: tariff_id
+    CONTRIBUTION_TRANSPORT_OFF = "CONTRIBUTION_TRANSPORT_OFF"  # params: none
 
 
 class EdibertError(Exception):
@@ -97,6 +100,8 @@ class WarningCode(StrEnum):
     CAPACITY_BANDS_NOT_CONVEX = "CAPACITY_BANDS_NOT_CONVEX"  # params: charge_id
     CAPACITY_STATE_UNAVAILABLE = "CAPACITY_STATE_UNAVAILABLE"  # params: area_id
     PACKAGE_EXPIRED = "PACKAGE_EXPIRED"  # params: valid_until
+    # Sharing with the free catalog (Catalog P6)
+    CONTRIBUTION_TRANSPORT_OFF = "CONTRIBUTION_TRANSPORT_OFF"  # params: none
 
 
 @dataclass(frozen=True)
