@@ -21,7 +21,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from edibert.editor.userstore import SECTIONS
 from edibert.errors import EdibertError, ErrorCode
-from edibert.tariff import EXPORT, FEE_FIELDS, IMPORT, parse_tariff
+from edibert.tariff import EXPORT, FEE_FIELDS, IMPORT, DbRef, parse_tariff
 
 CONTRIBUTION_FORMAT = 1
 
@@ -148,10 +148,12 @@ class SendStatus(StrEnum):
 
 @dataclass(frozen=True)
 class SendResult:
-    """Answer of a transport for one payload. ``code`` names the reason of a rejection (server contract: P7)."""
+    """Answer of a transport for one payload. ``code`` names the reason of a rejection; ``db_ref`` is the database
+    entry an accepted or duplicate tariff now stands for (contract: ``docs/spec/catalog-exchange.md``)."""
 
     status: SendStatus
     code: str | None = None
+    db_ref: DbRef | None = None
 
 
 @runtime_checkable

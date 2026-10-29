@@ -2,6 +2,15 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Tariff database client, server exchange (0.1.d Catalog P7 client, 2026-10-29)
+
+- [x] **0.1.d Catalog P7 — client side of the server exchange** (server: open, `earnie-server`)
+  - Contract `docs/spec/catalog-exchange.md`: load package (`GET /edibert/v1/packages/{free|verified}/latest`, Bearer key, ETag), submit tariff (`POST /tariffs`, P6 payload + `version` + `based_on`, answer with `db_id`), report use (`POST /usage`, `{db_id, version, pseudonym}`, one request per tariff at a random time, no IP log), query status (`POST /status`, 1–100 entries), access key `ek_…`; no installation ID on any route
+  - `edibert.exchange`: `ExchangeConfig` / `exchange_config_from_env` (`EDIBERT_EXCHANGE_URL`, `EDIBERT_ACCESS_KEY`, hard off switch `EDIBERT_EXCHANGE_OFF=1`), `ExchangeClient` with injectable HTTP (`urllib_send`), coded errors `EXCHANGE_OFF`, `EXCHANGE_UNREACHABLE`, `EXCHANGE_ACCESS_DENIED`, `EXCHANGE_RATE_LIMITED`, `EXCHANGE_REJECTED`, `EXCHANGE_ANSWER_INVALID`; `ServerTransport` (P6 adapter), `install_secret` / `usage_pseudonym` (HMAC per tariff), `used_ref`, `plan_usage_reports`
+  - Share section: an accepted or duplicate tariff takes the `db_ref` the server names (`SendResult.db_ref`); the stand-alone editor gets the server transport from the environment, a host passes its own
+  - CLI `python -m edibert exchange fetch|status|report` (`publish/exchange_command.py`, tariffs in use = `publish.json`); texts en/de, `docs/spec/api.md`, spec section 11, user manual `cli.md` and `editor.md` (en, de)
+  - Tests: `tests/test_exchange.py` (fake server and a local HTTP server); all tests run with `EDIBERT_EXCHANGE_OFF=1` (`conftest.py`)
+
 ### Tariff database client, sharing (0.1.d Catalog P6, 2026-10-29)
 
 - [x] **0.1.d Catalog P6 — sharing client** (built in a separate session on branch `catalog/0.1d-p6-sharing-client`, merged into `main`)

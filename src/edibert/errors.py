@@ -64,6 +64,13 @@ class ErrorCode(StrEnum):
     # Sharing with the free catalog (Catalog P6)
     CONTRIBUTION_INDIVIDUAL = "CONTRIBUTION_INDIVIDUAL"  # params: tariff_id
     CONTRIBUTION_TRANSPORT_OFF = "CONTRIBUTION_TRANSPORT_OFF"  # params: none
+    # Exchange with the tariff database server (Catalog P7)
+    EXCHANGE_OFF = "EXCHANGE_OFF"  # params: env
+    EXCHANGE_UNREACHABLE = "EXCHANGE_UNREACHABLE"  # params: route
+    EXCHANGE_ACCESS_DENIED = "EXCHANGE_ACCESS_DENIED"  # params: route, server_code
+    EXCHANGE_RATE_LIMITED = "EXCHANGE_RATE_LIMITED"  # params: route, retry_after
+    EXCHANGE_REJECTED = "EXCHANGE_REJECTED"  # params: route, server_code
+    EXCHANGE_ANSWER_INVALID = "EXCHANGE_ANSWER_INVALID"  # params: route
 
 
 class EdibertError(Exception):

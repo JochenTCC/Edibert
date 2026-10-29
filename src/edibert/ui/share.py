@@ -6,6 +6,7 @@ import streamlit as st
 
 from edibert.contribution import (
     ContributionItem,
+    SendResult,
     SendStatus,
     ShareDefault,
     contribution_items,
@@ -13,7 +14,7 @@ from edibert.contribution import (
     payload_text,
     send_selected,
 )
-from edibert.editor.userstore import read_document
+from edibert.editor.userstore import SECTIONS, read_document, save_user_tariff
 from edibert.errors import EdibertError, EdibertWarning, WarningCode
 from edibert.i18n import Translator
 from edibert.ui import state
@@ -39,11 +40,22 @@ def _send(t: Translator, config: UiConfig, chosen: list[ContributionItem]) -> No
     except EdibertError as err:
         st.error(t.error(err))
         return
+    _take_db_refs(config, chosen, results)
     counts = {status: sum(result.status is status for result in results) for status in SendStatus}
     state.notify(
         t.t("ui.share_done", accepted=counts[SendStatus.ACCEPTED], duplicate=counts[SendStatus.DUPLICATE], rejected=counts[SendStatus.REJECTED])
     )
     st.rerun()
+
+
+def _take_db_refs(config: UiConfig, chosen: list[ContributionItem], results: list[SendResult]) -> None:
+    """An accepted or duplicate tariff now stands for a database entry: it takes the ``db_ref`` the server named."""
+    document = read_document(config.user_file)
+    for item, result in zip(chosen, results, strict=True):
+        if result.db_ref is None:
+            continue
+        raw = next(raw for raw in document[SECTIONS[item.direction]] if raw.get("id") == item.tariff_id)
+        save_user_tariff(config.user_file, {**raw, "db_ref": result.db_ref.to_dict()}, item.direction)
 
 
 def render(t: Translator, config: UiConfig, share_default: ShareDefault) -> None:

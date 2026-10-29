@@ -5,6 +5,7 @@
 * ``python -m edibert capacity --grid-fee FILE --month 2027-01 --tz Europe/Vienna --peak-so-far 4.2 --as-of 2027-01-14T18:00``
 * ``python -m edibert package verify FILE``
 * ``python -m edibert package import FILE --catalog tariffs.json --grid-catalog grid_fees.json [--keep-local KEY]``
+* ``python -m edibert exchange fetch|status|report ...`` (server exchange, ``docs/spec/catalog-exchange.md``)
 * ``python -m edibert schema``
 * ``python -m edibert publish --data-dir DIR [--once] [--dry-run]``
 """
@@ -114,6 +115,20 @@ def build_parser() -> argparse.ArgumentParser:
     imports.add_argument("--keep-local", action="append", default=[], metavar="KEY", help="keep this locally entered monthly rate (repeatable)")
     imports.add_argument("--take-package", action="append", default=[], metavar="KEY", help="take the package's value for this monthly rate (repeatable)")
     imports.add_argument("--dry-run", action="store_true", help="show the plan, write nothing")
+    exchange = sub.add_parser("exchange", help="exchange with the tariff database server (EDIBERT_EXCHANGE_OFF=1 switches it off)")
+    exchange_sub = exchange.add_subparsers(dest="exchange_command", required=True)
+    fetch = exchange_sub.add_parser("fetch", help="download the latest package (verified: needs EDIBERT_ACCESS_KEY)")
+    fetch.add_argument("--database", choices=("free", "verified"), required=True)
+    fetch.add_argument("--out", type=Path, required=True, help="package file to write; check and import it with 'package import'")
+    fetch.add_argument("--catalog", type=Path, help="current tariffs.json: nothing is downloaded while its package is the latest")
+    for name, text in (("status", "status of the tariffs in use (newest version, reliable)"),
+                       ("report", "report use of the tariffs in use, one request per tariff at random times within 24 h")):
+        command = exchange_sub.add_parser(name, help=text)
+        command.add_argument("--data-dir", type=Path, default=Path("edibert_data"), help="folder with publish.json and user_tariffs.json")
+        command.add_argument("--catalog", type=Path, help="tariffs.json the catalog tariffs come from")
+        command.add_argument("--config", type=Path, help="publish.json naming the tariffs in use (default: in the data folder)")
+        if name == "report":
+            command.add_argument("--no-delay", action="store_true", help="send right away instead of at random times")
     sub.add_parser("schema", help="print the JSON Schema of a tariff entry")
     ui = sub.add_parser("ui", help="start the tariff editor in the browser (needs: pip install 'edibert[ui]')")
     ui.add_argument("--data-dir", type=Path, default=Path("edibert_data"), help="folder for user_tariffs.json and house.json")
@@ -317,6 +332,10 @@ def main(argv: list[str] | None = None) -> int:
             lines, notes = run_capacity(args, t)
         elif args.command == "package":
             lines, notes = run_package(args, t)
+        elif args.command == "exchange":
+            from edibert.publish.exchange_command import run_exchange
+
+            lines, notes = run_exchange(args, t), []
         else:
             lines, notes = run_series(args, t)
     except (EdibertError, OSError) as err:

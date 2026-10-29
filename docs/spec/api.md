@@ -108,18 +108,34 @@ The Streamlit editor as a component of a host page (new in `0.1.m`; Earnie's *Ta
 
 ## Sharing with the free catalog (`edibert.contribution`)
 
-New in `0.1.d` Catalog P6. Not part of `edibert.api` yet and not counted in `API_VERSION`; the server exchange (Catalog P7) may still change it. No server exists; nothing in Edibert sends anything without a transport the caller passes in.
+New in `0.1.d` Catalog P6. Not part of `edibert.api` yet and not counted in `API_VERSION` until the server runs. Nothing in Edibert sends anything without a transport the caller passes in; the server transport is `edibert.exchange.ServerTransport` (below).
 
 | Name | Purpose |
 |---|---|
-| `contribution_payload(raw, direction) -> dict` | The payload of one user tariff (the object stored in `user_tariffs.json`): `{"contribution_format": 1, "direction", "tariff"}`. The tariff is checked with `parse_tariff` first (an invalid tariff is never shared, its own error code is raised), then copied field by field from `TARIFF_WHITELIST` (type, `label` as product name, `supplier_id`, `land`, `regions`, `currency`, all price, fee and VAT fields, `rules`, floor / cap, `requires`, `holidays`, `extra_holiday_dates`, `source`, `last_verified`; reserved for later formats: `area_id`, `valid_from`, `valid_to`). Rules keep `RULE_WHITELIST` (no `label`); nested objects keep their known keys. Dropped: `id`, `notes`, `behavior_notes`, `$comment` at every level, `individual`, `applies_to`, `monthly_seed`. `individual: true` is `CONTRIBUTION_INDIVIDUAL` (`tariff_id`). Catalog P1/P7 add `identity` and `version` to the envelope. |
+| `contribution_payload(raw, direction) -> dict` | The payload of one user tariff (the object stored in `user_tariffs.json`): `{"contribution_format": 1, "direction", "tariff"}`. The tariff is checked with `parse_tariff` first (an invalid tariff is never shared, its own error code is raised), then copied field by field from `TARIFF_WHITELIST` (type, `label` as product name, `supplier_id`, `land`, `regions`, `currency`, all price, fee and VAT fields, `rules`, floor / cap, `requires`, `holidays`, `extra_holiday_dates`, `source`, `last_verified`; reserved for later formats: `area_id`, `valid_from`, `valid_to`). Rules keep `RULE_WHITELIST` (no `label`); nested objects keep their known keys. Dropped: `id`, `notes`, `behavior_notes`, `$comment` at every level, `individual`, `applies_to`, `monthly_seed`. `individual: true` is `CONTRIBUTION_INDIVIDUAL` (`tariff_id`). The server transport adds `version` (and `based_on`) when it sends, see [catalog-exchange.md](catalog-exchange.md). |
 | `payload_text(payload) -> str` | The exact text of a payload (sorted keys, indent 2, UTF-8): shown in the preview and sent by a transport unchanged. |
 | `contribution_items(document) -> list[ContributionItem]` | Every tariff of a user document, imports first: `direction`, `tariff_id`, `label`, and either `payload` or the coded `error` that keeps it from being shared. |
 | `ShareDefault` | `SHARE` / `OPT_IN`; `check_share_default(value)` raises `TypeError` for anything else. |
 | `initially_selected(item, share_default) -> bool` | Start value of the per-tariff choice; always `False` for an item with an error. |
 | `ContributionTransport` | Protocol: `send(payload) -> SendResult`. An implementation sends `payload_text(payload)` unchanged and raises a coded `EdibertError` when it cannot deliver. |
-| `SendResult(status, code=None)`, `SendStatus` | `accepted` / `duplicate` / `rejected` with an optional reason code (contract: Catalog P7). |
+| `SendResult(status, code=None, db_ref=None)`, `SendStatus` | `accepted` / `duplicate` / `rejected` with an optional reason code; `db_ref` is the database entry an accepted or duplicate tariff now stands for. The share section writes it into the user tariff. |
 | `send_selected(transport, payloads) -> list[SendResult]` | One `send` per payload; `transport=None` is `CONTRIBUTION_TRANSPORT_OFF`. |
+
+## Exchange with the tariff database server (`edibert.exchange`)
+
+New in `0.1.d` Catalog P7; contract [catalog-exchange.md](catalog-exchange.md). Not part of `edibert.api` yet. Every request raises `EXCHANGE_OFF` while `EDIBERT_EXCHANGE_OFF=1`, whatever the caller configured; no request carries an installation ID.
+
+| Name | Purpose |
+|---|---|
+| `ExchangeConfig(base_url, access_key=None, timeout_s=20)` | Server and the access key of the verified database. `exchange_config_from_env()`: `None` when switched off, else `EDIBERT_EXCHANGE_URL` (default `DEFAULT_BASE_URL`) and `EDIBERT_ACCESS_KEY`. |
+| `ExchangeClient(config, send=urllib_send)` | `fetch_package(database, known_package_id=None)` (route 1, `None` when unchanged; the caller verifies and imports), `submit(payload, db_ref=None) -> SubmitAnswer` (route 2), `report_usage(db_id, version, pseudonym)` (route 3), `query_status([(db_id, version)]) -> list[StatusEntry]` (route 4, chunks of 100). `send(method, url, body, headers, timeout) -> HttpAnswer` is injectable. |
+| `ServerTransport(client)` | The `ContributionTransport` of the share section. `ui.config.config_from_env()` (stand-alone editor) sets it unless switched off; a host passes its own or `None`. |
+| `install_secret(data_dir) -> bytes`, `usage_pseudonym(secret, db_id) -> str` | The installation's secret in `exchange_secret` (created on first use, never sent) and the per-tariff pseudonym `HMAC-SHA256(secret, db_id)`. |
+| `used_ref(raw, direction, catalog_database)` | The `DbRef` a tariff in use stands for, or `None`: a user tariff's unchanged `db_ref`, or a catalog tariff of a package catalog. |
+| `plan_usage_reports(refs, secret, start, rng=None) -> list[UsageReport]` | One report per distinct entry at a random time within 24 h, sorted by time; the caller sends each one alone. |
+| `payload_version(payload) -> str` | `tariff_version` of a share payload. |
+
+Errors: `EXCHANGE_OFF` (`env`), `EXCHANGE_UNREACHABLE` (`route`), `EXCHANGE_ACCESS_DENIED` / `EXCHANGE_REJECTED` (`route`, `server_code`), `EXCHANGE_RATE_LIMITED` (`route`, `retry_after`), `EXCHANGE_ANSWER_INVALID` (`route`).
 
 ## Types and constants
 

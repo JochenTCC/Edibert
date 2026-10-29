@@ -19,6 +19,12 @@ from edibert.tariff import EXPORT, IMPORT, Tariff, parse_tariff
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
 
 
+@pytest.fixture(autouse=True)
+def _no_server_exchange(monkeypatch):
+    """No test reaches the tariff database server; exchange tests pass their own environment or fake."""
+    monkeypatch.setenv("EDIBERT_EXCHANGE_OFF", "1")
+
+
 def load_example(name: str) -> dict:
     return json.loads((EXAMPLES / name).read_text(encoding="utf-8"))
 

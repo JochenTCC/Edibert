@@ -18,7 +18,7 @@ Below the tool row, **Share with the free catalog** lists your saved tariffs. Ea
 
 Whether the tariffs start ticked depends on the program: the stand-alone Edibert ticks them (you leave out what you do not want to share), Earnie leaves them unticked (you choose what to share). **Send selected tariffs** sends the ticked ones.
 
-There is no catalog server yet, so sharing is off: the section says so, and the send button stays disabled. You can still check what would be sent; nothing leaves your computer.
+A tariff the database accepts (or already has) is linked to its database entry, so the form shows where it came from from then on. If the exchange is switched off (`EDIBERT_EXCHANGE_OFF=1`) or the embedding program does not send, sharing is off: the section says so, and the send button stays disabled. You can still check what would be sent; nothing leaves your computer.
 
 ## Step 1: Base price
 

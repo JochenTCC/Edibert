@@ -240,7 +240,7 @@ See `examples/`.
 
 ## 11. Tariff database and catalog packages
 
-**Status:** client part implemented in `0.1.d` (Catalog P1-P5; validity versions in section 4a). The tariff database itself, its review workflow, the signing key and the server are not part of Edibert; the exchange with the server (Catalog P7) is not specified yet.
+**Status:** client part implemented in `0.1.d` (Catalog P1-P5; validity versions in section 4a). The tariff database itself, its review workflow, the signing key and the server are not part of Edibert; the exchange with the server (Catalog P7) is specified in [catalog-exchange.md](catalog-exchange.md).
 
 ### Identity and version (Catalog P1)
 

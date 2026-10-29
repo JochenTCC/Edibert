@@ -67,7 +67,17 @@ def check_language(language: str, source: str) -> str:
 
 
 def config_from_env() -> UiConfig:
-    """Data folder (default ``./edibert_data``), optional catalog file and start language."""
+    """Data folder (default ``./edibert_data``), optional catalog file, start language, and the share transport to
+    the tariff database server (off with ``EDIBERT_EXCHANGE_OFF=1``)."""
+    from edibert.exchange import (
+        ExchangeClient,
+        ServerTransport,
+        exchange_config_from_env,
+    )
+
     language = check_language(os.environ.get(ENV_LANG, SOURCE_LANGUAGE), ENV_LANG)
     catalog = os.environ.get(ENV_CATALOG)
-    return UiConfig(Path(os.environ.get(ENV_DATA_DIR, "edibert_data")), Path(catalog) if catalog else None, language)
+    exchange = exchange_config_from_env()
+    transport = None if exchange is None else ServerTransport(ExchangeClient(exchange))
+    return UiConfig(Path(os.environ.get(ENV_DATA_DIR, "edibert_data")), Path(catalog) if catalog else None, language,
+                    contribution_transport=transport)  # fmt: skip

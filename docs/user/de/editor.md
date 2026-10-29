@@ -19,7 +19,7 @@ Unter der Werkzeugzeile listet **Mit dem freien Katalog teilen** deine gespeiche
 
 Ob die Tarife zu Beginn angehakt sind, hängt vom Programm ab: Das eigenständige Edibert hakt sie an (du wählst ab, was du nicht teilen willst), Earnie lässt sie leer (du wählst aus, was du teilen willst). **Ausgewählte Tarife senden** sendet die angehakten.
 
-Es gibt noch keinen Katalog-Server, darum ist Teilen aus: Der Abschnitt sagt das, und der Sende-Knopf bleibt gesperrt. Du kannst trotzdem prüfen, was gesendet würde; nichts verlässt deinen Computer.
+Ein Tarif, den die Datenbank annimmt (oder schon hat), wird mit seinem Datenbank-Eintrag verknüpft; das Formular zeigt danach, woher er stammt. Ist der Austausch abgeschaltet (`EDIBERT_EXCHANGE_OFF=1`) oder sendet das einbettende Programm nicht, ist Teilen aus: Der Abschnitt sagt das, und der Sende-Knopf bleibt gesperrt. Du kannst trotzdem prüfen, was gesendet würde; nichts verlässt deinen Computer.
 
 ## Schritt 1: Basispreis
 

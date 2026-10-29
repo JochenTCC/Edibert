@@ -44,6 +44,20 @@ A catalog package is a signed file from the tariff database that replaces the ca
 
 `import` first lists what changes (new, changed and removed entries). If you entered monthly rates yourself that the package does not have or has with another value, each one is listed as a conflict, for example `import/at_example/2026-11`, and the import stops until you decide: `--keep-local KEY` keeps your value, `--take-package KEY` takes the package's (both repeatable). `--dry-run` only shows the list. If writing fails, the old catalog files stay.
 
+## Tariff database
+
+```bash
+python -m edibert exchange fetch --database free --out package.json [--catalog tariffs.json]
+python -m edibert exchange status --data-dir edibert_data [--catalog tariffs.json]
+python -m edibert exchange report --data-dir edibert_data [--catalog tariffs.json] [--no-delay]
+```
+
+`fetch` downloads the latest catalog package of the free or the verified database (`--database verified` needs the access key of your subscription in the environment variable `EDIBERT_ACCESS_KEY`). With `--catalog`, nothing is downloaded while your catalog already holds the latest package. Check and import the file with `package import` as above.
+
+`status` shows, for the tariffs `publish.json` names, whether the database has a newer version, whether the version counts as reliable and how many installations used it in the last twelve months. `report` tells the database which of these tariff versions you use: one message per tariff, each at a random time within the next 24 hours (`--no-delay` sends right away). A message holds only the database ID, the version and a code that is different for every tariff, so your tariffs cannot be linked to each other or to you. Only tariffs copied from the database with unchanged prices, and catalog tariffs from a package, are reported.
+
+Prices are always calculated on your computer; the server only delivers packages and counts use. `EDIBERT_EXCHANGE_OFF=1` switches every exchange off, including sharing in the editor.
+
 ## Publish
 
 ```bash

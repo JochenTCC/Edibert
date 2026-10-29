@@ -45,6 +45,20 @@ Ein Katalogpaket ist eine signierte Datei aus der Tarif-Datenbank, die die Katal
 
 `import` listet zuerst, was sich ändert (neue, geänderte und entfernte Einträge). Hast du selbst Monatswerte eingetragen, die das Paket nicht oder mit einem anderen Wert hat, steht jeder als Konflikt in der Liste, zum Beispiel `import/at_example/2026-11`, und der Import bricht ab, bis du entscheidest: `--keep-local KEY` behält deinen Wert, `--take-package KEY` übernimmt den aus dem Paket (beide wiederholbar). `--dry-run` zeigt nur die Liste. Schlägt das Schreiben fehl, bleiben die alten Katalogdateien erhalten.
 
+## Tarifdatenbank
+
+```bash
+python -m edibert exchange fetch --database free --out package.json [--catalog tariffs.json]
+python -m edibert exchange status --data-dir edibert_data [--catalog tariffs.json]
+python -m edibert exchange report --data-dir edibert_data [--catalog tariffs.json] [--no-delay]
+```
+
+`fetch` lädt das neueste Katalogpaket der freien oder der geprüften Datenbank herunter (`--database verified` braucht den Zugangsschlüssel deines Abos in der Umgebungsvariable `EDIBERT_ACCESS_KEY`). Mit `--catalog` wird nichts heruntergeladen, solange dein Katalog schon das neueste Paket enthält. Prüfe und importiere die Datei wie oben mit `package import`.
+
+`status` zeigt für die Tarife aus `publish.json`, ob die Datenbank eine neuere Version hat, ob die Version als verlässlich gilt und wie viele Installationen sie in den letzten zwölf Monaten genutzt haben. `report` meldet der Datenbank, welche dieser Tarifversionen du nutzt: eine Meldung pro Tarif, jede zu einem zufälligen Zeitpunkt in den nächsten 24 Stunden (`--no-delay` sendet sofort). Eine Meldung enthält nur die Datenbank-ID, die Version und einen Code, der für jeden Tarif anders ist; deine Tarife lassen sich so weder miteinander noch mit dir verknüpfen. Gemeldet werden nur Tarife, die du mit unveränderten Preisen aus der Datenbank übernommen hast, und Katalogtarife aus einem Paket.
+
+Die Preise werden immer auf deinem Computer berechnet; der Server liefert nur Pakete und zählt die Nutzung. `EDIBERT_EXCHANGE_OFF=1` schaltet jeden Austausch ab, auch das Teilen im Editor.
+
 ## Veröffentlichen
 
 ```bash
