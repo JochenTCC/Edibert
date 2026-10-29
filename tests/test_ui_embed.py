@@ -8,6 +8,7 @@ import pytest
 pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest
 
+from edibert.contribution import ShareDefault
 from edibert.editor.model import TariffDraft, validate
 from edibert.editor.userstore import read_document, save_user_tariff
 from edibert.tariff import EXPORT, IMPORT
@@ -35,6 +36,7 @@ def host_page(
     import streamlit as st
 
     from edibert.context import PricingContext
+    from edibert.contribution import ShareDefault
     from edibert.ui.config import HostHouse, UiConfig
     from edibert.ui.embed import render_editor
 
@@ -47,7 +49,7 @@ def host_page(
         config = UiConfig(
             Path(data_dir), Path(catalog) if catalog else None, "de", prefix, house, delete_guard=delete_guard, on_change=lambda *call: changes.append(call)
         )
-        render_editor(config, open_tariff=request)
+        render_editor(config, share_default=ShareDefault.OPT_IN, open_tariff=request)
 
 
 def start(
@@ -95,7 +97,7 @@ def test_every_editor_key_carries_the_prefix(tmp_path):
 
 def test_an_empty_prefix_is_refused(tmp_path):
     with pytest.raises(ValueError, match="key_prefix"):
-        render_editor(UiConfig(tmp_path, None, "de"))
+        render_editor(UiConfig(tmp_path, None, "de"), share_default=ShareDefault.OPT_IN)
 
 
 def test_two_embeds_do_not_share_state(tmp_path):

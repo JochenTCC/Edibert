@@ -1,4 +1,4 @@
-<!-- source: docs/user/en/editor.md @ 0.1.p -->
+<!-- source: docs/user/en/editor.md @ 0.1.d -->
 # Der Tarif-Editor
 
 Klicke auf **Neuer Bezugstarif** (Preis, den du zahlst) oder **Neuer Einspeisetarif** (Vergütung, die du bekommst). Das Formular hat vier Schritte. Alles, was du änderst, wird sofort geprüft, und die Vorschau rechts aktualisiert sich.
@@ -12,6 +12,14 @@ Die Zeile über dem Formular enthält drei Werkzeuge:
 - **JSON importieren:** Tarife einfügen oder hochladen.
 
 **Ungespeicherte Änderungen.** Solange der offene Tarif vom gespeicherten Stand abweicht, zeigt der Editor **Nicht gespeichert**. Ein kopierter Katalogtarif gilt als nicht gespeichert, bis du ihn speicherst. Öffnest du einen anderen Tarif, legst einen neuen an oder kopierst einen, fragt der Editor vorher: **Speichern**, **Verwerfen** oder **Abbrechen**. Das Verlassen der ganzen Seite (eine andere Seite der einbettenden Anwendung, Browser-Tab schließen) kann der Editor nicht abfangen; vorher speichern.
+
+## Mit dem freien Katalog teilen
+
+Unter der Werkzeugzeile listet **Mit dem freien Katalog teilen** deine gespeicherten Tarife. Jeder hat ein Kästchen; solange es angehakt ist, zeigt der Kasten darunter genau, was gesendet würde. Gesendet werden nur Preisdaten: Art, Preise, Zeitfenster (ohne ihre Namen), Gebühren, Mehrwertsteuer, Land, Lieferant und Produktname, Quelle und Prüfdatum. Deine Notizen, der Bedingungstext, Kommentare und die eigene ID des Tarifs werden nie gesendet. Ein Tarif mit **Dieser Tarif ist persönlich** wird nie geteilt und hat kein Kästchen; ebenso ein Tarif mit einem Fehler.
+
+Ob die Tarife zu Beginn angehakt sind, hängt vom Programm ab: Das eigenständige Edibert hakt sie an (du wählst ab, was du nicht teilen willst), Earnie lässt sie leer (du wählst aus, was du teilen willst). **Ausgewählte Tarife senden** sendet die angehakten.
+
+Es gibt noch keinen Katalog-Server, darum ist Teilen aus: Der Abschnitt sagt das, und der Sende-Knopf bleibt gesperrt. Du kannst trotzdem prüfen, was gesendet würde; nichts verlässt deinen Computer.
 
 ## Schritt 1: Basispreis
 

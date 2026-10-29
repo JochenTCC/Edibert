@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import streamlit as st
 
-from edibert.ui import sidebar, state
+from edibert.contribution import ShareDefault
+from edibert.ui import share, sidebar, state
 from edibert.ui.config import config_from_env
 from edibert.ui.embed import render_body
 
@@ -18,4 +19,5 @@ def main() -> None:
         sidebar.render(t, config)
         st.title(t.t("ui.title"))
         sidebar.render_tools(t, config)
+        share.render(t, config, ShareDefault.SHARE)  # stand-alone Edibert shares by default (concept 2026-10-29)
         render_body(t, config)
