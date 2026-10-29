@@ -31,7 +31,7 @@ alwaysApply: true
 |---|---|---|
 | `Engine` | P1 rules + `user_tariffs.json` + holidays (T1), P2 grid-fee rules + `tariff_price_series` (T2) | development document sections 4, 5 |
 | `Editor` | P1 form model + validation + preview, P2 Streamlit front end, P3 import I1/I2 (T3) | sections 6, 7 |
-| `Catalog` | P1 contribution path (T4), P2 signed catalog access (T4b), P3 automatic updates / subscription | section 9.2 |
+| `Catalog` | P1 tariff identity and version, P2 validity versions, P3 `db_ref`, P4 signed package check, P5 package import, P6 sharing client, P7 exchange with the server (re-cut 2026-10-29, T4/T4b) | business-model concept 2026-10-28 (replaces section 9.2) |
 | `Publish` | P1 Home Assistant sensor, P2 MQTT, P3 evcc/EMHASS/Predbat formats | section 4.7 |
 
 The mapping to the development document's step names: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T4/T4b = `0.1.d`.
