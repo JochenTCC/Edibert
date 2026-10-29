@@ -34,6 +34,17 @@ python -m edibert capacity --grid-fee house_grid.json --user-grid-fees examples/
 
 Für Netzbereiche mit Leistungspreis (ein Monatspreis je kW der höchsten Viertelstunde des Monats). Der Befehl zeigt den Leistungspreis des Monats `--month` (`JJJJ-MM`): mit `--power` den Monatsbetrag für diese Spitze, dazu eine Tabelle, was jede höhere Spitze zusätzlich kosten würde. `--peak-so-far` ist die bisher höchste gemessene Viertelstunde des Monats in kW und braucht `--as-of`, den Zeitpunkt dieses Werts; ohne sie zeigt die Tabelle die vollen Monatsbeträge. `--step 2 --max 16` ergänzt Zeilen alle 2 kW bis 16 kW. `--format json` gibt die Tabelle als JSON aus. Die Beträge sind netto. Ein Monat ohne passenden Eintrag im Netzbereich bricht den Befehl mit einem Fehler ab; für einen Monat vor dem Start des Leistungspreises meldet der Befehl, dass es keinen gibt.
 
+## Katalogpaket
+
+```bash
+python -m edibert package verify package.json
+python -m edibert package import package.json --catalog tariffs.json --grid-catalog grid_fees.json [--dry-run]
+```
+
+Ein Katalogpaket ist eine signierte Datei aus der Tarif-Datenbank, die die Katalogdateien `tariffs.json` und `grid_fees.json` ersetzt. Deine eigenen Tarife (`user_tariffs.json`) und Netzbereiche bleiben unverändert. `verify` prüft Signatur und Inhalt und zeigt das Paket an; ein verändertes oder beschädigtes Paket wird abgelehnt. Ein Paket nach seinem Gültigkeitsdatum funktioniert weiter, mit dem Hinweis, dass es keine Updates mehr bekommt.
+
+`import` listet zuerst, was sich ändert (neue, geänderte und entfernte Einträge). Hast du selbst Monatswerte eingetragen, die das Paket nicht oder mit einem anderen Wert hat, steht jeder als Konflikt in der Liste, zum Beispiel `import/at_example/2026-11`, und der Import bricht ab, bis du entscheidest: `--keep-local KEY` behält deinen Wert, `--take-package KEY` übernimmt den aus dem Paket (beide wiederholbar). `--dry-run` zeigt nur die Liste. Schlägt das Schreiben fehl, bleiben die alten Katalogdateien erhalten.
+
 ## Veröffentlichen
 
 ```bash

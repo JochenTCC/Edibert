@@ -329,6 +329,39 @@
     "applies_to": {
       "const": "main"
     },
+    "valid_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "valid_to": {
+      "type": "string",
+      "format": "date"
+    },
+    "db_ref": {
+      "type": "object",
+      "required": [
+        "database",
+        "id",
+        "version"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "database": {
+          "enum": [
+            "free",
+            "verified"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
     "monthly_fee_eur": {
       "type": "number",
       "minimum": 0

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import itertools
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -51,13 +52,30 @@ TARIFF_FIELDS = (
     "feed_in_fee_factor", "feed_in_fix_cent",
     "rules", "price_floor_cent_kwh", "price_cap_cent_kwh", "requires", "behavior_notes",
     "source", "last_verified", "holidays", "extra_holiday_dates", "individual", "applies_to",
+    "valid_from", "valid_to", "db_ref",
     *FEE_FIELDS,
 )  # fmt: skip
 UNSUPPORTED_FIELDS = ("tiers", "demand")
 
+# ``db_ref``: the tariff-database entry a user tariff was copied from (Catalog P3)
+DATABASES = ("free", "verified")
+DB_REF_FIELDS = ("database", "id", "version")
+
 # Monthly-table fallback (Earnie's order): exact month, else these two, never more.
 FALLBACK_PRIOR_YEAR = "prior_year"
 FALLBACK_PRIOR_MONTH = "prior_month"
+
+
+@dataclass(frozen=True)
+class DbRef:
+    """Origin of a tariff in the tariff database: database, database ID and version (hash, Catalog P1)."""
+
+    database: str
+    id: str
+    version: str
+
+    def to_dict(self) -> dict[str, str]:
+        return {"database": self.database, "id": self.id, "version": self.version}
 
 
 @dataclass(frozen=True)
@@ -91,6 +109,12 @@ class Tariff:
     holiday_mode: str
     extra_holiday_dates: frozenset[date]
     individual: bool
+    valid_from: date | None = None  # first day of this version (house time); None = no start
+    valid_to: date | None = None  # last day of this version; None = open end
+    db_ref: DbRef | None = None
+    # All validity versions of this ID in date order, set on the newest one when a catalog holds several;
+    # empty for a tariff with a single entry. Pricing picks the version per slot (:func:`version_at`).
+    periods: tuple[Tariff, ...] = ()
 
     @property
     def needs_calendar(self) -> bool:
@@ -192,6 +216,9 @@ def _build(raw: Mapping[str, Any], direction: str, tariff_type: str, tid: str) -
     if mtu not in ("15min", "60min"):
         raise invalid(f"{tid}.settlement_mtu", mtu)
     include_vat = get_bool(raw, "prices_include_vat", tid, True)
+    valid_from, valid_to = get_date(raw, "valid_from", tid), get_date(raw, "valid_to", tid)
+    if valid_from and valid_to and valid_to < valid_from:
+        raise invalid(f"{tid}.valid_to", valid_to.isoformat())
     vat = get_number(raw, "vat_percent", tid, minimum=0)
     if vat is None:  # gross and net prices both need the rate; never a silent 0 %
         raise EdibertError(
@@ -229,6 +256,64 @@ def _build(raw: Mapping[str, Any], direction: str, tariff_type: str, tid: str) -
         holiday_mode=parse_holiday_mode(raw.get("holidays"), f"{tid}.holidays"),
         extra_holiday_dates=parse_extra_dates(raw.get("extra_holiday_dates"), f"{tid}.extra_holiday_dates"),
         individual=get_bool(raw, "individual", tid, False),
+        valid_from=valid_from,
+        valid_to=valid_to,
+        db_ref=_parse_db_ref(raw.get("db_ref"), f"{tid}.db_ref"),
+    )
+
+
+def _parse_db_ref(raw: object, path: str) -> DbRef | None:
+    if raw is None:
+        return None
+    data = as_dict(raw, path)
+    check_known(data, DB_REF_FIELDS, path)
+    database = get_str(data, "database", path, required=True)
+    if database not in DATABASES:
+        raise invalid(f"{path}.database", database)
+    db_id = get_str(data, "id", path, required=True)
+    version = get_str(data, "version", path, required=True)
+    assert db_id is not None and version is not None
+    if len(version) != 64 or any(char not in "0123456789abcdef" for char in version):
+        raise invalid(f"{path}.version", version)
+    return DbRef(database, db_id, version)
+
+
+def covers(tariff: Tariff, day: date) -> bool:
+    """True if this version of the tariff is valid on ``day``."""
+    starts = tariff.valid_from is None or tariff.valid_from <= day
+    return starts and (tariff.valid_to is None or day <= tariff.valid_to)
+
+
+def with_periods(versions: list[Tariff]) -> Tariff:
+    """One tariff from several validity versions of the same ID: the newest, carrying all of them.
+
+    Every version needs ``valid_from`` and they must not overlap (``TARIFF_VALIDITY_OVERLAP``); a gap is
+    allowed and fails only when a slot falls into it (``TARIFF_NOT_VALID``).
+    """
+    tid = versions[0].id
+    for version in versions:
+        if version.valid_from is None:
+            raise missing(f"{tid}.valid_from")
+    ordered = sorted(versions, key=lambda item: item.valid_from or date.min)
+    for before, after in itertools.pairwise(ordered):
+        assert after.valid_from is not None
+        if before.valid_to is None or before.valid_to >= after.valid_from:
+            raise EdibertError(
+                ErrorCode.TARIFF_VALIDITY_OVERLAP, f"Validity versions of tariff '{tid}' overlap.", tariff_id=tid
+            )
+    return replace(ordered[-1], periods=tuple(ordered))
+
+
+def version_at(tariff: Tariff, day: date) -> Tariff:
+    """The version of ``tariff`` valid on ``day`` (house time); none is ``TARIFF_NOT_VALID``, never a neighbour."""
+    for version in tariff.periods or (tariff,):
+        if covers(version, day):
+            return version
+    raise EdibertError(
+        ErrorCode.TARIFF_NOT_VALID,
+        f"Tariff '{tariff.id}' has no version valid on {day.isoformat()}.",
+        tariff_id=tariff.id,
+        date=day.isoformat(),
     )
 
 
@@ -331,6 +416,7 @@ def evaluate(
     rate taken from another month is reported in ``PriceResult.warnings`` (``MONTH_RATE_FALLBACK``).
     """
     local = ctx.to_local(slot_start)
+    tariff = version_at(tariff, local.date())
     base, notes = _base_cent(tariff, local, epex_cent)
     rule = matching_rule(
         tariff.rules,

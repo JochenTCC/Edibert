@@ -10,6 +10,7 @@ import streamlit as st
 from edibert.context import region_codes
 from edibert.editor.catalog import (
     CatalogEntry,
+    catalog_database,
     filter_entries,
     lands_of,
     read_catalog,
@@ -29,9 +30,10 @@ from edibert.editor.userstore import (
 )
 from edibert.errors import EdibertError
 from edibert.i18n import SUPPORTED_LANGUAGES, Translator
+from edibert.identity import db_ref_for
 from edibert.rules import REQUIRES
 from edibert.tariff import EXPORT, IMPORT
-from edibert.ui import preview, state, widgets
+from edibert.ui import package_import, preview, state, widgets
 from edibert.ui.config import UiConfig
 
 AT_STATES = {
@@ -259,7 +261,9 @@ def _copy_catalog(t: Translator, config: UiConfig) -> None:
         )  # fmt: skip
         entry = shown[choice]
         taken = user_tariff_ids(config.user_file)[entry.direction]
-        copy = copy_as_template(entry.raw, taken, t.t("ui.copy_suffix"))
+        database = catalog_database(config.catalog)
+        db_ref = db_ref_for(entry.raw, entry.direction, database) if database is not None else None
+        copy = copy_as_template(entry.raw, taken, t.t("ui.copy_suffix"), db_ref)
         st.button(t.t("ui.copy_button"), key=state.k("copy.go"), on_click=state.bound(_leave), args=(("copy", copy, entry.direction),))
 
 
@@ -345,3 +349,4 @@ def render(t: Translator, config: UiConfig) -> None:
         _language(t)
         st.caption(t.t("ui.data_dir", path=str(config.data_dir)))
         render_house(t, config)
+        package_import.render(t, config)

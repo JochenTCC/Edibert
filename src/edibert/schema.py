@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from edibert.rules import HOLIDAY_MODES, MODES, REQUIRES, RULE_FIELDS
-from edibert.tariff import EXPORT_TYPES, IMPORT_TYPES, TARIFF_FIELDS
+from edibert.tariff import DATABASES, EXPORT_TYPES, IMPORT_TYPES, TARIFF_FIELDS
 
 _NUMBER: dict[str, Any] = {"type": "number"}
 _NON_NEGATIVE: dict[str, Any] = {"type": "number", "minimum": 0}
@@ -111,6 +111,18 @@ def _tariff_properties() -> dict[str, Any]:
         "extra_holiday_dates": {"type": "array", "items": _DATE},
         "individual": {"type": "boolean"},
         "applies_to": {"const": "main"},
+        "valid_from": _DATE,
+        "valid_to": _DATE,
+        "db_ref": {
+            "type": "object",
+            "required": ["database", "id", "version"],
+            "additionalProperties": False,
+            "properties": {
+                "database": {"enum": list(DATABASES)},
+                "id": _TEXT,
+                "version": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            },
+        },
         "monthly_fee_eur": _NON_NEGATIVE,
         "grid_monthly_fee_eur": _NON_NEGATIVE,
         "metering_monthly_fee_eur": _NON_NEGATIVE,

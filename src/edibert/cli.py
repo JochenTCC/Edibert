@@ -3,6 +3,8 @@
 * ``python -m edibert price --tariff FILE --at 2026-10-12T23:30 --tz Europe/Vienna``
 * ``python -m edibert series --tariff FILE --from 2026-12-15T00:00 --to 2026-12-16T00:00 --tz Europe/Vienna``
 * ``python -m edibert capacity --grid-fee FILE --month 2027-01 --tz Europe/Vienna --peak-so-far 4.2 --as-of 2027-01-14T18:00``
+* ``python -m edibert package verify FILE``
+* ``python -m edibert package import FILE --catalog tariffs.json --grid-catalog grid_fees.json [--keep-local KEY]``
 * ``python -m edibert schema``
 * ``python -m edibert publish --data-dir DIR [--once] [--dry-run]``
 """
@@ -26,9 +28,16 @@ from edibert.capacity import (
     capacity_ladder,
     charge_for_month,
 )
+from edibert.catalog_import import (
+    KEEP_LOCAL,
+    TAKE_PACKAGE,
+    apply_package_import,
+    plan_package_import,
+    write_catalog_pair,
+)
 from edibert.checks import check_grid_fee
 from edibert.context import PricingContext
-from edibert.errors import EdibertError
+from edibert.errors import EdibertError, ErrorCode
 from edibert.gridfee import (
     GridFee,
     load_grid_fee_config,
@@ -36,6 +45,7 @@ from edibert.gridfee import (
     resolve_grid_fee,
 )
 from edibert.i18n import SOURCE_LANGUAGE, SUPPORTED_LANGUAGES, Translator
+from edibert.package import load_trusted_keys, read_package, verify_package
 from edibert.report import price_lines
 from edibert.schema import tariff_schema
 from edibert.series import RESOLUTIONS, PriceSeries, tariff_price_series
@@ -90,6 +100,20 @@ def build_parser() -> argparse.ArgumentParser:
     capacity.add_argument("--step", type=float, help="extra ladder rungs every STEP kW (needs --max)")
     capacity.add_argument("--max", dest="max_kw", type=float, help="highest ladder rung in kW (with --step)")
     capacity.add_argument("--format", choices=("table", "json"), default="table")
+    package = sub.add_parser("package", help="check or import a signed catalog package")
+    package_sub = package.add_subparsers(dest="package_command", required=True)
+    verify = package_sub.add_parser("verify", help="check signature and content of a package")
+    verify.add_argument("file", type=Path)
+    verify.add_argument("--trusted-keys", type=Path, help='JSON {"<key_id>": "<base64 public key>"} used instead of the built-in keys')
+    verify.add_argument("--format", choices=("table", "json"), default="table")
+    imports = package_sub.add_parser("import", help="replace the catalog files with a package")
+    imports.add_argument("file", type=Path)
+    imports.add_argument("--trusted-keys", type=Path, help='JSON {"<key_id>": "<base64 public key>"} used instead of the built-in keys')
+    imports.add_argument("--catalog", type=Path, required=True, help="tariffs.json to replace")
+    imports.add_argument("--grid-catalog", type=Path, required=True, help="grid_fees.json to replace")
+    imports.add_argument("--keep-local", action="append", default=[], metavar="KEY", help="keep this locally entered monthly rate (repeatable)")
+    imports.add_argument("--take-package", action="append", default=[], metavar="KEY", help="take the package's value for this monthly rate (repeatable)")
+    imports.add_argument("--dry-run", action="store_true", help="show the plan, write nothing")
     sub.add_parser("schema", help="print the JSON Schema of a tariff entry")
     ui = sub.add_parser("ui", help="start the tariff editor in the browser (needs: pip install 'edibert[ui]')")
     ui.add_argument("--data-dir", type=Path, default=Path("edibert_data"), help="folder for user_tariffs.json and house.json")
@@ -225,6 +249,38 @@ def run_capacity(args: argparse.Namespace, t: Translator) -> tuple[list[str], li
     return lines, notes
 
 
+def _read_optional(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise EdibertError(ErrorCode.FILE_INVALID, f"Cannot read '{path}': {exc}", path=str(path)) from exc
+
+
+def run_package(args: argparse.Namespace, t: Translator) -> tuple[list[str], list[str]]:
+    keys = load_trusted_keys(args.trusted_keys) if args.trusted_keys else None
+    package = verify_package(read_package(args.file), trusted_keys=keys)
+    notes = [t.warning(item) for item in package.warnings]
+    manifest = package.manifest
+    if args.package_command == "verify":
+        if args.format == "json":
+            return [json.dumps(manifest.to_dict(), indent=2, ensure_ascii=False)], notes
+        return [t.t("cli.package_ok", package_id=manifest.package_id, database=manifest.database,
+                    issued_at=manifest.issued_at.isoformat(), valid_until=manifest.valid_until.isoformat())], notes  # fmt: skip
+    plan = plan_package_import(package, _read_optional(args.catalog), _read_optional(args.grid_catalog))
+    lines = [f"{item.change}: {item.key}" for item in plan.changes]
+    for conflict in plan.conflicts:
+        package_cent = "-" if conflict.package_cent is None else t.number(conflict.package_cent)
+        lines.append(t.t("cli.package_conflict", entry=conflict.key, local=t.number(conflict.local_cent), package=package_cent))
+    if args.dry_run:
+        return [*lines, t.t("cli.package_dry_run")], notes
+    resolutions = {key: KEEP_LOCAL for key in args.keep_local} | {key: TAKE_PACKAGE for key in args.take_package}
+    tariffs, grid_fees = apply_package_import(plan, resolutions)
+    write_catalog_pair(args.catalog, tariffs, args.grid_catalog, grid_fees)
+    return [*lines, t.t("cli.package_done", package_id=manifest.package_id)], notes
+
+
 def run_ui(args: argparse.Namespace, t: Translator) -> int:
     """Start Streamlit with the editor page. Settings travel as environment variables."""
     if importlib.util.find_spec("streamlit") is None:
@@ -259,6 +315,8 @@ def main(argv: list[str] | None = None) -> int:
             lines, notes = run_price(args, t), []
         elif args.command == "capacity":
             lines, notes = run_capacity(args, t)
+        elif args.command == "package":
+            lines, notes = run_package(args, t)
         else:
             lines, notes = run_series(args, t)
     except (EdibertError, OSError) as err:

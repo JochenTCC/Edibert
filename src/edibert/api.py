@@ -29,6 +29,16 @@ from edibert.capacity import (
     charge_for_month,
     parse_capacity_state,
 )
+from edibert.catalog_import import (
+    KEEP_LOCAL,
+    TAKE_PACKAGE,
+    EntryChange,
+    ImportPlan,
+    MonthConflict,
+    apply_package_import,
+    plan_package_import,
+    write_catalog_pair,
+)
 from edibert.context import HolidayCalendar, PricingContext
 from edibert.errors import EdibertError, EdibertWarning, ErrorCode, WarningCode
 from edibert.fileformat import TARIFF_FORMAT, TARIFF_TRACK_FILES
@@ -40,6 +50,13 @@ from edibert.gridfee import (
     flat_user_grid_area,
     parse_grid_fee_config,
     resolve_grid_fee,
+)
+from edibert.identity import (
+    differs_from_db,
+    grid_area_identity,
+    grid_area_version,
+    tariff_identity,
+    tariff_version,
 )
 from edibert.market.archive import MarketArchive, MarketRange, known_at, market_range
 from edibert.market.forecast import (
@@ -62,6 +79,12 @@ from edibert.migration import (
     migrate,
     plan_migration,
 )
+from edibert.package import (
+    CatalogPackage,
+    PackageManifest,
+    read_package,
+    verify_package,
+)
 from edibert.series import (
     METHOD_EXACT,
     RESOLUTIONS,
@@ -75,11 +98,13 @@ from edibert.tariff import (
     FALLBACK_PRIOR_MONTH,
     FALLBACK_PRIOR_YEAR,
     IMPORT,
+    DbRef,
     PriceResult,
     Tariff,
     evaluate,
     parse_tariff,
     price_cent,
+    version_at,
 )
 
 API_VERSION = 2  # raised on a breaking change to a name in __all__ (2: tariff_format, area_id required)
@@ -90,11 +115,13 @@ __all__ = [
     "FALLBACK_PRIOR_MONTH",
     "FALLBACK_PRIOR_YEAR",
     "IMPORT",
+    "KEEP_LOCAL",
     "METHOD_EXACT",
     "METHOD_HOLD",
     "METHOD_MIRROR",
     "RESOLUTIONS",
     "STANDARD_VAT_PERCENT",
+    "TAKE_PACKAGE",
     "TARIFF_FORMAT",
     "TARIFF_TRACK_FILES",
     "USER_PREFIX",
@@ -102,8 +129,11 @@ __all__ = [
     "CapacityCharge",
     "CapacityLadder",
     "CapacityState",
+    "CatalogPackage",
+    "DbRef",
     "EdibertError",
     "EdibertWarning",
+    "EntryChange",
     "ErrorCode",
     "Forecaster",
     "GridArea",
@@ -111,6 +141,7 @@ __all__ = [
     "GridFeeCatalog",
     "GridFeeConfig",
     "HoldLastForecaster",
+    "ImportPlan",
     "LadderRung",
     "MarketArchive",
     "MarketData",
@@ -121,6 +152,8 @@ __all__ = [
     "MigrationQuestion",
     "MigrationResult",
     "MirrorForecaster",
+    "MonthConflict",
+    "PackageManifest",
     "PricePoint",
     "PriceResult",
     "PriceSeries",
@@ -128,12 +161,16 @@ __all__ = [
     "Tariff",
     "TariffSet",
     "WarningCode",
+    "apply_package_import",
     "builtin_forecaster",
     "capacity_charge_eur",
     "capacity_ladder",
     "charge_for_month",
+    "differs_from_db",
     "evaluate",
     "flat_user_grid_area",
+    "grid_area_identity",
+    "grid_area_version",
     "known_at",
     "load_grid_fee_catalog",
     "load_grid_fees",
@@ -146,11 +183,18 @@ __all__ = [
     "parse_grid_fee_config",
     "parse_tariff",
     "plan_migration",
+    "plan_package_import",
     "price_cent",
     "pricing_context",
+    "read_package",
     "resolve_grid_fee",
     "save_user_grid_area",
+    "tariff_identity",
     "tariff_price_series",
+    "tariff_version",
+    "verify_package",
+    "version_at",
+    "write_catalog_pair",
 ]
 
 

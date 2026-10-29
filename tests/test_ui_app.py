@@ -181,3 +181,16 @@ def test_new_tariff_starts_with_the_land_of_the_house_settings(data_dir):
     app.sidebar.selectbox(key="house.land").select("CH").run()
     create_fixed_tariff(app)
     assert app.selectbox(key=widget_key(app, "land")).value == "CH"
+
+
+def test_package_import_is_offered_in_the_standalone_sidebar(data_dir, tmp_path, monkeypatch):
+    app = start()
+    labels = [item.label for item in app.sidebar.expander]
+    assert "Import catalog package" in labels
+    assert "No catalog configured. Start with --catalog FILE." in [item.value for item in app.sidebar.caption]
+    catalog = tmp_path / "tariffs.json"
+    catalog.write_text(json.dumps({"tariff_format": 1, "import_tariffs": [], "export_tariffs": []}), encoding="utf-8")
+    monkeypatch.setenv(ENV_CATALOG, str(catalog))
+    with_catalog = start()
+    captions = [item.value for item in with_catalog.sidebar.caption]
+    assert "A signed package replaces the catalog files. Your own tariffs stay unchanged." in captions

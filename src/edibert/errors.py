@@ -45,6 +45,15 @@ class ErrorCode(StrEnum):
     CAPACITY_CHARGE_MISSING = "CAPACITY_CHARGE_MISSING"  # params: area_id, month
     CAPACITY_STATE_MISSING = "CAPACITY_STATE_MISSING"  # params: month
     CAPACITY_STATE_MONTH_MISMATCH = "CAPACITY_STATE_MONTH_MISMATCH"  # params: month, state_month
+    TARIFF_NOT_VALID = "TARIFF_NOT_VALID"  # params: tariff_id, date
+    # Tariff database and catalog packages (Catalog P1-P5)
+    DB_ID_UNAVAILABLE = "DB_ID_UNAVAILABLE"  # params: tariff_id
+    TARIFF_VALIDITY_OVERLAP = "TARIFF_VALIDITY_OVERLAP"  # params: tariff_id
+    PACKAGE_FORMAT_UNSUPPORTED = "PACKAGE_FORMAT_UNSUPPORTED"  # params: value
+    PACKAGE_KEY_UNKNOWN = "PACKAGE_KEY_UNKNOWN"  # params: key_id
+    PACKAGE_SIGNATURE_INVALID = "PACKAGE_SIGNATURE_INVALID"  # params: key_id
+    PACKAGE_CONTENT_MISMATCH = "PACKAGE_CONTENT_MISMATCH"  # params: file
+    PACKAGE_IMPORT_CONFLICT = "PACKAGE_IMPORT_CONFLICT"  # params: conflict
     # Market data and publishing
     MARKET_DATA_UNAVAILABLE = "MARKET_DATA_UNAVAILABLE"  # params: zone
     MARKET_ZONE_UNKNOWN = "MARKET_ZONE_UNKNOWN"  # params: land
@@ -87,6 +96,7 @@ class WarningCode(StrEnum):
     GRID_CAPACITY_SKIPPED_STATUS = "GRID_CAPACITY_SKIPPED_STATUS"  # params: charge_id, status
     CAPACITY_BANDS_NOT_CONVEX = "CAPACITY_BANDS_NOT_CONVEX"  # params: charge_id
     CAPACITY_STATE_UNAVAILABLE = "CAPACITY_STATE_UNAVAILABLE"  # params: area_id
+    PACKAGE_EXPIRED = "PACKAGE_EXPIRED"  # params: valid_until
 
 
 @dataclass(frozen=True)

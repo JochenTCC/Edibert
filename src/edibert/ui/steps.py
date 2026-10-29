@@ -11,7 +11,9 @@ from edibert.context import region_codes
 from edibert.editor.house import LANDS
 from edibert.editor.model import FEE_KEYS, KINDS, TariffDraft
 from edibert.editor.templates import TEMPLATES, rules_for_template
+from edibert.errors import EdibertError
 from edibert.i18n import Translator
+from edibert.identity import differs_from_db
 from edibert.rules import HOLIDAY_MODES, REQUIRES
 from edibert.tariff import EXPORT, IMPORT
 from edibert.ui import state, widgets
@@ -147,8 +149,22 @@ STEPS = {1: ("editor.step.base_price", step_base), 2: ("editor.step.time_windows
          3: ("editor.step.further_costs", step_costs), 4: ("editor.step.advanced", step_advanced)}  # fmt: skip
 
 
+def _db_ref_note(t: Translator, draft: TariffDraft) -> None:
+    """Where the tariff was copied from, and whether its prices still match that version (Catalog P3)."""
+    ref = draft.extra.get("db_ref")
+    if not isinstance(ref, dict):
+        return
+    try:
+        differs = differs_from_db(draft.to_raw(), draft.direction)
+    except EdibertError:  # the form shows the error itself; the note waits for a valid tariff
+        return
+    key = "ui.db_ref_differs" if differs else "ui.db_ref_same"
+    st.caption(t.t(key, database=t.t(f"ui.database.{ref.get('database')}"), id=ref.get("id"), version=str(ref.get("version"))[:8]))
+
+
 def render_steps(t: Translator, draft: TariffDraft) -> None:
     """Step selector (language-independent keys) and the form of the chosen step."""
+    _db_ref_note(t, draft)
     step = st.radio(
         t.t("ui.step"), list(STEPS), index=state.step() - 1, format_func=lambda n: f"{n}. {t.t(STEPS[n][0])}",
         horizontal=True, key=state.k("ui.step_radio"),

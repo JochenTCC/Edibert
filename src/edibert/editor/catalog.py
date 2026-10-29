@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -32,14 +33,46 @@ class CatalogEntry:
         return self.raw.get("land")
 
 
-def read_catalog(path: Path) -> list[CatalogEntry]:
-    """All import and export tariffs of a catalog file, in file order."""
+def _read(path: Path) -> Mapping[str, Any]:
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise EdibertError(ErrorCode.FILE_INVALID, f"Cannot read '{path}': {exc}", path=str(path)) from exc
-    document = as_dict(document, str(path))
-    return [CatalogEntry(d, raw) for d in (IMPORT, EXPORT) for raw in document.get(SECTIONS[d], [])]
+    return as_dict(document, str(path))
+
+
+def _covers(raw: Mapping[str, Any], day: date) -> bool:
+    start, end = raw.get("valid_from"), raw.get("valid_to")
+    return (start is None or date.fromisoformat(start) <= day) and (end is None or day <= date.fromisoformat(end))
+
+
+def _current(versions: list[Mapping[str, Any]], day: date) -> Mapping[str, Any]:
+    """Of several validity versions of one ID: the one valid on ``day``, else the newest."""
+    for raw in versions:
+        if _covers(raw, day):
+            return raw
+    return max(versions, key=lambda raw: raw.get("valid_from") or "")
+
+
+def read_catalog(path: Path, today: date | None = None) -> list[CatalogEntry]:
+    """All import and export tariffs of a catalog file, in file order; of an ID with several validity
+    versions only the one valid ``today`` (default: the local date), else the newest."""
+    document = _read(path)
+    day = today or date.today()
+    entries: list[CatalogEntry] = []
+    for direction in (IMPORT, EXPORT):
+        groups: dict[str, list[Mapping[str, Any]]] = {}
+        for raw in document.get(SECTIONS[direction], []):
+            groups.setdefault(str(raw.get("id")), []).append(raw)
+        entries.extend(CatalogEntry(direction, _current(versions, day)) for versions in groups.values())
+    return entries
+
+
+def catalog_database(path: Path) -> str | None:
+    """The tariff database a catalog file came from (root ``package.database`` of an imported package);
+    ``None`` for a catalog that was not imported from a package (the seed)."""
+    package = _read(path).get("package")
+    return None if package is None else str(as_dict(package, f"{path}.package").get("database"))
 
 
 def settlement_interval(raw: Mapping[str, Any], direction: str) -> str | None:

@@ -32,6 +32,14 @@ Only the names in `api.__all__` are covered by `api.API_VERSION` (currently `2`;
 | `market_range(zone, start, end, cache_dir) -> MarketRange` | Day-ahead prices for any range (simulation, backtesting); shorthand for `MarketArchive(zone, cache_dir).prices(start, end)`, see below. |
 | `known_at(prices, moment, tz) -> dict` | The prices a caller could know at `moment` (backtesting): up to 12:00 local time they end with today, from 12:00 with tomorrow (Earnie's `build_market_data_as_of`). `moment` must be aware. |
 | `builtin_forecaster(method, tz) -> Forecaster` | The free methods `mirror` and `hold`; anything else is `VALUE_INVALID`. |
+| `tariff_identity(raw, direction) -> str` / `grid_area_identity(area) -> str` | Tariff-database ID of a catalog entry, `<LAND>/<direction>/<id>` or `<LAND>/grid/<id>` ([tariff-format.md](tariff-format.md) section 11); a `user_` entry is `DB_ID_UNAVAILABLE`, no `land` is `FIELD_MISSING`. |
+| `tariff_version(raw, direction) -> str` / `grid_area_version(area, rule_sets) -> str` | Version hash (SHA-256, hex) over the price-relevant values; equal for equal prices however they are written. |
+| `differs_from_db(raw, direction) -> bool \| None` | `None` without `db_ref`, else True when the prices no longer match `db_ref.version`. |
+| `version_at(tariff, day) -> Tariff` | The validity version of `tariff` valid on `day` (house date); none is `TARIFF_NOT_VALID`. `evaluate` and the series call it per slot. |
+| `read_package(path)` / `verify_package(document, *, trusted_keys=None, today=None) -> CatalogPackage` | Read and check a signed catalog package offline (section 11); `CatalogPackage.warnings` may hold `PACKAGE_EXPIRED`. |
+| `plan_package_import(package, local_tariffs, local_grid_fees) -> ImportPlan` | `ImportPlan.changes` (`EntryChange`: `key`, `change` = `added` / `changed` / `removed`) and `ImportPlan.conflicts` (`MonthConflict`: `key`, `local_cent`, `package_cent`). |
+| `apply_package_import(plan, resolutions) -> (tariffs, grid_fees)` | The new catalog documents; `resolutions` maps every conflict key to `KEEP_LOCAL` or `TAKE_PACKAGE`. |
+| `write_catalog_pair(tariffs_path, tariffs, grid_path, grid_fees) -> None` | Writes both catalog files; both are complete on disk before either is replaced. |
 | `plan_migration(docs, *, user_grid_areas=()) -> MigrationPlan` | What `migrate` would change; see below. |
 | `migrate(docs, answers=None, *, user_grid_areas=()) -> MigrationResult` | Brings the tariff-track files to the current `tariff_format`; see below. |
 
@@ -98,11 +106,13 @@ The Streamlit editor as a component of a host page (new in `0.1.m`; Earnie's *Ta
 
 ## Types and constants
 
-`TariffSet`, `Tariff`, `PriceResult`, `PricePoint`, `PriceSeries`, `PricingContext`, `GridArea`, `GridFee`, `GridFeeCatalog`, `GridFeeConfig`, `CapacityBand`, `CapacityCharge`, `CapacityState`, `CapacityLadder`, `LadderRung`, `HoldLastForecaster`, `MirrorForecaster`, `MarketArchive`, `MarketData`, `MarketRange`, `MarketSourceError`, `MigrationPlan`, `MigrationQuestion`, `MigrationBlocker`, `MigrationResult`; `IMPORT`, `EXPORT`, `RESOLUTIONS`, `USER_PREFIX`, `TARIFF_FORMAT` (current version, `1`), `TARIFF_TRACK_FILES`, `STANDARD_VAT_PERCENT` (`{"AT": 20.0, "DE": 19.0, "CH": 8.1}`, prefill only), `METHOD_EXACT`, `METHOD_MIRROR`, `METHOD_HOLD`, `FALLBACK_PRIOR_YEAR` (`prior_year`), `FALLBACK_PRIOR_MONTH` (`prior_month`).
+`TariffSet`, `Tariff`, `PriceResult`, `PricePoint`, `PriceSeries`, `PricingContext`, `GridArea`, `GridFee`, `GridFeeCatalog`, `GridFeeConfig`, `CapacityBand`, `CapacityCharge`, `CapacityState`, `CapacityLadder`, `LadderRung`, `HoldLastForecaster`, `MirrorForecaster`, `MarketArchive`, `MarketData`, `MarketRange`, `MarketSourceError`, `MigrationPlan`, `MigrationQuestion`, `MigrationBlocker`, `MigrationResult`, `DbRef`, `CatalogPackage`, `PackageManifest`, `ImportPlan`, `EntryChange`, `MonthConflict`; `KEEP_LOCAL`, `TAKE_PACKAGE`, `IMPORT`, `EXPORT`, `RESOLUTIONS`, `USER_PREFIX`, `TARIFF_FORMAT` (current version, `1`), `TARIFF_TRACK_FILES`, `STANDARD_VAT_PERCENT` (`{"AT": 20.0, "DE": 19.0, "CH": 8.1}`, prefill only), `METHOD_EXACT`, `METHOD_MIRROR`, `METHOD_HOLD`, `FALLBACK_PRIOR_YEAR` (`prior_year`), `FALLBACK_PRIOR_MONTH` (`prior_month`).
 
 ## Errors and warnings
 
 `EdibertError` (`code: ErrorCode`, `params`) and `EdibertWarning` (`code: WarningCode`, `params`). Callers branch on the code, never on the English message.
+
+New in `0.1.d`: tariffs take `valid_from` / `valid_to` (validity versions, `Tariff.periods`) and `db_ref` (`Tariff.db_ref`); errors `TARIFF_NOT_VALID` (`tariff_id`, `date`), `TARIFF_VALIDITY_OVERLAP` (`tariff_id`), `DB_ID_UNAVAILABLE` (`tariff_id`), `PACKAGE_FORMAT_UNSUPPORTED` (`value`), `PACKAGE_KEY_UNKNOWN` (`key_id`), `PACKAGE_SIGNATURE_INVALID` (`key_id`), `PACKAGE_CONTENT_MISMATCH` (`file`), `PACKAGE_IMPORT_CONFLICT` (`conflict`); warning `PACKAGE_EXPIRED` (`valid_until`). New dependency: `cryptography` (Ed25519).
 
 New in `0.1.q`: errors `CAPACITY_CHARGE_MISSING` (`area_id`, `month`), `CAPACITY_STATE_MISSING` (`month`), `CAPACITY_STATE_MONTH_MISMATCH` (`month`, `state_month`); warnings `GRID_CAPACITY_SKIPPED_STATUS` (`charge_id`, `status`), `CAPACITY_BANDS_NOT_CONVEX` (`charge_id`), `CAPACITY_STATE_UNAVAILABLE` (`area_id`). Months are `YYYY-MM`.
 

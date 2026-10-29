@@ -19,7 +19,7 @@
 | `grid_fees.json` | grid-area catalog (`rule_sets`, `areas`, Earnie shape), section 5a | catalog package / seed |
 | `user_grid_fees.json` | grid areas created by the user, same structure | editor, `edibert.api.save_user_grid_area` |
 
-IDs in the user files start with `user_` (tariffs, grid areas and grid rule sets); catalog IDs must not. An ID may exist in only one file; a collision is a load error. The origin (`catalog` or `user`) is derived at load time and is not stored. A missing user file means "no user entries"; the editor creates it with the current `tariff_format`.
+IDs in the user files start with `user_` (tariffs, grid areas and grid rule sets); catalog IDs must not. An ID may exist in only one file; a collision is a load error. Inside the catalog one tariff ID may appear several times as validity versions (section 4a); anywhere else a repeated ID is `ID_COLLISION`. The origin (`catalog` or `user`) is derived at load time and is not stored. A missing user file means "no user entries"; the editor creates it with the current `tariff_format`.
 
 ## 2a. Format version (`tariff_format`)
 
@@ -31,7 +31,7 @@ All four files form one **version track**: the root key `tariff_format` (integer
 | unknown value (not an integer, or a version this release does not read) | load error `FORMAT_UNSUPPORTED` with `value` and the `supported` versions |
 | `earnie_data_model` in a tariff file | unknown root field (`TARIFF_UNKNOWN_FIELD`); only the migration reads and removes it, there is no dual read |
 
-**Compatibility rule:** a change that existing files may not satisfy (a new required field, a removed or renamed field, changed meaning) raises `tariff_format` by one and ships a migration step in `edibert.api.migrate` in the same release. Additive optional fields do not raise it. The version is independent of Earnie's `earnie_data_model`; a bump of one never bumps the other. Content dates (`catalog_as_of`, `user_tariffs_as_of`) mean "data as of" and are never used for format decisions.
+**Compatibility rule:** a change that existing files may not satisfy (a new required field, a removed or renamed field, changed meaning) raises `tariff_format` by one and ships a migration step in `edibert.api.migrate` in the same release. Additive optional fields do not raise it. So `valid_from` / `valid_to` / `db_ref` on tariffs and the root key `package` (`0.1.d`) keep version `1`: every existing file stays valid, and an older release rejects the new fields loudly (`TARIFF_UNKNOWN_FIELD`) instead of misreading them. The version is independent of Earnie's `earnie_data_model`; a bump of one never bumps the other. Content dates (`catalog_as_of`, `user_tariffs_as_of`) mean "data as of" and are never used for format decisions.
 
 **Migration** (`edibert.api.plan_migration` / `migrate`, pure functions: documents in, documents out; the caller reads and writes the files and keeps the backup). From untagged files to version 1:
 
@@ -79,8 +79,16 @@ All steps are implemented in `edibert.tariff.evaluate`; the final price is round
 | `individual` | boolean, optional | tariff is personal (special conditions); never uploaded |
 | `regions[]` | list, optional | federal states / cantons the tariff is offered in, as subdivision codes of the `holidays` package (the codes of the house field `region`, e.g. `["8"]` for Vorarlberg); needs `land`; an empty list, a duplicate or an unknown code is `VALUE_INVALID`, a missing `land` is `FIELD_MISSING`; absent = the whole land. Used to filter catalog lists, never in the price calculation. Areas below a federal state (e.g. Kleinwalsertal) cannot be expressed |
 | `applies_to` | string, reserved | only `"main"` is allowed |
+| `valid_from`, `valid_to` | date, optional | first and last day (house time, both inclusive) of this price version; absent = no limit. A slot outside is `TARIFF_NOT_VALID`, never priced with a neighbouring version. Several versions of one ID: section 4a |
+| `db_ref` | object, optional | tariff-database entry the tariff was copied from: `database` (`free` / `verified`), `id` (database ID) and `version` (64 hex digits, section 11). Set by "copy from catalog" when the catalog came from a package; the editor shows whether the prices still match that version |
 
 Fields of the existing Earnie catalog (`type`, `fix_cent_kwh`, `k_push_cent`, `monthly_rates`, `settlement_fee_cent_kwh`, `markup_percent`, `prices_include_vat`, `vat_percent`, `settlement_mtu`, `feed_in_fee_factor`, `feed_in_fix_cent`, fee fields, `monthly_seed`, ...) keep their meaning. `vat_percent` is required on every tariff, import and export, gross or net; `0` is allowed and explicit. Net prices get the rate added in step 5, and gross prices need it to be converted to net, so a missing rate is `VAT_PERCENT_MISSING`, never a silent 0 % (decided 2026-10-26; stricter than Earnie memo D3b, which named gross tariffs only). `tiers` and `demand` are rejected with `UNSUPPORTED_FEATURE`. `$comment` is allowed everywhere and ignored. A machine-readable schema is generated by `python -m edibert schema` and stored in `schema/tariff.schema.json`.
+
+## 4a. Validity versions
+
+A provider's price change is a new **version** of the same tariff, not a new tariff. In `tariffs.json` the versions are separate entries with the same `id`, each with `valid_from`; they must not overlap (`TARIFF_VALIDITY_OVERLAP`), and every one but the newest needs `valid_to`. A gap is allowed and fails only for a slot inside it (`TARIFF_NOT_VALID`). Loaded, the ID is one `Tariff`: the newest version, with all versions in date order in `Tariff.periods`; `evaluate` and the price series pick the version per slot by the slot's local date (`api.version_at(tariff, day)`). Fields read without a slot (monthly fees, label, `requires`) come from the newest version.
+
+Versions come from the tariff database only: in `user_tariffs.json` a repeated ID stays `ID_COLLISION`, and "copy from catalog" copies the version valid today without its validity. The editor's catalog list shows the version valid today, else the newest.
 
 ## 5. Rule
 
@@ -222,10 +230,38 @@ Planned outputs on top of this interface: Home Assistant sensor attributes `raw_
 ## 9. Errors and language
 
 - Load and evaluation problems are `EdibertError` instances with a stable `code` and `params`; the message is English and meant for logs. The UI shows `error.<code>` from the translation catalog with the params as placeholders (English and German, English authoritative).
-- Error codes: `TARIFF_UNKNOWN_FIELD`, `RULE_UNKNOWN_FIELD`, `FIELD_MISSING`, `VALUE_INVALID`, `UNSUPPORTED_FEATURE`, `RULE_VALUE_MISSING`, `GRID_AREA_UNKNOWN`, `VAT_PERCENT_MISSING`, `FILE_INVALID`, `ID_COLLISION`, `ID_PREFIX_MISSING`, `ID_PREFIX_RESERVED`, `GRID_ID_COLLISION`, `GRID_ID_PREFIX_MISSING`, `GRID_ID_PREFIX_RESERVED`, `FORMAT_MISSING`, `FORMAT_UNSUPPORTED`, `MIGRATION_ANSWER_MISSING`, `PRICE_MISSING`, `MARKET_PRICE_REQUIRED`, `HOLIDAY_REGION_MISSING`, `HOLIDAY_REGION_UNKNOWN`, and for section 5b `CAPACITY_CHARGE_MISSING`, `CAPACITY_STATE_MISSING`, `CAPACITY_STATE_MONTH_MISMATCH`. Migration questions are shown as `question.<code>` (`question.VAT_PERCENT`). Warning codes are listed in section 8. A new code needs an `error.<CODE>` or `warning.<CODE>` text in every catalog (checked by tests).
+- Error codes: `TARIFF_UNKNOWN_FIELD`, `RULE_UNKNOWN_FIELD`, `FIELD_MISSING`, `VALUE_INVALID`, `UNSUPPORTED_FEATURE`, `RULE_VALUE_MISSING`, `GRID_AREA_UNKNOWN`, `VAT_PERCENT_MISSING`, `FILE_INVALID`, `ID_COLLISION`, `ID_PREFIX_MISSING`, `ID_PREFIX_RESERVED`, `GRID_ID_COLLISION`, `GRID_ID_PREFIX_MISSING`, `GRID_ID_PREFIX_RESERVED`, `FORMAT_MISSING`, `FORMAT_UNSUPPORTED`, `MIGRATION_ANSWER_MISSING`, `PRICE_MISSING`, `MARKET_PRICE_REQUIRED`, `HOLIDAY_REGION_MISSING`, `HOLIDAY_REGION_UNKNOWN`, for section 5b `CAPACITY_CHARGE_MISSING`, `CAPACITY_STATE_MISSING`, `CAPACITY_STATE_MONTH_MISMATCH`, for section 4a `TARIFF_NOT_VALID`, `TARIFF_VALIDITY_OVERLAP`, and for section 11 `DB_ID_UNAVAILABLE`, `PACKAGE_FORMAT_UNSUPPORTED`, `PACKAGE_KEY_UNKNOWN`, `PACKAGE_SIGNATURE_INVALID`, `PACKAGE_CONTENT_MISMATCH`, `PACKAGE_IMPORT_CONFLICT` (warning `PACKAGE_EXPIRED`). Migration questions are shown as `question.<code>` (`question.VAT_PERCENT`). Warning codes are listed in section 8. A new code needs an `error.<CODE>` or `warning.<CODE>` text in every catalog (checked by tests).
 - Tariff `label` values and supplier/product names are data, not UI text, and are not translated.
 - Holiday names come from the `holidays` package in the UI language.
 
 ## 10. Examples
 
 See `examples/`.
+
+## 11. Tariff database and catalog packages
+
+**Status:** client part implemented in `0.1.d` (Catalog P1-P5; validity versions in section 4a). The tariff database itself, its review workflow, the signing key and the server are not part of Edibert; the exchange with the server (Catalog P7) is not specified yet.
+
+### Identity and version (Catalog P1)
+
+- **Identity** (`api.tariff_identity(raw, direction)`): `<LAND>/<direction>/<catalog id>`, e.g. `AT/import/at_vkw_strom_duo`; the catalog ID stands for supplier and product. Grid areas: `<LAND>/grid/<area id>` (`api.grid_area_identity`). A user entry (`user_` ID) has none (`DB_ID_UNAVAILABLE`): the database assigns an ID when a tariff is shared. Without `land` there is no identity (`FIELD_MISSING`).
+- **Version** (`api.tariff_version(raw, direction)`): SHA-256 (64 hex digits) over the price-relevant values of the **parsed** tariff in canonical JSON: direction, type, land, currency, the base-price fields the type reads (fixed price, monthly rates, or markup, settlement fee and feed-in factors of a spot tariff; a value the type never uses does not count), monthly fees, VAT fields, `settlement_mtu`, monthly rates, rules (without their `id`, `label`, `source`, `note`; all twelve months = no month filter), floor and cap, holiday mode and extra holidays, `valid_from` / `valid_to`. Numbers count as floats, sets and month rows are ordered. Not part of it: ID, label, supplier, notes, `behavior_notes`, `source`, `last_verified`, `regions`, `requires`, `individual`, `db_ref`. So a tariff the editor saves unchanged keeps its version, and every price change makes a new one. Grid areas (`api.grid_area_version(area, rule_sets)`): the area as written plus the rules of its rule set, without ID, label, source, note.
+- `api.differs_from_db(raw, direction)`: `None` without `db_ref`, else whether the version no longer equals `db_ref.version`.
+
+### Package format (Catalog P4)
+
+One JSON file:
+
+| Key | Content |
+|---|---|
+| `edibert_package` | package format, `1` (anything else: `PACKAGE_FORMAT_UNSUPPORTED`) |
+| `manifest` | `database` (`free` / `verified`), `package_id`, `issued_at` (ISO 8601 with offset), `valid_until` (date), `tariff_format`, `key_id`, `files` (`tariffs.json` and `grid_fees.json` to the SHA-256 of their canonical JSON) |
+| `content` | the two catalog documents `tariffs.json` and `grid_fees.json`, monthly reference curves included |
+| `signature` | Ed25519 signature (base64) over the canonical JSON of `manifest` |
+
+Canonical JSON here is `json.dumps(..., sort_keys=True, separators=(",", ":"), ensure_ascii=False)` in UTF-8. `api.verify_package(document, *, trusted_keys=None, today=None)` checks offline, in this order: format and manifest fields (strict), the key (`PACKAGE_KEY_UNKNOWN`), the signature (`PACKAGE_SIGNATURE_INVALID`), the content hashes (`PACKAGE_CONTENT_MISMATCH`), then the content itself: both documents in the manifest's `tariff_format`, loading like catalog files, and every tariff and area with an identity. A package past `valid_until` stays usable and only warns (`PACKAGE_EXPIRED`): a subscriber keeps the last package received. The trusted public keys are built into Edibert by `key_id` (several at once for a key change); none is built in yet. `trusted_keys` replaces them (tests, a self-hosted database). Signing (`edibert.package.build_package`) needs the private key, which is never in this repository and never on a server.
+
+### Import (Catalog P5)
+
+The package replaces `tariffs.json` and `grid_fees.json`; user files are never touched. `api.plan_package_import(package, local_tariffs, local_grid_fees)` lists the entries the import adds, changes or removes (`import/<id>`, `export/<id>`, `grid/<id>`, `rule_set/<id>`) and the **conflicts**: monthly rates present locally (a tariff's `monthly_rates` row, or a row of a monthly reference curve at the root) that the package lacks or has with another value, keyed `<direction>/<tariff id>/<YYYY-MM>` or `root/<curve>/<YYYY-MM>`. `api.apply_package_import(plan, resolutions)` needs one decision per conflict, `keep_local` or `take_package` (`PACKAGE_IMPORT_CONFLICT` otherwise; an unknown key or choice is `VALUE_INVALID`); a kept row goes into the validity version covering its month, else the newest. The result gets the root key `package` (`database`, `package_id`, `issued_at`, `valid_until`) and is loaded once more before it is returned. `api.write_catalog_pair` writes both files completely to temporary files before either is replaced. The CLI (`python -m edibert package verify|import`) and the standalone editor (sidebar *Import catalog package*) use these functions; an embedding host imports through the API.
+

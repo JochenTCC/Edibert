@@ -11,6 +11,7 @@ requires-python = ">=3.11"
 license = "PolyForm-Noncommercial-1.0.0"
 license-files = ["LICENSE", "NOTICE"]
 dependencies = [
+    "cryptography>=42",
     "holidays>=0.90",
     "jsonschema>=4.0.0",
     "tzdata>=2024.1; sys_platform == 'win32'",

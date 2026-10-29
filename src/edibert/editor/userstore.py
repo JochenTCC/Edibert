@@ -68,9 +68,20 @@ def user_tariff_ids(path: Path) -> dict[str, set[str]]:
     return {d: {item.get("id", "") for item in document.get(SECTIONS[d], [])} for d in (IMPORT, EXPORT)}
 
 
-def copy_as_template(raw: Mapping[str, Any], taken: set[str], label_suffix: str) -> dict[str, Any]:
-    """Copy a (catalog) tariff as the starting point of an own tariff: new ``user_`` ID, new label."""
+def copy_as_template(
+    raw: Mapping[str, Any], taken: set[str], label_suffix: str, db_ref: Mapping[str, str] | None = None
+) -> dict[str, Any]:
+    """Copy a (catalog) tariff as the starting point of an own tariff: new ``user_`` ID, new label.
+
+    The copy is valid without a time limit (``valid_from`` / ``valid_to`` of the catalog version are dropped)
+    and carries ``db_ref`` when the catalog came from the tariff database (Catalog P3).
+    """
     copy = json.loads(json.dumps(raw))
+    copy.pop("valid_from", None)
+    copy.pop("valid_to", None)
+    copy.pop("db_ref", None)
+    if db_ref is not None:
+        copy["db_ref"] = dict(db_ref)
     base = USER_PREFIX + slugify(str(raw.get("id", "tariff")).removeprefix(USER_PREFIX))
     candidate, number = base, 2
     while candidate in taken:

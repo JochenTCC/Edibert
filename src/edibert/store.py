@@ -11,7 +11,7 @@ from typing import Any
 from edibert._fields import as_dict, check_known, invalid
 from edibert.errors import EdibertError, ErrorCode
 from edibert.fileformat import FORMAT_KEY, check_tariff_format
-from edibert.tariff import EXPORT, IMPORT, Tariff, parse_tariff
+from edibert.tariff import EXPORT, IMPORT, Tariff, parse_tariff, with_periods
 
 USER_PREFIX = "user_"
 
@@ -20,7 +20,7 @@ USER_PREFIX = "user_"
 ROOT_FIELDS = (
     "import_tariffs", "export_tariffs", FORMAT_KEY, "catalog_as_of", "user_tariffs_as_of",
     "oemag_monthly_feed_in_rates", "monthly_float_reference_cent_kwh",
-    "econtrol_referenzmarktwert_pv_monthly", "$schema",
+    "econtrol_referenzmarktwert_pv_monthly", "$schema", "package",
 )  # fmt: skip
 
 
@@ -68,15 +68,24 @@ def _add_section(result: TariffSet, raw_list: object, direction: str, origin: st
     if not isinstance(raw_list, list):
         raise invalid(where, raw_list)
     table = result.imports if direction == IMPORT else result.exports
+    versions: dict[str, list[Tariff]] = {}
     for raw in raw_list:
         tariff = parse_tariff(raw, direction)
         _check_prefix(tariff.id, origin)
-        if tariff.id in table:
+        if tariff.id in table:  # already loaded from the other file
             raise EdibertError(
                 ErrorCode.ID_COLLISION, f"Duplicate {direction} tariff ID '{tariff.id}'.", tariff_id=tariff.id
             )
-        table[tariff.id] = tariff
-        result.origin[(direction, tariff.id)] = origin
+        versions.setdefault(tariff.id, []).append(tariff)
+    for tariff_id, entries in versions.items():
+        # Several entries of one ID are validity versions: only in the catalog (the tariff database writes
+        # them) and only when each states where it starts; anything else is a plain duplicate.
+        if len(entries) > 1 and (origin != "catalog" or any(entry.valid_from is None for entry in entries)):
+            raise EdibertError(
+                ErrorCode.ID_COLLISION, f"Duplicate {direction} tariff ID '{tariff_id}'.", tariff_id=tariff_id
+            )
+        table[tariff_id] = entries[0] if len(entries) == 1 else with_periods(entries)
+        result.origin[(direction, tariff_id)] = origin
 
 
 def _add_document(result: TariffSet, document: Mapping[str, Any], origin: str, where: str) -> None:

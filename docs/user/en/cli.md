@@ -33,6 +33,17 @@ python -m edibert capacity --grid-fee house_grid.json --user-grid-fees examples/
 
 For grid areas with a capacity charge (a monthly price per kW of the highest quarter hour of the month). The command shows the charge of the month `--month` (`YYYY-MM`): with `--power` the month amount for that peak, and a table of what each higher peak would cost on top. `--peak-so-far` is the highest measured quarter hour of the month so far, in kW, and needs `--as-of`, the time of that reading; without it the table shows the full month amounts. `--step 2 --max 16` adds rows every 2 kW up to 16 kW. `--format json` prints the table as JSON. Amounts are net. A month without a matching entry in the grid area stops the command with an error; for a month before the charge starts the command says that there is none.
 
+## Catalog package
+
+```bash
+python -m edibert package verify package.json
+python -m edibert package import package.json --catalog tariffs.json --grid-catalog grid_fees.json [--dry-run]
+```
+
+A catalog package is a signed file from the tariff database that replaces the catalog files `tariffs.json` and `grid_fees.json`. Your own tariffs (`user_tariffs.json`) and grid areas stay unchanged. `verify` checks the signature and the content and shows the package; a changed or damaged package is refused. A package past its validity date still works, with a note that it gets no more updates.
+
+`import` first lists what changes (new, changed and removed entries). If you entered monthly rates yourself that the package does not have or has with another value, each one is listed as a conflict, for example `import/at_example/2026-11`, and the import stops until you decide: `--keep-local KEY` keeps your value, `--take-package KEY` takes the package's (both repeatable). `--dry-run` only shows the list. If writing fails, the old catalog files stay.
+
 ## Publish
 
 ```bash

@@ -2,6 +2,17 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Tariff database client, part 1 (0.1.d Catalog P1–P5, 2026-10-29)
+
+- [x] **0.1.d Catalog P1–P5 — identity, validity versions, `db_ref`, signed packages, import** (spec section 4a and 11; legal questions assumed settled for planning, the legal review item stays open)
+  - P1: `tariff_identity` (`<LAND>/<direction>/<id>`, user entries `DB_ID_UNAVAILABLE`), `tariff_version` (SHA-256 over the parsed price-relevant values, so an unchanged editor round trip keeps the version), `grid_area_identity` / `grid_area_version`, `differs_from_db`; module `identity.py`
+  - P2: `valid_from` / `valid_to` on tariffs; several entries of one ID in the catalog are validity versions (`Tariff.periods`, `version_at` per slot, `TARIFF_VALIDITY_OVERLAP`, `TARIFF_NOT_VALID`); repeated IDs in user files stay `ID_COLLISION`; `tariff_format` stays 1 (additive fields); the editor's catalog list shows the version valid today
+  - P3: `db_ref` (`database`, `id`, `version`) on tariffs; "copy from catalog" sets it when the catalog came from a package (root key `package`) and drops the validity; the form shows "copied from … version …" or "prices now differ"
+  - P4: package format `edibert_package` 1 (manifest with content hashes, Ed25519 signature over the canonical manifest), `verify_package` (key, signature, hashes, content loads, identities; `PACKAGE_EXPIRED` warning only), `build_package` for the signing side and tests, `TRUSTED_KEYS` still empty; new dependency `cryptography`
+  - P5: `plan_package_import` (added / changed / removed entries, conflicts for locally entered monthly rates of tariffs and root reference curves), `apply_package_import` (a decision per conflict, `PACKAGE_IMPORT_CONFLICT`), `write_catalog_pair`; CLI `python -m edibert package verify|import`; sidebar *Import catalog package* in the standalone editor
+  - API additions (`API_VERSION` stays 2), texts in both catalogs, schema regenerated, spec 2, 2a, 4, 4a, 9, 11, `docs/spec/api.md`, user manual `cli.md` (en, de)
+  - Tests: `tests/test_catalog_package.py`, AppTest in `tests/test_ui_app.py`
+
 ### Capacity charge AT 2027: engine (0.1.q, 2026-10-29)
 
 - [x] **0.1.q — Capacity charge engine** (engine part of the `0.+1` item *Capacity charge AT 2027*, pulled ahead of `0.1.0` because Earnie's max-power tariff builds on it; spec section 5b)
