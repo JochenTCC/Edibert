@@ -88,7 +88,8 @@ def contribution_payload(raw: Mapping[str, Any], direction: str) -> dict[str, An
     """The payload for one user tariff (the stored object of ``user_tariffs.json``).
 
     The tariff is checked like any tariff first (``parse_tariff``: an invalid tariff is never shared), then
-    copied field by field from the whitelist. ``individual: true`` is ``CONTRIBUTION_INDIVIDUAL``.
+    copied field by field from the whitelist. ``individual: true`` is ``CONTRIBUTION_INDIVIDUAL``; a tariff
+    without ``land`` is ``CONTRIBUTION_LAND_MISSING`` (the server needs the land for the database ID).
     Catalog P1/P7 add ``identity`` and ``version`` to this envelope; nothing else goes in.
     """
     tariff = parse_tariff(raw, direction)
@@ -96,6 +97,12 @@ def contribution_payload(raw: Mapping[str, Any], direction: str) -> dict[str, An
         raise EdibertError(
             ErrorCode.CONTRIBUTION_INDIVIDUAL,
             f"Tariff '{tariff.id}' is marked individual and is never shared.",
+            tariff_id=tariff.id,
+        )
+    if tariff.land is None:  # the database ID starts with the land; the server rejects a tariff without one
+        raise EdibertError(
+            ErrorCode.CONTRIBUTION_LAND_MISSING,
+            f"Tariff '{tariff.id}' has no land and cannot be shared.",
             tariff_id=tariff.id,
         )
     return {"contribution_format": CONTRIBUTION_FORMAT, "direction": direction, "tariff": _tariff_fields(raw)}
@@ -115,6 +122,7 @@ class ContributionItem:
     label: str
     payload: dict[str, Any] | None
     error: EdibertError | None
+    db_ref: DbRef | None = None  # the database entry the tariff stands for; sent as ``based_on``
 
     @property
     def shareable(self) -> bool:
@@ -129,7 +137,9 @@ def contribution_items(document: Mapping[str, Any]) -> list[ContributionItem]:
             tariff_id = str(raw.get("id", "?"))
             label = str(raw.get("label") or tariff_id)
             try:
-                items.append(ContributionItem(direction, tariff_id, label, contribution_payload(raw, direction), None))
+                payload = contribution_payload(raw, direction)
+                db_ref = parse_tariff(raw, direction).db_ref
+                items.append(ContributionItem(direction, tariff_id, label, payload, None, db_ref))
             except EdibertError as err:
                 items.append(ContributionItem(direction, tariff_id, label, None, err))
     return items
@@ -161,11 +171,18 @@ class ContributionTransport(Protocol):
     """Sends one payload. An implementation sends ``payload_text(payload)`` unchanged and raises a coded
     ``EdibertError`` when it cannot deliver; it never retries silently with other content."""
 
-    def send(self, payload: Mapping[str, Any]) -> SendResult: ...
+    def send(self, payload: Mapping[str, Any], db_ref: DbRef | None) -> SendResult: ...
 
 
-def send_selected(transport: ContributionTransport | None, payloads: Sequence[Mapping[str, Any]]) -> list[SendResult]:
-    """Send each payload through ``transport``. ``None`` (no endpoint configured) is ``CONTRIBUTION_TRANSPORT_OFF``."""
+def send_selected(transport: ContributionTransport | None, items: Sequence[ContributionItem]) -> list[SendResult]:
+    """Send each shareable item (payload and ``db_ref``) through ``transport``, in order.
+
+    ``None`` (no endpoint configured) is ``CONTRIBUTION_TRANSPORT_OFF``; an item that cannot be shared is a
+    ``ValueError`` (the caller offers only shareable items).
+    """
     if transport is None:
         raise EdibertError(ErrorCode.CONTRIBUTION_TRANSPORT_OFF, "No contribution transport is configured; sharing is off.")
-    return [transport.send(payload) for payload in payloads]
+    refused = [item.tariff_id for item in items if item.payload is None]
+    if refused:
+        raise ValueError(f"Items that cannot be shared were passed to send_selected: {', '.join(refused)}.")
+    return [transport.send(item.payload, item.db_ref) for item in items]  # type: ignore[arg-type]

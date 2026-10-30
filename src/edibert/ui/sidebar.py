@@ -28,12 +28,12 @@ from edibert.editor.userstore import (
     save_user_tariff,
     user_tariff_ids,
 )
-from edibert.errors import EdibertError
+from edibert.errors import EdibertError, ErrorCode
 from edibert.i18n import SUPPORTED_LANGUAGES, Translator
 from edibert.identity import db_ref_for
 from edibert.rules import REQUIRES
 from edibert.tariff import EXPORT, IMPORT
-from edibert.ui import package_import, preview, state, widgets
+from edibert.ui import migrate_gate, package_import, preview, state, widgets
 from edibert.ui.config import UiConfig
 
 AT_STATES = {
@@ -334,6 +334,14 @@ def render_house(t: Translator, config: UiConfig) -> None:
 def render_tools(t: Translator, config: UiConfig) -> None:
     """The row above form and preview: my tariffs with new/delete, copy from catalog, import."""
     _leave_prompt(t, config)
+    try:
+        read_document(config.user_file)
+    except EdibertError as err:
+        if err.code == ErrorCode.FORMAT_MISSING:
+            migrate_gate.render(t, config, err)
+            return
+        st.error(t.error(err))
+        return
     mine, catalog, imports = st.columns([3, 5, 3])
     with mine:
         _tariffs(t, config)

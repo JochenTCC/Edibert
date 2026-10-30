@@ -52,7 +52,7 @@ SECTIONS = {IMPORT: "import_tariffs", EXPORT: "export_tariffs"}
 # Public keys of the tariff database by key ID (raw Ed25519 key, base64). Several entries allow a key change:
 # a new key is added before the first package signed with it, an old one is removed after its last package
 # expired. Empty until the first signing key exists; callers can pass their own (tests, a self-hosted base).
-TRUSTED_KEYS: Mapping[str, str] = {}
+TRUSTED_KEYS: Mapping[str, str] = {"edibert-2026-1": "6sbs0jOqfz4ue7lCike6mVkZX2Zs4m+EqXgrgWPaM44="}
 
 
 @dataclass(frozen=True)

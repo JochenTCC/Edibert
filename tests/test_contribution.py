@@ -19,7 +19,7 @@ from edibert.contribution import (
 )
 from edibert.editor.userstore import save_user_tariff
 from edibert.errors import EdibertError, ErrorCode
-from edibert.tariff import EXPORT, IMPORT
+from edibert.tariff import EXPORT, IMPORT, DbRef
 
 
 def full_tariff(**extra) -> dict:
@@ -126,23 +126,74 @@ def test_share_default_has_no_implicit_value(value):
 class Recorder:
     def __init__(self) -> None:
         self.sent: list[str] = []
+        self.refs: list[DbRef | None] = []
 
-    def send(self, payload) -> SendResult:
+    def send(self, payload, db_ref) -> SendResult:
         self.sent.append(payload_text(payload))
+        self.refs.append(db_ref)
         return SendResult(SendStatus.ACCEPTED)
 
 
 def test_without_a_transport_sending_is_off():
+    shared, _ = contribution_items(document())
     with pytest.raises(EdibertError) as caught:
-        send_selected(None, [contribution_payload(full_tariff(), IMPORT)])
+        send_selected(None, [shared])
     assert caught.value.code is ErrorCode.CONTRIBUTION_TRANSPORT_OFF
 
 
 def test_transport_gets_exactly_the_previewed_payload():
-    payload = contribution_payload(full_tariff(), IMPORT)
-    recorder = Recorder()
-    assert send_selected(recorder, [payload]) == [SendResult(SendStatus.ACCEPTED)]
-    assert recorder.sent == [payload_text(payload)]
+    shared, _ = contribution_items(document())
+    rec = Recorder()
+    assert send_selected(rec, [shared]) == [SendResult(SendStatus.ACCEPTED)]
+    assert rec.sent == [payload_text(contribution_payload(full_tariff(), IMPORT))]
+    assert rec.refs == [None]
+
+
+def test_refused_items_are_never_sent():
+    _, personal = contribution_items(document())
+    rec = Recorder()
+    with pytest.raises(ValueError, match="user_personal"):
+        send_selected(rec, [personal])
+    assert rec.sent == []
+
+
+# --- regressions: share without reason / without land / without based_on (Backlog-Bugfixes, 2026-10-30) ---
+
+
+def test_tariff_without_land_is_refused_locally():
+    """Valid locally, but the server needs the land for the database ID and rejected it without a visible reason."""
+    raw = {k: v for k, v in full_tariff().items() if k not in ("land", "regions")}
+    with pytest.raises(EdibertError) as caught:
+        contribution_payload(raw, IMPORT)
+    assert caught.value.code is ErrorCode.CONTRIBUTION_LAND_MISSING
+    [item] = contribution_items({"tariff_format": 1, "import_tariffs": [raw], "export_tariffs": []})
+    assert not item.shareable and item.error is not None and item.error.code is ErrorCode.CONTRIBUTION_LAND_MISSING
+
+
+def test_db_ref_of_a_shared_tariff_reaches_the_transport():
+    """A tariff shared before carries its db_ref, so the server makes a new version instead of a new entry."""
+    ref = {"database": "free", "id": "AT/import/shared_abc", "version": "a" * 64}
+    [item] = contribution_items({"tariff_format": 1, "import_tariffs": [full_tariff(db_ref=ref)], "export_tariffs": []})
+    rec = Recorder()
+    send_selected(rec, [item])
+    assert rec.refs == [DbRef(**ref)]
+    assert "db_ref" not in json.loads(rec.sent[0])["tariff"]
+
+
+def test_result_message_names_each_rejected_tariff_with_its_reason():
+    from edibert.i18n import Translator
+    from edibert.ui.share import result_message
+
+    shared, _ = contribution_items(document())
+    other = contribution_items({"tariff_format": 1, "import_tariffs": [full_tariff(id="user_b", label="Second")], "export_tariffs": []})[0]
+    t = Translator("de")
+    results = [SendResult(SendStatus.REJECTED, "TARIFF_INVALID"), SendResult(SendStatus.REJECTED, "SOMETHING_NEW")]
+    message, kind = result_message(t, [shared, other], results)
+    assert kind == "warning"
+    assert "0 angenommen" in message and "2 abgelehnt" in message
+    assert "Bezug: Night Saver: abgelehnt. " + t.t("ui.share_reject.TARIFF_INVALID") in message
+    assert "Bezug: Second: abgelehnt. Grund laut Server: SOMETHING_NEW." in message
+    assert result_message(t, [shared], [SendResult(SendStatus.ACCEPTED)])[1] == "success"
 
 
 # --- the share section in the editor (AppTest) ---
@@ -153,7 +204,7 @@ from streamlit.testing.v1 import AppTest
 PREFIX = "host.tariffs."
 
 
-def host_page(data_dir: str, share_default: str, with_transport: bool) -> None:
+def host_page(data_dir: str, share_default: str, with_transport: bool, reject_code: str | None) -> None:
     from pathlib import Path
 
     import streamlit as st
@@ -165,20 +216,20 @@ def host_page(data_dir: str, share_default: str, with_transport: bool) -> None:
     sent = st.session_state.setdefault("host.sent", [])
 
     class Transport:
-        def send(self, payload) -> SendResult:
+        def send(self, payload, db_ref) -> SendResult:
             sent.append(payload_text(payload))
-            return SendResult(SendStatus.ACCEPTED)
+            return SendResult(SendStatus.REJECTED, reject_code) if reject_code else SendResult(SendStatus.ACCEPTED)
 
     config = UiConfig(Path(data_dir), None, "de", "host.tariffs.", contribution_transport=Transport() if with_transport else None)
     render_editor(config, share_default=ShareDefault(share_default))
 
 
-def start(data_dir: Path, share_default: ShareDefault, with_transport: bool = False) -> AppTest:
+def start(data_dir: Path, share_default: ShareDefault, with_transport: bool = False, reject_code: str | None = None) -> AppTest:
     save_user_tariff(data_dir / "user_tariffs.json", full_tariff(), IMPORT)
     personal = {"id": "user_personal", "label": "Personal", "type": "fixed", "supplier_id": "user_s", "k_push_cent": 8.0,
                 "vat_percent": 0, "individual": True}  # fmt: skip
     save_user_tariff(data_dir / "user_tariffs.json", personal, EXPORT)
-    kwargs = {"data_dir": str(data_dir), "share_default": share_default.value, "with_transport": with_transport}
+    kwargs = {"data_dir": str(data_dir), "share_default": share_default.value, "with_transport": with_transport, "reject_code": reject_code}
     app = AppTest.from_function(host_page, kwargs=kwargs, default_timeout=60)
     app.run()
     assert not app.exception
@@ -220,6 +271,14 @@ def test_send_delivers_the_selected_payloads_and_reports(tmp_path):
     assert not app.exception
     assert app.session_state["host.sent"] == [payload_text(contribution_payload(full_tariff(), IMPORT))]
     assert any("1 angenommen" in message.value for message in app.success)
+
+
+def test_send_shows_the_reason_of_a_rejection(tmp_path):
+    app = start(tmp_path, ShareDefault.OPT_IN, with_transport=True, reject_code="VERSION_MISMATCH")
+    share_box(app).check().run()
+    app.button(key=f"{PREFIX}share.send").click().run()
+    assert not app.exception
+    assert any("Night Saver: abgelehnt" in w.value and "Preisversion" in w.value for w in app.warning)
 
 
 def test_embed_without_share_default_is_refused(tmp_path):

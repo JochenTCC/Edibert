@@ -20,6 +20,10 @@ from edibert.i18n import Translator
 from edibert.ui import state
 from edibert.ui.config import UiConfig
 
+# Rejection codes of the server (contract docs/spec/catalog-exchange.md § 2) with a text of their own; any
+# other code is shown as it came.
+REJECT_CODES = ("CONTRIBUTION_FORMAT_UNSUPPORTED", "TARIFF_INVALID", "CONTRIBUTION_INDIVIDUAL", "VERSION_MISMATCH", "MODERATION_REJECTED")
+
 
 def _item(t: Translator, item: ContributionItem, share_default: ShareDefault) -> bool:
     """Checkbox and, while selected, the exact JSON of one tariff; ``True`` when it is selected."""
@@ -36,16 +40,36 @@ def _item(t: Translator, item: ContributionItem, share_default: ShareDefault) ->
 
 def _send(t: Translator, config: UiConfig, chosen: list[ContributionItem]) -> None:
     try:
-        results = send_selected(config.contribution_transport, [item.payload for item in chosen if item.payload is not None])
+        results = send_selected(config.contribution_transport, chosen)
     except EdibertError as err:
         st.error(t.error(err))
         return
     _take_db_refs(config, chosen, results)
-    counts = {status: sum(result.status is status for result in results) for status in SendStatus}
-    state.notify(
-        t.t("ui.share_done", accepted=counts[SendStatus.ACCEPTED], duplicate=counts[SendStatus.DUPLICATE], rejected=counts[SendStatus.REJECTED])
-    )
+    message, kind = result_message(t, chosen, results)
+    state.notify(message, kind)
     st.rerun()
+
+
+def _reject_reason(t: Translator, code: str | None) -> str:
+    if code in REJECT_CODES:
+        return t.t(f"ui.share_reject.{code}")
+    return t.t("ui.share_reject_other", code=code or "?")
+
+
+def result_message(t: Translator, chosen: list[ContributionItem], results: list[SendResult]) -> tuple[str, str]:
+    """The notice after sending: the counts, then one line per rejected tariff with the server's reason.
+
+    The kind is ``"warning"`` as soon as one tariff was rejected, else ``"success"``.
+    """
+    counts = {status: sum(result.status is status for result in results) for status in SendStatus}
+    lines = [
+        t.t("ui.share_done", accepted=counts[SendStatus.ACCEPTED], duplicate=counts[SendStatus.DUPLICATE], rejected=counts[SendStatus.REJECTED])
+    ]
+    for item, result in zip(chosen, results, strict=True):
+        if result.status is SendStatus.REJECTED:
+            title = f"{t.t(f'ui.direction.{item.direction}')}: {item.label}"
+            lines.append(t.t("ui.share_rejected", label=title, reason=_reject_reason(t, result.code)))
+    return "  \n".join(lines), "warning" if counts[SendStatus.REJECTED] else "success"
 
 
 def _take_db_refs(config: UiConfig, chosen: list[ContributionItem], results: list[SendResult]) -> None:

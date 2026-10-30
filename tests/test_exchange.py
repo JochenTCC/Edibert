@@ -10,7 +10,7 @@ from typing import ClassVar
 import pytest
 
 from edibert.cli import main
-from edibert.contribution import SendStatus, contribution_payload, send_selected
+from edibert.contribution import SendStatus, contribution_items, contribution_payload, send_selected
 from edibert.editor.userstore import read_document, save_user_tariff
 from edibert.errors import EdibertError, ErrorCode
 from edibert.exchange import (
@@ -141,9 +141,19 @@ def test_submit_rejection_and_invalid_answers():
 
 
 def test_server_transport_is_the_share_adapter():
-    exchange, _ = client((200, {"status": "duplicate", "db_id": "AT/import/f_1", "version": V1}, {}))
-    [result] = send_selected(ServerTransport(exchange), [contribution_payload(USER, IMPORT)])
+    exchange, fake = client((200, {"status": "duplicate", "db_id": "AT/import/f_1", "version": V1}, {}))
+    [item] = contribution_items({"tariff_format": 1, "import_tariffs": [USER], "export_tariffs": []})
+    [result] = send_selected(ServerTransport(exchange), [item])
     assert result.status is SendStatus.DUPLICATE and result.db_ref == DbRef("free", "AT/import/f_1", V1)
+    assert "based_on" not in fake.requests[0]["body"]
+
+
+def test_server_transport_sends_based_on_for_a_tariff_with_db_ref():
+    """Regression (Backlog-Bugfixes 2026-10-30): the share section never sent ``based_on``."""
+    exchange, fake = client((200, {"status": "accepted", "db_id": COPY["db_ref"]["id"], "version": V1}, {}))
+    [item] = contribution_items({"tariff_format": 1, "import_tariffs": [COPY], "export_tariffs": []})
+    send_selected(ServerTransport(exchange), [item])
+    assert fake.requests[0]["body"]["based_on"] == DbRef(**COPY["db_ref"]).to_dict()
 
 
 def test_usage_report_carries_exactly_three_fields():

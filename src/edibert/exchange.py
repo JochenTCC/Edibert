@@ -254,8 +254,8 @@ class ServerTransport:
     def __init__(self, client: ExchangeClient) -> None:
         self.client = client
 
-    def send(self, payload: Mapping[str, Any]) -> SendResult:
-        answer = self.client.submit(payload)
+    def send(self, payload: Mapping[str, Any], db_ref: DbRef | None) -> SendResult:
+        answer = self.client.submit(payload, db_ref)
         return SendResult(answer.status, answer.code, answer.db_ref)
 
 

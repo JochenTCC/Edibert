@@ -63,6 +63,7 @@ class ErrorCode(StrEnum):
     MQTT_CONNECTION_FAILED = "MQTT_CONNECTION_FAILED"  # params: host, port
     # Sharing with the free catalog (Catalog P6)
     CONTRIBUTION_INDIVIDUAL = "CONTRIBUTION_INDIVIDUAL"  # params: tariff_id
+    CONTRIBUTION_LAND_MISSING = "CONTRIBUTION_LAND_MISSING"  # params: tariff_id
     CONTRIBUTION_TRANSPORT_OFF = "CONTRIBUTION_TRANSPORT_OFF"  # params: none
     # Exchange with the tariff database server (Catalog P7)
     EXCHANGE_OFF = "EXCHANGE_OFF"  # params: env

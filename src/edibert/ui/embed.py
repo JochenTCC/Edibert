@@ -33,7 +33,7 @@ def show_notice() -> None:
     notice = state.take_notice()
     if notice:
         kind, message = notice
-        (st.success if kind == "success" else st.error)(message)
+        {"success": st.success, "warning": st.warning}.get(kind, st.error)(message)
 
 
 def _find_user_tariff(config: UiConfig, direction: str, tariff_id: str) -> Mapping[str, Any]:

@@ -14,9 +14,9 @@ The row above the form holds three tools:
 
 ## Share with the free catalog
 
-Below the tool row, **Share with the free catalog** lists your saved tariffs. Each one has a checkbox; while it is ticked, the box below it shows exactly what would be sent. Only price data is sent: type, prices, time windows (without their names), fees, VAT, country, supplier and product name, source and last-checked date. Your notes, the conditions text, comments and the tariff's own ID are never sent. A tariff marked **This tariff is personal** is never shared and has no checkbox; neither has a tariff with an error.
+Below the tool row, **Share with the free catalog** lists your saved tariffs. Each one has a checkbox; while it is ticked, the box below it shows exactly what would be sent. Only price data is sent: type, prices, time windows (without their names), fees, VAT, country, supplier and product name, source and last-checked date. Your notes, the conditions text, comments and the tariff's own ID are never sent. A tariff marked **This tariff is personal** is never shared and has no checkbox; neither has a tariff with an error or without a **Country** (the database files every tariff under its country). In both cases the line names the reason.
 
-Whether the tariffs start ticked depends on the program: the stand-alone Edibert ticks them (you leave out what you do not want to share), Earnie leaves them unticked (you choose what to share). **Send selected tariffs** sends the ticked ones.
+Whether the tariffs start ticked depends on the program: the stand-alone Edibert ticks them (you leave out what you do not want to share), Earnie leaves them unticked (you choose what to share). **Send selected tariffs** sends the ticked ones. The message afterwards counts accepted, already known and rejected tariffs and names every rejected tariff with the reason the database gave.
 
 A tariff the database accepts (or already has) is linked to its database entry, so the form shows where it came from from then on. If the exchange is switched off (`EDIBERT_EXCHANGE_OFF=1`) or the embedding program does not send, sharing is off: the section says so, and the send button stays disabled. You can still check what would be sent; nothing leaves your computer.
 

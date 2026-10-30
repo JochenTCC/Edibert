@@ -15,9 +15,9 @@ Die Zeile über dem Formular enthält drei Werkzeuge:
 
 ## Mit dem freien Katalog teilen
 
-Unter der Werkzeugzeile listet **Mit dem freien Katalog teilen** deine gespeicherten Tarife. Jeder hat ein Kästchen; solange es angehakt ist, zeigt der Kasten darunter genau, was gesendet würde. Gesendet werden nur Preisdaten: Art, Preise, Zeitfenster (ohne ihre Namen), Gebühren, Mehrwertsteuer, Land, Lieferant und Produktname, Quelle und Prüfdatum. Deine Notizen, der Bedingungstext, Kommentare und die eigene ID des Tarifs werden nie gesendet. Ein Tarif mit **Dieser Tarif ist persönlich** wird nie geteilt und hat kein Kästchen; ebenso ein Tarif mit einem Fehler.
+Unter der Werkzeugzeile listet **Mit dem freien Katalog teilen** deine gespeicherten Tarife. Jeder hat ein Kästchen; solange es angehakt ist, zeigt der Kasten darunter genau, was gesendet würde. Gesendet werden nur Preisdaten: Art, Preise, Zeitfenster (ohne ihre Namen), Gebühren, Mehrwertsteuer, Land, Lieferant und Produktname, Quelle und Prüfdatum. Deine Notizen, der Bedingungstext, Kommentare und die eigene ID des Tarifs werden nie gesendet. Ein Tarif mit **Dieser Tarif ist persönlich** wird nie geteilt und hat kein Kästchen; ebenso ein Tarif mit einem Fehler oder ohne **Land** (die Datenbank ordnet jeden Tarif seinem Land zu). In beiden Fällen nennt die Zeile den Grund. <!-- Hinweis einfügen, dass getelte Tarife jedem in der Community helfen - auch dem Nutzer selbst -->
 
-Ob die Tarife zu Beginn angehakt sind, hängt vom Programm ab: Das eigenständige Edibert hakt sie an (du wählst ab, was du nicht teilen willst), Earnie lässt sie leer (du wählst aus, was du teilen willst). **Ausgewählte Tarife senden** sendet die angehakten.
+Ob die Tarife zu Beginn angehakt sind, hängt vom Programm ab: Das eigenständige Edibert hakt sie an (du wählst ab, was du nicht teilen willst), Earnie lässt sie leer (du wählst aus, was du teilen willst). **Ausgewählte Tarife senden** sendet die angehakten. Die Meldung danach zählt angenommene, schon bekannte und abgelehnte Tarife und nennt jeden abgelehnten Tarif mit dem Grund, den die Datenbank angegeben hat.
 
 Ein Tarif, den die Datenbank annimmt (oder schon hat), wird mit seinem Datenbank-Eintrag verknüpft; das Formular zeigt danach, woher er stammt. Ist der Austausch abgeschaltet (`EDIBERT_EXCHANGE_OFF=1`) oder sendet das einbettende Programm nicht, ist Teilen aus: Der Abschnitt sagt das, und der Sende-Knopf bleibt gesperrt. Du kannst trotzdem prüfen, was gesendet würde; nichts verlässt deinen Computer.
 
@@ -54,7 +54,7 @@ Feste Monatskosten: Grundpreis, Messentgelt, Netz-Grundpreis, Sonstiges. Gib sie
 - **Niedrigster / höchster Preis** (Boden und Deckel). Ein niedrigster Preis von 0 bei einem Einspeisetarif heißt „nie negativ“.
 - **Voraussetzungen des Tarifs** (z. B. ein Smart Meter). Edibert warnt, wenn dein Haus das nicht hat.
 - **Feiertage zählen** wie ein Sonntag (Standard), wie ein normaler Tag oder nur für Zeilen, die Feiertage nennen. **Zusätzliche Tage** (z. B. 24. und 31. Dezember) können für diesen Tarif als Feiertag zählen.
-- **Dieser Tarif ist persönlich**, wenn er Sonderkonditionen hat. Persönliche Tarife werden nie geteilt.
+- **Dieser Tarif ist persönlich**, wenn er Sonderkonditionen hat, die individuell nur für dich gelten. Persönliche Tarife werden nie geteilt.
 - **Quelle**, **zuletzt geprüft** und **Bedingungen, die die Berechnung nicht abbilden kann** (z. B. „Bonus nur, wenn der Anbieter das Laden steuert“).
 
 ## Speichern
