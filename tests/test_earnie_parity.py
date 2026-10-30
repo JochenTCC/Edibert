@@ -97,6 +97,30 @@ def test_fixture_covers_dst_snap_and_t1():
     assert hourly == {(d, t) for _, d, t in DST_REPEATED_HOUR}  # T1 covers every hourly settled tariff here
 
 
+def _gross_with_grid_fee(name: str) -> list:
+    return [
+        param
+        for param in _params(name)
+        if param.values[1]["area_id"] and TARIFFS.get(param.values[1]["direction"], param.values[1]["tariff_id"]).prices_include_vat
+    ]
+
+
+@pytest.mark.parametrize(("window", "expected"), _gross_with_grid_fee("expected_prices.json"))
+def test_gross_tariff_with_grid_fee_matches_earnie(window, expected):
+    """Acceptance of the 0.1.i bugfix (VAT on the net grid fee of a gross tariff) against Earnie's engine."""
+    _slots, series = _series(window, expected)
+    vat = TARIFFS.get(expected["direction"], expected["tariff_id"]).vat_percent
+    for point, earnie_cent in zip(series.points, expected["cent"], strict=True):
+        assert point.grid_cent > 0
+        assert earnie_cent == pytest.approx(point.supplier_cent + point.grid_cent * (1 + vat / 100), abs=TOLERANCE)
+        assert abs(earnie_cent - (point.supplier_cent + point.grid_cent)) > TOLERANCE  # the bug would show here
+        assert point.cent == pytest.approx(earnie_cent, abs=TOLERANCE)
+
+
+def test_fixture_covers_a_gross_tariff_with_grid_fee():
+    assert _gross_with_grid_fee("expected_prices.json")
+
+
 @pytest.mark.parametrize(("window", "expected"), _params("monthly_fallback.json"))
 def test_monthly_fallback_matches_earnie(window, expected):
     if "error" in expected:  # Earnie cannot price the window either

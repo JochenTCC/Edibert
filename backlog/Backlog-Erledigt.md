@@ -2,6 +2,10 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Bugfix gross tariff: VAT on the net grid fee (2026-10-30)
+
+- [x] **Gross tariff: net grid fee added without VAT** *(fixed in 0.1.i, 2026-10-26; accepted 2026-10-30)* — `tariff.evaluate` added the net grid fee to a gross supplier price without VAT (30 ct + 8 ct = 38 ct instead of 39.6 ct at 20 %); Earnie puts the VAT on it (`grid_fee_on_tariff_basis`). Now: gross prices get `grid_fee * (1 + vat_percent/100)`, net prices `(supplier + grid fee) * (1 + vat_percent/100)`; `vat_cent` of a gross price point is the VAT on the grid fee. Affects editor preview, invoice check and the MQTT publisher. Regression test: `tests/test_grid_fee_vat_regression.py`. Acceptance against Earnie's engine (before Earnie removed it in Edibert P3b): Earnie's P3a full-matrix run (2025-01 → 2026-10, all 8 gross catalog import tariffs, the AT ones with all 14 grid areas) showed 0 untriaged deviations, net grid fee off by at most `1.8e-15` ct; the shared Earnie fixture `tests/fixtures/earnie_parity/expected_prices.json` holds `at_verbund_v_strom_sterreich` (gross, 20 %) with `AT-VBG` in all four windows, now asserted explicitly in `tests/test_earnie_parity.py::test_gross_tariff_with_grid_fee_matches_earnie` (Earnie's cent = supplier + grid × 1.2 and differs from the buggy supplier + grid).
+
 ### Tariff database client, server exchange (0.1.d Catalog P7 client, 2026-10-29)
 
 - [x] **0.1.d Catalog P7 — client side of the server exchange** (server: open, `earnie-server`)
