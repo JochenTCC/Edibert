@@ -2,6 +2,14 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Grid areas: the other 13 AT areas checked (0.1.d2b, 2026-10-31)
+
+- [x] **0.1.d2b — Grid areas: check the other 13 AT areas against the 2026 price sheets** *(left from `0.1.d2`, decided 2026-10-31: check all 13 instead of leaving them out of the first package; data only, no code change)*
+  - **Source:** the binding regulation instead of 13 operator sheets: SNE-V 2018 – Novelle 2026, BGBl. II Nr. 305/2025, in force 2026-01-01; § 5 Abs. 1 Z 6 (Netzebene 7: work price for unmetered and metered power, flat fee 54.00 EUR/year for unmetered power) and § 6 lit. b (grid loss charge NE 7)
+  - **Result:** all 26 seed work prices match the regulation; SNAP is exactly 80 % of the work price in every area, so the flat rule set `AT_NE7` stays; grid loss charge per area (Burgenland 0.000 ct/kWh); AT-VBG's 0.393 ct/kWh confirmed
+  - [x] Burgenland, Kärnten, Klagenfurt, Niederösterreich, Oberösterreich, Linz, Salzburg, Steiermark, Graz, Tirol, Innsbruck, Wien and Kleinwalsertal completed in the operator grid file like AT-VBG: `regions` (city operators and Kleinwalsertal next to their federal state), `operator` where the regulation or the operator is unambiguous (left empty for Klagenfurt and Kleinwalsertal, display only), work price, grid loss charge, grid base fee per metering type (metered power not modeled), levy set `AT_NE7_LEVIES_2026` (national, taken from the checked AT-VBG sheet), `check` checked 2026-10-31 with the regulation as source; `python -m edibert grid check --require-check` passes for all 14 areas
+  - **Consequence:** the first catalog package carries all 14 AT areas checked; `--leave-out-unchecked-grid-areas` is not needed
+
 ### Grid areas: complete grid-fee model and operator path (0.1.d2, 2026-10-31)
 
 - [x] **0.1.d2 — Grid areas: complete grid-fee model and operator path** *(decided 2026-10-31; server side earnie-server TariffDB P4; in `0.1.12`, not released)*
@@ -16,7 +24,7 @@ Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes �
   - [x] **Area choice in the stand-alone editor** (`ui/grid.py`): the grid-fee section offers the catalog areas of the house land and region, says when none matches and asks for own values; own values with work price, time windows, components, fixed amounts; "Copy as own values" from a catalog area or a grid template (opt-in) with `db_ref` and "same values as / differs from database entry"; house setting `power_metering`; `house.json` stores `grid_area_id`, publisher and preview resolve it (`load_house_grids`)
   - **Acceptance (2026-10-31):** passed against a local earnie-server with a test key (script kept outside the repo, 10 steps): migration of an old house grid fee and a tariff with `grid_monthly_fee_eur` (5.40 EUR/month gross -> 54.00 EUR/year net), two own grid areas shared through route 2b, one checked by `moderate check`, one listed as grid template; offline build from the seed, the operator file (AT-VBG) and the checked shared area, published; the editor imported the package, offered AT-VBG for Vorarlberg and showed work price, grid loss charge, levies and the fixed amounts (73.02 EUR/year); the publisher's MQTT attributes carry `grid_breakdown` and `grid_fixed`; use report and status of `AT/grid/AT-VBG` (checked, 1 installation); the grid template copied as own values with `db_ref`
   - Tests: `tests/test_grid_areas.py` (new), `test_editor_model.py`, `test_publish.py`, `test_ui_app.py`, `test_catalog_package.py`; full suite 693 passed
-  - **Left open:** the data of the other 13 AT areas (`0.1.d2b` in [Backlog.md](Backlog.md)); Earnie's pin bump handles the migration (note in [Backlog.md](Backlog.md))
+  - **Left open:** the data of the other 13 AT areas (`0.1.d2b`, done 2026-10-31, above); Earnie's pin bump handles the migration (note in [Backlog.md](Backlog.md))
 
 ### Tariff database: one database with check states (0.1.d D1–D6, contract v2, 2026-10-31)
 
