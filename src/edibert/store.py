@@ -72,6 +72,12 @@ def _add_section(result: TariffSet, raw_list: object, direction: str, origin: st
     for raw in raw_list:
         tariff = parse_tariff(raw, direction)
         _check_prefix(tariff.id, origin)
+        if origin == "user" and tariff.check is not None:  # only the tariff database checks; a copy drops it
+            raise EdibertError(
+                ErrorCode.CHECK_NOT_IN_USER_FILE,
+                f"User tariff '{tariff.id}' carries a database check; only catalog entries do.",
+                tariff_id=tariff.id,
+            )
         if tariff.id in table:  # already loaded from the other file
             raise EdibertError(
                 ErrorCode.ID_COLLISION, f"Duplicate {direction} tariff ID '{tariff.id}'.", tariff_id=tariff.id

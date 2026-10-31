@@ -172,7 +172,7 @@ def test_tariff_without_land_is_refused_locally():
 
 def test_db_ref_of_a_shared_tariff_reaches_the_transport():
     """A tariff shared before carries its db_ref, so the server makes a new version instead of a new entry."""
-    ref = {"database": "free", "id": "AT/import/shared_abc", "version": "a" * 64}
+    ref = {"id": "AT/import/shared_abc", "version": "a" * 64}
     [item] = contribution_items({"tariff_format": 1, "import_tariffs": [full_tariff(db_ref=ref)], "export_tariffs": []})
     rec = Recorder()
     send_selected(rec, [item])

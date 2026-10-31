@@ -74,12 +74,13 @@ def copy_as_template(
     """Copy a (catalog) tariff as the starting point of an own tariff: new ``user_`` ID, new label.
 
     The copy is valid without a time limit (``valid_from`` / ``valid_to`` of the catalog version are dropped)
-    and carries ``db_ref`` when the catalog came from the tariff database (Catalog P3).
+    and carries ``db_ref`` when the tariff came from the tariff database (a package catalog or a template).
     """
     copy = json.loads(json.dumps(raw))
     copy.pop("valid_from", None)
     copy.pop("valid_to", None)
     copy.pop("db_ref", None)
+    copy.pop("check", None)  # the database's check covers its entry, never the user's copy
     if db_ref is not None:
         copy["db_ref"] = dict(db_ref)
     base = USER_PREFIX + slugify(str(raw.get("id", "tariff")).removeprefix(USER_PREFIX))

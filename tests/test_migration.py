@@ -6,6 +6,7 @@ import json
 import pytest
 
 from edibert import api
+from edibert.store import parse_tariff_documents
 
 FIXED = {"type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0, "land": "AT"}
 GRID = {
@@ -161,3 +162,19 @@ def test_unknown_file_names_are_rejected():
 def test_missing_files_may_be_left_out_or_none():
     assert api.migrate({"tariffs.json": None}).docs == {}
     assert api.TARIFF_TRACK_FILES == ("tariffs.json", "user_tariffs.json", "grid_fees.json", "user_grid_fees.json")
+
+
+def test_db_ref_of_contract_v1_loses_its_database_key():
+    """One tariff database (contract v2): ``db_ref.database`` is ``DB_REF_LEGACY`` on load; the migration drops it."""
+    ref = {"id": "AT/import/shared_abc", "version": "a" * 64}
+    tariff = {"id": "user_x", "type": "fixed_cent", "supplier_id": "user_x", "fix_cent_kwh": 20, "vat_percent": 20,
+              "db_ref": {"database": "free", **ref}}  # fmt: skip
+    docs = {"user_tariffs.json": {"tariff_format": 1, "import_tariffs": [tariff], "export_tariffs": []}}
+    with pytest.raises(api.EdibertError) as err:
+        parse_tariff_documents(None, docs["user_tariffs.json"])
+    assert err.value.code is api.ErrorCode.DB_REF_LEGACY
+    plan = api.plan_migration(docs)
+    assert plan.changed_files == ("user_tariffs.json",) and plan.can_run
+    result = api.migrate(docs)
+    assert result.docs["user_tariffs.json"]["import_tariffs"][0]["db_ref"] == ref
+    assert api.migrate(result.docs).changed_files == ()

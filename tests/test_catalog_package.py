@@ -16,7 +16,7 @@ from edibert.catalog_import import (
 )
 from edibert.cli import main
 from edibert.context import PricingContext
-from edibert.editor.catalog import catalog_database, read_catalog
+from edibert.editor.catalog import catalog_package, read_catalog
 from edibert.editor.model import TariffDraft
 from edibert.editor.userstore import copy_as_template
 from edibert.errors import EdibertError, ErrorCode, WarningCode
@@ -42,6 +42,7 @@ MONTHLY = {
 }  # fmt: skip
 AREA = {"id": "AT-X", "label": "X", "land": "AT", "base_cent_kwh": {"unmetered_power": 8.0, "metered_power": 6.0}}
 KEY_ID = "test-1"
+CHECK = {"state": "checked", "checked_at": "2026-10-20", "source": "price sheet 2026-10"}
 TODAY = date(2026, 10, 29)
 
 
@@ -67,14 +68,23 @@ def signing():
 
 def manifest(**changes):
     base = {
-        "database": "verified", "package_id": "2026-10-a", "issued_at": "2026-10-29T08:00:00+00:00",
+        "package_id": "2026-10-a", "issued_at": "2026-10-29T08:00:00+00:00",
         "valid_until": "2026-12-31", "tariff_format": 1, "key_id": KEY_ID,
     }  # fmt: skip
     return {**base, **changes}
 
 
-def make_package(signing, tariffs=None, grid=None, **changes):
-    return build_package(tariffs or tariffs_doc(), grid or grid_doc(), manifest(**changes), signing[0])
+def checked(document):
+    """A catalog document as a package carries it: every tariff with its ``check``."""
+    return {
+        **document,
+        **{section: [{"check": CHECK, **raw} for raw in document.get(section) or []] for section in ("import_tariffs", "export_tariffs")},
+    }
+
+
+def make_package(signing, tariffs=None, grid=None, *, unchecked=False, **changes):
+    content = tariffs or tariffs_doc()
+    return build_package(content if unchecked else checked(content), grid or grid_doc(), manifest(**changes), signing[0])
 
 
 # --- P1: identity and version ---------------------------------------------------------------
@@ -205,10 +215,11 @@ def test_editor_catalog_shows_the_version_valid_today(tmp_path):
 
 
 def test_copy_carries_db_ref_and_drops_validity():
-    ref = db_ref_for(BASE, IMPORT, "verified")
-    copy = copy_as_template({**BASE, "valid_from": "2026-01-01"}, set(), "(copy)", ref)
-    assert copy["db_ref"] == {"database": "verified", "id": "AT/import/at_x_fix", "version": tariff_version(BASE, IMPORT)}
+    ref = db_ref_for(BASE, IMPORT)
+    copy = copy_as_template({**BASE, "valid_from": "2026-01-01", "check": CHECK}, set(), "(copy)", ref)
+    assert copy["db_ref"] == {"id": "AT/import/at_x_fix", "version": tariff_version(BASE, IMPORT)}
     assert "valid_from" not in copy
+    assert "check" not in copy  # the check covers the database entry, not the user's copy
     assert parse_tariff(copy, IMPORT).db_ref.id == "AT/import/at_x_fix"
     assert differs_from_db(copy, IMPORT) is False
     assert differs_from_db({**copy, "fix_cent_kwh": 21}, IMPORT) is True
@@ -217,7 +228,7 @@ def test_copy_carries_db_ref_and_drops_validity():
 
 def test_unchanged_copy_still_matches_after_the_editor_round_trip():
     for raw, direction in ((BASE, IMPORT), (MONTHLY, IMPORT), ({"id": "at_y", "type": "fixed", "supplier_id": "y", "land": "AT", "k_push_cent": 7, "vat_percent": 0}, EXPORT)):
-        copy = copy_as_template(raw, set(), "(copy)", db_ref_for(raw, direction, "verified"))
+        copy = copy_as_template(raw, set(), "(copy)", db_ref_for(raw, direction))
         saved = TariffDraft.from_raw(copy, direction).to_raw()
         assert differs_from_db(saved, direction) is False, raw["id"]
 
@@ -225,10 +236,9 @@ def test_unchanged_copy_still_matches_after_the_editor_round_trip():
 @pytest.mark.parametrize(
     "ref",
     [
-        {"database": "mine", "id": "a", "version": "0" * 64},
-        {"database": "free", "id": "a", "version": "abc"},
-        {"database": "free", "id": "a"},
-        {"database": "free", "id": "a", "version": "0" * 64, "extra": 1},
+        {"id": "a", "version": "abc"},
+        {"id": "a"},
+        {"id": "a", "version": "0" * 64, "extra": 1},
     ],
 )
 def test_invalid_db_ref_is_rejected(ref):
@@ -237,12 +247,40 @@ def test_invalid_db_ref_is_rejected(ref):
     )  # fmt: skip
 
 
+def test_db_ref_of_contract_v1_needs_the_migration():
+    """v1 named the database; v2 has one. The old key is never ignored, the migration removes it."""
+    ref = {"database": "free", "id": "AT/import/x", "version": "0" * 64}
+    assert code_of(parse_tariff, {**BASE, "id": "user_x", "db_ref": ref}, IMPORT) == ErrorCode.DB_REF_LEGACY
+
+
+@pytest.mark.parametrize(
+    ("check", "code"),
+    [
+        ({"state": "unchecked", "checked_at": "2026-10-01", "source": "s"}, ErrorCode.VALUE_INVALID),
+        ({"state": "rejected", "checked_at": "2026-10-01", "source": "s"}, ErrorCode.VALUE_INVALID),
+        ({"state": "checked", "source": "s"}, ErrorCode.FIELD_MISSING),
+        ({"state": "checked", "checked_at": "2026-10-01"}, ErrorCode.FIELD_MISSING),
+        ({"state": "released_by_supplier", "checked_at": "2026-10-01"}, ErrorCode.FIELD_MISSING),
+        ({"state": "checked", "checked_at": "2026-10-01", "source": "s", "by": "x"}, ErrorCode.TARIFF_UNKNOWN_FIELD),
+    ],
+)
+def test_check_block_is_strict(check, code):
+    assert code_of(parse_tariff, {**BASE, "check": check}, IMPORT) == code
+
+
+def test_check_is_not_part_of_the_version_and_not_allowed_in_user_files():
+    released = {"state": "released_by_supplier", "checked_at": "2026-10-25", "released_by": "X Energie"}
+    assert tariff_version({**BASE, "check": CHECK}, IMPORT) == tariff_version({**BASE, "check": released}, IMPORT) == tariff_version(BASE, IMPORT)
+    assert parse_tariff({**BASE, "check": released}, IMPORT).check.released_by == "X Energie"
+    user = tariffs_doc([{**BASE, "id": "user_x", "check": CHECK}])
+    assert code_of(parse_tariff_documents, None, user) == ErrorCode.CHECK_NOT_IN_USER_FILE
+
+
 # --- P4: package check ----------------------------------------------------------------------
 
 
 def test_valid_package_passes(signing):
     package = verify_package(make_package(signing), trusted_keys=signing[1], today=TODAY)
-    assert package.manifest.database == "verified"
     assert package.manifest.valid_until == date(2026, 12, 31)
     assert package.tariffs["import_tariffs"][0]["id"] == "at_x_fix"
     assert package.warnings == ()
@@ -275,7 +313,8 @@ def test_any_change_breaks_the_package(signing):
 @pytest.mark.parametrize(
     ("change", "code"),
     [
-        ({"edibert_package": 2}, ErrorCode.PACKAGE_FORMAT_UNSUPPORTED),
+        ({"edibert_package": 1}, ErrorCode.PACKAGE_FORMAT_UNSUPPORTED),  # format 1 (two databases) was never published
+        ({"edibert_package": 3}, ErrorCode.PACKAGE_FORMAT_UNSUPPORTED),
         ({"edibert_package": True}, ErrorCode.PACKAGE_FORMAT_UNSUPPORTED),
         ({"extra": 1}, ErrorCode.TARIFF_UNKNOWN_FIELD),
     ],
@@ -287,7 +326,7 @@ def test_package_root_is_strict(signing, change, code):
 @pytest.mark.parametrize(
     ("changes", "code"),
     [
-        ({"database": "mine"}, ErrorCode.VALUE_INVALID),
+        ({"database": "verified"}, ErrorCode.TARIFF_UNKNOWN_FIELD),
         ({"issued_at": "2026-10-29T08:00:00"}, ErrorCode.VALUE_INVALID),
         ({"valid_until": None}, ErrorCode.FIELD_MISSING),
         ({"tariff_format": "1"}, ErrorCode.VALUE_INVALID),
@@ -297,6 +336,14 @@ def test_package_root_is_strict(signing, change, code):
 )
 def test_manifest_is_strict(signing, changes, code):
     assert code_of(verify_package, make_package(signing, **changes), trusted_keys=signing[1], today=TODAY) == code
+
+
+def test_package_carries_checked_tariffs_only(signing):
+    document = make_package(signing, unchecked=True)
+    assert code_of(verify_package, document, trusted_keys=signing[1], today=TODAY) == ErrorCode.PACKAGE_ENTRY_UNCHECKED
+    unchecked = tariffs_doc([{**BASE, "check": {**CHECK, "state": "unchecked"}}])
+    document = make_package(signing, tariffs=unchecked, unchecked=True)
+    assert code_of(verify_package, document, trusted_keys=signing[1], today=TODAY) == ErrorCode.VALUE_INVALID
 
 
 def test_package_content_must_load_and_carry_identities(signing):
@@ -356,10 +403,10 @@ def test_apply_keeps_or_drops_local_rows_and_stamps_the_package(signing):
     assert [(row["month"], row["tariff_cent_kwh"]) for row in rows] == [(9, 9.0), (10, 9.5), (11, 9.9)]
     assert "oemag_monthly_feed_in_rates" not in tariffs
     assert tariffs["package"] == {
-        "database": "verified", "package_id": "2026-10-a", "issued_at": "2026-10-29T08:00:00+00:00", "valid_until": "2026-12-31",
+        "package_id": "2026-10-a", "issued_at": "2026-10-29T08:00:00+00:00", "valid_until": "2026-12-31",
     }  # fmt: skip
     assert grid == grid_doc()
-    assert plan.package.tariffs.get("package") is None  # the verified package itself is unchanged
+    assert plan.package.tariffs.get("package") is None  # the package itself is unchanged
 
 
 def test_kept_row_goes_into_the_version_of_its_month(signing):
@@ -371,13 +418,18 @@ def test_kept_row_goes_into_the_version_of_its_month(signing):
     assert [len(entry["monthly_rates"]) for entry in tariffs["import_tariffs"]] == [2, 2]
 
 
-def test_written_catalog_loads_and_names_its_database(signing, tmp_path):
+def test_written_catalog_loads_and_names_its_package(signing, tmp_path):
     plan = plan_package_import(package_with(signing, tariffs_doc([BASE])), None, None)
     tariffs, grid = apply_package_import(plan, {})
     tariffs_path, grid_path = tmp_path / "cat" / "tariffs.json", tmp_path / "cat" / "grid_fees.json"
     write_catalog_pair(tariffs_path, tariffs, grid_path, grid)
     assert load_tariffs(tariffs_path).imports["at_x_fix"].fix_cent_kwh == 20.0
-    assert catalog_database(tariffs_path) == "verified"
+    assert catalog_package(tariffs_path)["package_id"] == "2026-10-a"
+    assert load_tariffs(tariffs_path).imports["at_x_fix"].check.state == "checked"
+    stale = json.loads(tariffs_path.read_text(encoding="utf-8"))
+    stale["package"]["database"] = "verified"  # a catalog imported from a v1 package
+    tariffs_path.write_text(json.dumps(stale), encoding="utf-8")
+    assert code_of(catalog_package, tariffs_path) == ErrorCode.TARIFF_UNKNOWN_FIELD
     assert sorted(path.name for path in tariffs_path.parent.iterdir()) == ["grid_fees.json", "tariffs.json"]
 
 

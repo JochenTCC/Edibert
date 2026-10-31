@@ -117,11 +117,16 @@ def build_parser() -> argparse.ArgumentParser:
     imports.add_argument("--dry-run", action="store_true", help="show the plan, write nothing")
     exchange = sub.add_parser("exchange", help="exchange with the tariff database server (EDIBERT_EXCHANGE_OFF=1 switches it off)")
     exchange_sub = exchange.add_subparsers(dest="exchange_command", required=True)
-    fetch = exchange_sub.add_parser("fetch", help="download the latest package of a database (both are free)")
-    fetch.add_argument("--database", choices=("free", "verified"), required=True)
+    fetch = exchange_sub.add_parser("fetch", help="download the latest catalog package (checked tariffs, signed)")
     fetch.add_argument("--out", type=Path, required=True, help="package file to write; check and import it with 'package import'")
     fetch.add_argument("--catalog", type=Path, help="current tariffs.json: nothing is downloaded while its package is the latest")
-    for name, text in (("status", "status of the tariffs in use (newest version, reliable)"),
+    templates = exchange_sub.add_parser("templates", help="list unchecked templates of the tariff database (copy them in the editor)")
+    templates.add_argument("--land", required=True, help="two letters, e.g. AT")
+    templates.add_argument("--direction", choices=("import", "export", "grid"), required=True)
+    templates.add_argument("--grid-area", help="grid area ID (only with --direction grid)")
+    templates.add_argument("--supplier", help="search in supplier ID and label (at least 2 characters)")
+    templates.add_argument("--format", choices=("table", "json"), default="table")
+    for name, text in (("status", "status of the tariffs in use (check state, newest version, reliable)"),
                        ("report", "report use of the tariffs in use, one request per tariff at random times within 24 h")):
         command = exchange_sub.add_parser(name, help=text)
         command.add_argument("--data-dir", type=Path, default=Path("edibert_data"), help="folder with publish.json and user_tariffs.json")
@@ -281,7 +286,7 @@ def run_package(args: argparse.Namespace, t: Translator) -> tuple[list[str], lis
     if args.package_command == "verify":
         if args.format == "json":
             return [json.dumps(manifest.to_dict(), indent=2, ensure_ascii=False)], notes
-        return [t.t("cli.package_ok", package_id=manifest.package_id, database=manifest.database,
+        return [t.t("cli.package_ok", package_id=manifest.package_id,
                     issued_at=manifest.issued_at.isoformat(), valid_until=manifest.valid_until.isoformat())], notes  # fmt: skip
     plan = plan_package_import(package, _read_optional(args.catalog), _read_optional(args.grid_catalog))
     lines = [f"{item.change}: {item.key}" for item in plan.changes]

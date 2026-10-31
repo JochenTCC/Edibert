@@ -1,17 +1,20 @@
-"""Signed catalog packages (Catalog P4): format, signature check and the content checks.
+"""Signed catalog packages (Catalog P4, package format 2): format, signature check and the content checks.
 
 A package is one JSON file::
 
-    {"edibert_package": 1,
-     "manifest": {"database", "package_id", "issued_at", "valid_until", "tariff_format", "key_id", "files"},
+    {"edibert_package": 2,
+     "manifest": {"package_id", "issued_at", "valid_until", "tariff_format", "key_id", "files"},
      "content": {"tariffs.json": {...}, "grid_fees.json": {...}},
      "signature": "<base64 Ed25519 signature over the canonical manifest>"}
 
 The signature covers the manifest; the manifest holds the SHA-256 of every content file. So nothing in the
 package can change without breaking the check, and the check needs no network. Edibert only verifies:
 the private key lives with the tariff database, never in this repository and never on a server.
-An expired package (``valid_until`` in the past) stays usable and only warns, because a subscriber may keep
-the last package received.
+There is one tariff database and one catalog: every tariff of a package carries its ``check`` (``checked`` or
+``released_by_supplier``), because the signature stands for checked versions only. Format 1 (with
+``manifest.database``) was never published and is not read.
+An expired package (``valid_until`` in the past) stays usable and only warns: a client keeps the last package
+received.
 """
 
 from __future__ import annotations
@@ -39,13 +42,13 @@ from edibert.fileformat import CATALOG_FILE, GRID_CATALOG_FILE, check_tariff_for
 from edibert.gridfee import parse_grid_fee_catalog
 from edibert.identity import grid_area_identity, tariff_identity
 from edibert.store import parse_tariff_documents
-from edibert.tariff import DATABASES, EXPORT, IMPORT
+from edibert.tariff import EXPORT, IMPORT
 
 PACKAGE_KEY = "edibert_package"
-PACKAGE_FORMAT = 1
-SUPPORTED_PACKAGE_FORMATS = (1,)
+PACKAGE_FORMAT = 2
+SUPPORTED_PACKAGE_FORMATS = (2,)
 ROOT_FIELDS = (PACKAGE_KEY, "manifest", "content", "signature")
-MANIFEST_FIELDS = ("database", "package_id", "issued_at", "valid_until", "tariff_format", "key_id", "files")
+MANIFEST_FIELDS = ("package_id", "issued_at", "valid_until", "tariff_format", "key_id", "files")
 CONTENT_FILES = (CATALOG_FILE, GRID_CATALOG_FILE)
 SECTIONS = {IMPORT: "import_tariffs", EXPORT: "export_tariffs"}
 
@@ -57,7 +60,6 @@ TRUSTED_KEYS: Mapping[str, str] = {"edibert-2026-1": "6sbs0jOqfz4ue7lCike6mVkZX2
 
 @dataclass(frozen=True)
 class PackageManifest:
-    database: str  # "free" or "verified"
     package_id: str
     issued_at: datetime
     valid_until: date
@@ -67,7 +69,6 @@ class PackageManifest:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "database": self.database,
             "package_id": self.package_id,
             "issued_at": self.issued_at.isoformat(),
             "valid_until": self.valid_until.isoformat(),
@@ -154,9 +155,6 @@ def _public_key(text: object, path: str) -> Ed25519PublicKey:
 def _parse_manifest(raw: object) -> PackageManifest:
     data = as_dict(raw, "manifest")
     check_known(data, MANIFEST_FIELDS, "manifest")
-    database = get_str(data, "database", "manifest", required=True)
-    if database not in DATABASES:
-        raise invalid("manifest.database", database)
     issued_text = get_str(data, "issued_at", "manifest", required=True)
     try:
         issued_at = datetime.fromisoformat(str(issued_text))
@@ -176,7 +174,6 @@ def _parse_manifest(raw: object) -> PackageManifest:
     if sorted(files) != sorted(CONTENT_FILES):
         raise invalid("manifest.files", sorted(files))
     return PackageManifest(
-        database=database,
         package_id=get_str(data, "package_id", "manifest", required=True) or "",
         issued_at=issued_at,
         valid_until=valid_until,
@@ -218,9 +215,16 @@ def _check_content(content: Mapping[str, Any], manifest: PackageManifest) -> tup
             raise invalid(f"{name}.tariff_format", document.get("tariff_format"))
     parse_tariff_documents(tariffs, None, (CATALOG_FILE, "-"))
     parse_grid_fee_catalog(grid_fees, where=GRID_CATALOG_FILE)
-    for direction, section in SECTIONS.items():  # every database entry needs its identity
+    for direction, section in SECTIONS.items():  # every database entry needs its identity and its check
         for raw in tariffs.get(section) or []:
             tariff_identity(raw, direction)
+            if raw.get("check") is None:
+                tariff_id = str(raw.get("id"))
+                raise EdibertError(
+                    ErrorCode.PACKAGE_ENTRY_UNCHECKED,
+                    f"Package tariff '{tariff_id}' has no check; a signed package carries checked versions only.",
+                    tariff_id=tariff_id,
+                )
     for area in grid_fees.get("areas") or []:
         grid_area_identity(area)
     return tariffs, grid_fees

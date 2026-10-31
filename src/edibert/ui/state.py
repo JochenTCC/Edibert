@@ -31,6 +31,7 @@ PENDING_LEAVE = "ui.pending_leave"
 BASELINE = "ui.baseline"
 FETCHED_PACKAGE = "ui.fetched_package"
 DB_STATUS = "ui.db_status"
+TEMPLATES = "ui.templates"
 
 # The prefix of the render that is running. Not session data: it is set for the duration of one
 # render call (``scope``) and reset afterwards, so sessions and embeds never see each other's prefix.
@@ -83,6 +84,7 @@ def init(config: UiConfig) -> None:
     ss[k(BASELINE)] = None
     ss[k(FETCHED_PACKAGE)] = None
     ss[k(DB_STATUS)] = {}
+    ss[k(TEMPLATES)] = None
     if config.host_house is None:
         ss[k(HOUSE)] = load_house(config.house_file)
         assign_uids(ss[k(HOUSE)].grid_rules)
@@ -186,6 +188,15 @@ def set_fetched_package(document: dict | None) -> None:
 def db_status() -> dict[tuple[str, str], dict]:
     """Status answers asked in this session, by ``(db_id, version)``."""
     return st.session_state[k(DB_STATUS)]
+
+
+def templates() -> tuple[tuple[str, str, str | None, str | None], object] | None:
+    """The last template list loaded from the server with its filters ``(land, direction, grid_area, supplier)``."""
+    return st.session_state[k(TEMPLATES)]
+
+
+def set_templates(value: tuple[tuple[str, str, str | None, str | None], object] | None) -> None:
+    st.session_state[k(TEMPLATES)] = value
 
 
 def key(name: str) -> str:

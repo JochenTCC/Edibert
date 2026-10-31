@@ -33,6 +33,7 @@ ROOT = "root"
 GRID = "grid"
 RULE_SET = "rule_set"
 PACKAGE_INFO_KEY = "package"  # root key of the imported tariffs.json: which package it came from
+PACKAGE_INFO_FIELDS = ("package_id", "issued_at", "valid_until")
 
 
 @dataclass(frozen=True)
@@ -180,7 +181,6 @@ def apply_package_import(plan: ImportPlan, resolutions: Mapping[str, str]) -> tu
         _put_row(_version_for(entries, month).setdefault("monthly_rates", []), month, conflict.local_cent)
     manifest = plan.package.manifest
     tariffs[PACKAGE_INFO_KEY] = {
-        "database": manifest.database,
         "package_id": manifest.package_id,
         "issued_at": manifest.issued_at.isoformat(),
         "valid_until": manifest.valid_until.isoformat(),

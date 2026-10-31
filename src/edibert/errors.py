@@ -48,6 +48,9 @@ class ErrorCode(StrEnum):
     TARIFF_NOT_VALID = "TARIFF_NOT_VALID"  # params: tariff_id, date
     # Tariff database and catalog packages (Catalog P1-P5)
     DB_ID_UNAVAILABLE = "DB_ID_UNAVAILABLE"  # params: tariff_id
+    DB_REF_LEGACY = "DB_REF_LEGACY"  # params: path
+    CHECK_NOT_IN_USER_FILE = "CHECK_NOT_IN_USER_FILE"  # params: tariff_id
+    PACKAGE_ENTRY_UNCHECKED = "PACKAGE_ENTRY_UNCHECKED"  # params: tariff_id
     TARIFF_VALIDITY_OVERLAP = "TARIFF_VALIDITY_OVERLAP"  # params: tariff_id
     PACKAGE_FORMAT_UNSUPPORTED = "PACKAGE_FORMAT_UNSUPPORTED"  # params: value
     PACKAGE_KEY_UNKNOWN = "PACKAGE_KEY_UNKNOWN"  # params: key_id

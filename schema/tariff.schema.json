@@ -340,18 +340,11 @@
     "db_ref": {
       "type": "object",
       "required": [
-        "database",
         "id",
         "version"
       ],
       "additionalProperties": false,
       "properties": {
-        "database": {
-          "enum": [
-            "free",
-            "verified"
-          ]
-        },
         "id": {
           "type": "string",
           "minLength": 1
@@ -359,6 +352,34 @@
         "version": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "check": {
+      "type": "object",
+      "required": [
+        "state",
+        "checked_at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "enum": [
+            "checked",
+            "released_by_supplier"
+          ]
+        },
+        "checked_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "released_by": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },

@@ -10,7 +10,7 @@ import streamlit as st
 from edibert.context import region_codes
 from edibert.editor.catalog import (
     CatalogEntry,
-    catalog_database,
+    catalog_package,
     filter_entries,
     lands_of,
     read_catalog,
@@ -32,9 +32,12 @@ from edibert.errors import EdibertError, ErrorCode
 from edibert.i18n import SUPPORTED_LANGUAGES, Translator
 from edibert.identity import db_ref_for
 from edibert.rules import REQUIRES
+from edibert.store import parse_tariff_documents
 from edibert.tariff import EXPORT, IMPORT
-from edibert.ui import migrate_gate, package_import, preview, state, widgets
+from edibert.ui import migrate_gate, package_import, preview, state, templates, widgets
 from edibert.ui.config import UiConfig
+
+MIGRATE_CODES = (ErrorCode.FORMAT_MISSING, ErrorCode.DB_REF_LEGACY)  # problems the migration gate solves
 
 AT_STATES = {
     "1": "Burgenland", "2": "Kärnten", "3": "Niederösterreich", "4": "Oberösterreich", "5": "Salzburg",
@@ -271,8 +274,7 @@ def _copy_catalog(t: Translator, config: UiConfig) -> None:
         )  # fmt: skip
         entry = shown[choice]
         taken = user_tariff_ids(config.user_file)[entry.direction]
-        database = catalog_database(config.catalog)
-        db_ref = db_ref_for(entry.raw, entry.direction, database) if database is not None else None
+        db_ref = db_ref_for(entry.raw, entry.direction) if catalog_package(config.catalog) is not None else None
         copy = copy_as_template(entry.raw, taken, t.t("ui.copy_suffix"), db_ref)
         st.button(t.t("ui.copy_button"), key=state.k("copy.go"), on_click=state.bound(_leave), args=(("copy", copy, entry.direction),))
 
@@ -351,9 +353,9 @@ def render_tools(t: Translator, config: UiConfig) -> None:
     """The row above form and preview: my tariffs with new/delete, copy from catalog, import."""
     _leave_prompt(t, config)
     try:
-        read_document(config.user_file)
+        parse_tariff_documents(None, read_document(config.user_file), ("-", str(config.user_file)))
     except EdibertError as err:
-        if err.code == ErrorCode.FORMAT_MISSING:
+        if err.code in MIGRATE_CODES:
             migrate_gate.render(t, config, err)
             return
         st.error(t.error(err))
@@ -363,6 +365,7 @@ def render_tools(t: Translator, config: UiConfig) -> None:
         _tariffs(t, config)
     with catalog:
         _copy_catalog(t, config)
+        templates.render(t, config, _house_land(config), _leave)
     with imports:
         _import(t, config)
 

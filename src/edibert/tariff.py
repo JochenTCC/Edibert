@@ -32,6 +32,7 @@ from edibert.rules import (
     parse_holiday_mode,
     parse_rules,
 )
+from edibert.trust import CATALOG_CHECK_STATES, CHECKED
 
 if TYPE_CHECKING:
     from edibert.gridfee import GridFee
@@ -52,14 +53,16 @@ TARIFF_FIELDS = (
     "feed_in_fee_factor", "feed_in_fix_cent",
     "rules", "price_floor_cent_kwh", "price_cap_cent_kwh", "requires", "behavior_notes",
     "source", "last_verified", "holidays", "extra_holiday_dates", "individual", "applies_to",
-    "valid_from", "valid_to", "db_ref",
+    "valid_from", "valid_to", "db_ref", "check",
     *FEE_FIELDS,
 )  # fmt: skip
 UNSUPPORTED_FIELDS = ("tiers", "demand")
 
-# ``db_ref``: the tariff-database entry a user tariff was copied from (Catalog P3)
-DATABASES = ("free", "verified")
-DB_REF_FIELDS = ("database", "id", "version")
+# ``db_ref``: the tariff-database entry a user tariff was copied from (Catalog P3); contract v2 dropped ``database``
+DB_REF_FIELDS = ("id", "version")
+LEGACY_DB_REF_FIELD = "database"  # v1 key; a file with it is migrated explicitly (``DB_REF_LEGACY``)
+# ``check``: the check state of a catalog entry as the tariff database signed it (package format 2)
+CHECK_FIELDS = ("state", "checked_at", "source", "released_by")
 
 # Monthly-table fallback (Earnie's order): exact month, else these two, never more.
 FALLBACK_PRIOR_YEAR = "prior_year"
@@ -68,14 +71,31 @@ FALLBACK_PRIOR_MONTH = "prior_month"
 
 @dataclass(frozen=True)
 class DbRef:
-    """Origin of a tariff in the tariff database: database, database ID and version (hash, Catalog P1)."""
+    """Origin of a tariff in the tariff database: database ID and version (hash, Catalog P1)."""
 
-    database: str
     id: str
     version: str
 
     def to_dict(self) -> dict[str, str]:
-        return {"database": self.database, "id": self.id, "version": self.version}
+        return {"id": self.id, "version": self.version}
+
+
+@dataclass(frozen=True)
+class CatalogCheck:
+    """Check state of a catalog entry: ``checked`` (date and source) or ``released_by_supplier`` (date and party)."""
+
+    state: str
+    checked_at: date
+    source: str | None
+    released_by: str | None
+
+    def to_dict(self) -> dict[str, str]:
+        result = {"state": self.state, "checked_at": self.checked_at.isoformat()}
+        if self.source is not None:
+            result["source"] = self.source
+        if self.released_by is not None:
+            result["released_by"] = self.released_by
+        return result
 
 
 @dataclass(frozen=True)
@@ -112,6 +132,7 @@ class Tariff:
     valid_from: date | None = None  # first day of this version (house time); None = no start
     valid_to: date | None = None  # last day of this version; None = open end
     db_ref: DbRef | None = None
+    check: CatalogCheck | None = None  # catalog entries of a package only
     # All validity versions of this ID in date order, set on the newest one when a catalog holds several;
     # empty for a tariff with a single entry. Pricing picks the version per slot (:func:`version_at`).
     periods: tuple[Tariff, ...] = ()
@@ -259,6 +280,7 @@ def _build(raw: Mapping[str, Any], direction: str, tariff_type: str, tid: str) -
         valid_from=valid_from,
         valid_to=valid_to,
         db_ref=_parse_db_ref(raw.get("db_ref"), f"{tid}.db_ref"),
+        check=parse_check(raw.get("check"), f"{tid}.check"),
     )
 
 
@@ -266,16 +288,39 @@ def _parse_db_ref(raw: object, path: str) -> DbRef | None:
     if raw is None:
         return None
     data = as_dict(raw, path)
+    if LEGACY_DB_REF_FIELD in data:
+        raise EdibertError(
+            ErrorCode.DB_REF_LEGACY,
+            f"'{path}' still names a database ('{LEGACY_DB_REF_FIELD}'); run the migration to remove it.",
+            path=path,
+        )
     check_known(data, DB_REF_FIELDS, path)
-    database = get_str(data, "database", path, required=True)
-    if database not in DATABASES:
-        raise invalid(f"{path}.database", database)
     db_id = get_str(data, "id", path, required=True)
     version = get_str(data, "version", path, required=True)
     assert db_id is not None and version is not None
     if len(version) != 64 or any(char not in "0123456789abcdef" for char in version):
         raise invalid(f"{path}.version", version)
-    return DbRef(database, db_id, version)
+    return DbRef(db_id, version)
+
+
+def parse_check(raw: object, path: str) -> CatalogCheck | None:
+    """The ``check`` block of a catalog entry; only the two states a signed catalog carries are valid here."""
+    if raw is None:
+        return None
+    data = as_dict(raw, path)
+    check_known(data, CHECK_FIELDS, path)
+    state = get_str(data, "state", path, required=True)
+    if state not in CATALOG_CHECK_STATES:
+        raise invalid(f"{path}.state", state)
+    checked_at = get_date(data, "checked_at", path)
+    if checked_at is None:
+        raise missing(f"{path}.checked_at")
+    source, released_by = get_str(data, "source", path), get_str(data, "released_by", path)
+    if state == CHECKED and not source:
+        raise missing(f"{path}.source")
+    if state != CHECKED and not released_by:
+        raise missing(f"{path}.released_by")
+    return CatalogCheck(str(state), checked_at, source, released_by)
 
 
 def covers(tariff: Tariff, day: date) -> bool:

@@ -9,7 +9,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from edibert._fields import as_dict, invalid
+from edibert._fields import as_dict, check_known, invalid
+from edibert.catalog_import import PACKAGE_INFO_FIELDS
 from edibert.editor.model import TYPE_BY_KIND
 from edibert.editor.userstore import SECTIONS
 from edibert.errors import EdibertError, ErrorCode
@@ -68,11 +69,16 @@ def read_catalog(path: Path, today: date | None = None) -> list[CatalogEntry]:
     return entries
 
 
-def catalog_database(path: Path) -> str | None:
-    """The tariff database a catalog file came from (root ``package.database`` of an imported package);
-    ``None`` for a catalog that was not imported from a package (the seed)."""
+def catalog_package(path: Path) -> dict[str, Any] | None:
+    """Which catalog package a catalog file came from (root ``package``: ``package_id``, ``issued_at``,
+    ``valid_until``); ``None`` for a catalog that was not imported from a package (the seed). The v1 key
+    ``database`` is not accepted: import a current package (format 2) instead."""
     package = _read(path).get("package")
-    return None if package is None else str(as_dict(package, f"{path}.package").get("database"))
+    if package is None:
+        return None
+    info = dict(as_dict(package, f"{path}.package"))
+    check_known(info, PACKAGE_INFO_FIELDS, f"{path}.package")
+    return info
 
 
 def settlement_interval(raw: Mapping[str, Any], direction: str) -> str | None:

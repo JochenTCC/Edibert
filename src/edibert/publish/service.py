@@ -142,7 +142,7 @@ class Publisher:
             tariff_id=ref.id, label=tariff.label, direction=ref.direction, resolution_min=self.config.resolution_min,
             points=points, forecast=forecast, now=local, tomorrow_valid=tomorrow_valid, market=data,
             forecast_method=self._forecast_label() if forecast else None,
-            catalog=self.exchange.status_block(ref) if self.exchange else None,
+            catalog=self.exchange.status_block(ref, local.date()) if self.exchange else None,
         )  # fmt: skip
         self._put(ref, "state", payloads.state_payload(payloads.current_point(points, local)))
         self._put(ref, "attributes", payloads.encode(body))

@@ -59,7 +59,7 @@ def test_importing_the_api_loads_no_product_module():
 
 
 def test_api_exports_exactly_the_documented_names():
-    assert api.API_VERSION == 2
+    assert api.API_VERSION == 3  # 3: DbRef without database (contract v2)
     for name in api.__all__:
         assert hasattr(api, name), name
 

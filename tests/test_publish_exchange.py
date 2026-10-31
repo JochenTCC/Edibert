@@ -36,6 +36,7 @@ AREA = {"id": "AT-X", "label": "X", "land": "AT", "base_cent_kwh": {"unmetered_p
 ALL_ON = {"report_use": True, "status": True, "packages": True}
 KEY_ID = "test-1"
 DB_ID = "AT/import/at_x_fix"
+CHECK = {"state": "checked", "checked_at": "2026-12-01", "source": "price sheet 2026-12"}
 
 
 @pytest.fixture(scope="module")
@@ -52,12 +53,13 @@ def grid_doc():
     return {"tariff_format": 1, "rule_sets": {}, "areas": [AREA]}
 
 
-def package(signing, *imports, package_id="2026-12-a", database="verified", **root):
+def package(signing, *imports, package_id="2026-12-a", **root):
     manifest = {
-        "database": database, "package_id": package_id, "issued_at": "2026-12-14T08:00:00+00:00",
+        "package_id": package_id, "issued_at": "2026-12-14T08:00:00+00:00",
         "valid_until": "2027-03-31", "tariff_format": 1, "key_id": KEY_ID,
     }  # fmt: skip
-    return build_package(tariffs_doc(*imports, **root), grid_doc(), manifest, signing[0])
+    checked = [{"check": CHECK, **raw} for raw in imports]
+    return build_package(tariffs_doc(*checked, **root), grid_doc(), manifest, signing[0])
 
 
 class Server:
@@ -95,7 +97,7 @@ def at_once(refs, secret, start):
 def setup(tmp_path, signing, server, *, settings=ALL_ON, catalog_doc=None, published=("at_x_fix",), planner=at_once):
     save_house(tmp_path / "house.json", HouseSettings(timezone="Europe/Vienna", land="AT"))
     catalog = tmp_path / "tariffs.json"
-    catalog.write_text(json.dumps(catalog_doc or tariffs_doc(BASE, package={"database": "verified", "package_id": "2026-11-a",
+    catalog.write_text(json.dumps(catalog_doc or tariffs_doc(BASE, package={"package_id": "2026-11-a",
                        "issued_at": "2026-11-01T00:00:00+00:00", "valid_until": "2027-01-31"})), encoding="utf-8")  # fmt: skip
     (tmp_path / "grid_fees.json").write_text(json.dumps(grid_doc()), encoding="utf-8")
     document = {"mqtt": MQTT, "tariffs": [{"id": item} for item in published], "exchange": settings}
@@ -200,12 +202,16 @@ def test_status_reaches_the_attributes(tmp_path, signing):
     version = tariff_version(BASE, IMPORT)
     newer = "b" * 64
     server = Server(status={DB_ID: {"db_id": DB_ID, "known": True, "reliable": True, "installations_12m": 4,
-                                    "latest_version": newer, "latest_valid_from": "2027-01-01"}})  # fmt: skip
+                                    "latest_version": newer, "latest_valid_from": "2027-01-01", "check_state": "checked",
+                                    "checked_at": "2026-08-01", "latest_checked_version": newer,
+                                    "merged_into": {"db_id": "AT/import/at_z_fix", "version": newer}}})  # fmt: skip
     publisher, link = setup(tmp_path, signing, server, settings={"report_use": False, "status": True, "packages": False})
     publisher.run_cycle(NOW)
     assert link.attributes("at_x_fix")["catalog"] == {
-        "database": "verified", "db_id": DB_ID, "version": version, "checked_at": NOW.isoformat(), "known": True,
-        "reliable": True, "installations_12m": 4, "newer_version": True, "newer_valid_from": "2027-01-01",
+        "db_id": DB_ID, "version": version, "check_state": "checked", "checked_at": "2026-08-01", "reliable": True,
+        "trust_level": "checked", "check_overdue": True, "status_at": NOW.isoformat(), "known": True,
+        "installations_12m": 4, "newer_version": True, "newer_valid_from": "2027-01-01",
+        "checked_version_available": True, "merged_into": {"db_id": "AT/import/at_z_fix", "version": newer},
     }  # fmt: skip
     publisher.run_cycle(NOW + timedelta(hours=6))
     assert server.routes().count("/status") == 1  # once a day
@@ -247,25 +253,37 @@ def test_package_that_drops_a_published_tariff_is_held(tmp_path, signing):
     assert link.state("at_x_fix") == "0.2"
 
 
-def test_catalog_from_the_free_database_is_replaced_by_the_verified_one(tmp_path, signing):
-    free = tariffs_doc(BASE, package={"database": "free", "package_id": "f-1", "issued_at": "2026-11-01T00:00:00+00:00",
-                                      "valid_until": "2027-01-31"})  # fmt: skip
+def test_imported_catalog_gives_the_check_state_without_a_status_query(tmp_path, signing):
     server = Server(package(signing, BASE))
-    publisher, _ = setup(tmp_path, signing, server, catalog_doc=free, settings={"report_use": False, "status": False, "packages": True})
+    publisher, link = setup(tmp_path, signing, server, settings={"report_use": False, "status": False, "packages": True})
     publisher.run_cycle(NOW)
     _, route, _, headers = server.requests[0]
-    assert route == "/packages/verified/latest" and "If-None-Match" not in headers and "Authorization" not in headers
-    assert json.loads((tmp_path / "tariffs.json").read_text(encoding="utf-8"))["package"]["database"] == "verified"
+    assert route == "/packages/catalog/latest" and "Authorization" not in headers
+    assert link.attributes("at_x_fix")["catalog"] == {
+        "db_id": DB_ID, "version": tariff_version(BASE, IMPORT), "check_state": "checked", "checked_at": "2026-12-01",
+        "reliable": False, "trust_level": "checked", "check_overdue": False,
+    }  # fmt: skip
 
 
-def test_hold_from_the_access_key_era_is_dropped(tmp_path, signing):
+def test_catalog_from_a_v1_package_is_an_error(tmp_path, signing):
+    old = tariffs_doc(BASE, package={"database": "free", "package_id": "f-1", "issued_at": "2026-11-01T00:00:00+00:00",
+                                     "valid_until": "2027-01-31"})  # fmt: skip
+    with pytest.raises(EdibertError) as err:
+        setup(tmp_path, signing, Server(package(signing, BASE)), catalog_doc=old)
+    assert err.value.code is ErrorCode.TARIFF_UNKNOWN_FIELD
+
+
+def test_state_of_contract_v1_is_brought_forward(tmp_path, signing):
+    """Format 1 saved status entries without check state and holds of the access-key era: both are dropped."""
     state = {"state_format": 1, "package_next": (NOW + timedelta(days=5)).isoformat(),
+             "status_next": (NOW + timedelta(hours=5)).isoformat(), "status": [{"db_id": DB_ID, "version": "a" * 64}],
              "package_held": {"code": "PACKAGE_HELD_DATABASE", "params": {"current": "verified", "offered": "free"}}}  # fmt: skip
     (tmp_path / STATE_FILE).write_text(json.dumps(state), encoding="utf-8")
     server = Server(None)
-    publisher, _ = setup(tmp_path, signing, server, settings={"report_use": False, "status": False, "packages": True})
+    publisher, _ = setup(tmp_path, signing, server, settings={"report_use": False, "status": True, "packages": True})
     report = publisher.run_cycle(NOW)
-    assert report.notes == [] and server.routes() == ["/packages/verified/latest"]
+    assert report.notes == [] and server.routes() == ["/packages/catalog/latest", "/status"]
+    assert json.loads((tmp_path / STATE_FILE).read_text(encoding="utf-8"))["state_format"] == 2
 
 
 def test_broken_state_file_is_an_error(tmp_path, signing):

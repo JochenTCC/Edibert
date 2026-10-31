@@ -8,8 +8,9 @@ lost silently: a locally entered monthly rate or a tariff the publisher uses tha
 import back, and the editor's import dialog decides. When it is imported the publisher reloads its tariffs.
 
 What the jobs know survives a restart in ``exchange_state.json`` in the data folder, so a restart neither reports
-twice nor asks again early. The catalog always comes from the verified database, which needs no key; entries of
-the free database are only templates the user copies in the editor, never a catalog.
+twice nor asks again early. The catalog package holds checked versions only; unchecked versions are templates the
+user copies in the editor, never a catalog. The ``catalog`` attribute of a published tariff carries the check state
+(from the status query, else from the imported catalog's ``check``), the derived trust level and "check overdue".
 """
 
 from __future__ import annotations
@@ -31,7 +32,6 @@ from edibert.catalog_import import (
 )
 from edibert.errors import EdibertError, EdibertWarning, ErrorCode, WarningCode
 from edibert.exchange import (
-    CATALOG_DATABASE,
     ExchangeClient,
     StatusEntry,
     install_secret,
@@ -39,15 +39,19 @@ from edibert.exchange import (
     usage_pseudonym,
 )
 from edibert.fileformat import GRID_CATALOG_FILE, write_json_atomic
+from edibert.identity import version_of
 from edibert.package import verify_package
 from edibert.publish.config import ExchangeSettings, TariffRef
-from edibert.store import USER_PREFIX
-from edibert.tariff import DbRef
+from edibert.store import USER_PREFIX, parse_tariff_documents
+from edibert.tariff import CatalogCheck, DbRef
+from edibert.trust import check_overdue, trust_level
 
 log = logging.getLogger(__name__)
 
 STATE_FILE = "exchange_state.json"
-STATE_FORMAT = 1
+STATE_FORMAT = 2
+# Format 1 (contract v1) saved status entries without check state: its status list is dropped and asked again.
+OLD_STATE_FORMAT = 1
 STATUS_EVERY = timedelta(days=1)
 PACKAGE_EVERY = timedelta(days=7)
 PACKAGE_BEFORE_EXPIRY = timedelta(days=7)
@@ -93,13 +97,16 @@ def load_state(path: Path) -> ExchangeState:
         return ExchangeState()
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
-        if raw.get("state_format") != STATE_FORMAT:
-            raise ValueError(f"state_format={raw.get('state_format')!r}")
+        state_format = raw.get("state_format")
+        if state_format not in (OLD_STATE_FORMAT, STATE_FORMAT):
+            raise ValueError(f"state_format={state_format!r}")
+        old = state_format == OLD_STATE_FORMAT
         held = raw.get("package_held")
-        retired = bool(held) and held.get("code") == RETIRED_HOLD
+        retired = old or (bool(held) and held.get("code") == RETIRED_HOLD)
         return ExchangeState(
             _when(raw, "report_until"), list(raw.get("pending") or []),
-            _when(raw, "status_next"), _when(raw, "status_at"), list(raw.get("status") or []),
+            None if old else _when(raw, "status_next"), None if old else _when(raw, "status_at"),
+            [] if old else list(raw.get("status") or []),
             None if retired else _when(raw, "package_next"), None if retired else held,
         )  # fmt: skip
     except (OSError, ValueError, TypeError, AttributeError) as exc:
@@ -111,6 +118,9 @@ def _status_dict(entry: StatusEntry) -> dict[str, Any]:
         "db_id": entry.db_id, "version": entry.version, "known": entry.known, "reliable": entry.reliable,
         "installations_12m": entry.installations_12m, "latest_version": entry.latest_version,
         "latest_valid_from": entry.latest_valid_from.isoformat() if entry.latest_valid_from else None,
+        "check_state": entry.check_state, "checked_at": entry.checked_at.isoformat() if entry.checked_at else None,
+        "latest_checked_version": entry.latest_checked_version,
+        "merged_into": {"db_id": entry.merged_into.id, "version": entry.merged_into.version} if entry.merged_into else None,
     }  # fmt: skip
 
 
@@ -147,6 +157,7 @@ class CatalogExchange:
         self.state = load_state(self.state_path)
         self._refs = refs
         self.refs: dict[TariffRef, DbRef] = dict(refs())  # database version of each published tariff
+        self.checks: dict[tuple[str, str], CatalogCheck] = self._catalog_checks()
 
     # -- one tick ---------------------------------------------------------------------------------
 
@@ -201,22 +212,55 @@ class CatalogExchange:
         state.status_at = now
         state.status_next = now + STATUS_EVERY
 
-    def status_block(self, ref: TariffRef) -> dict[str, Any] | None:
-        """The ``catalog`` attribute of one published tariff: its database version and the last known status."""
+    def _catalog_checks(self) -> dict[tuple[str, str], CatalogCheck]:
+        """``check`` of every catalog tariff by ``(db_id, version)``, from the imported catalog file."""
+        if self.catalog is None or not self.catalog.exists():
+            return {}
+        tariffs = parse_tariff_documents(self._read(self.catalog), None, (str(self.catalog), "-"))
+        found: dict[tuple[str, str], CatalogCheck] = {}
+        for table in (tariffs.imports, tariffs.exports):
+            for tariff in table.values():
+                for version in tariff.periods or (tariff,):
+                    if version.check is not None and version.land is not None:
+                        db_id = f"{version.land.upper()}/{version.direction}/{version.id}"
+                        found[(db_id, version_of(version))] = version.check
+        return found
+
+    def status_block(self, ref: TariffRef, today: date | None = None) -> dict[str, Any] | None:
+        """The ``catalog`` attribute of one published tariff: database version, check state, trust level and the
+        last known status. The check state comes from the status query, else from the catalog entry's ``check``."""
         db_ref = self.refs.get(ref)
         if db_ref is None:
             return None
-        block: dict[str, Any] = {"database": db_ref.database, "db_id": db_ref.id, "version": db_ref.version}
+        key = (db_ref.id, db_ref.version)
+        found = None
+        if self.settings.status:
+            found = next((item for item in self.state.status if (item["db_id"], item["version"]) == key), None)
+        check = self.checks.get(key)
+        if found is not None and found["known"]:
+            check_state, checked_at, reliable = found["check_state"], found["checked_at"], found["reliable"]
+        elif check is not None:
+            check_state, checked_at, reliable = check.state, check.checked_at.isoformat(), False
+        else:
+            check_state, checked_at, reliable = None, None, False
+        day = today or date.today()
+        block: dict[str, Any] = {
+            "db_id": db_ref.id, "version": db_ref.version, "check_state": check_state, "checked_at": checked_at,
+            "reliable": reliable, "trust_level": trust_level(check_state, reliable),
+            "check_overdue": check_overdue(check_state, date.fromisoformat(checked_at) if checked_at else None, day),
+        }  # fmt: skip
         if not self.settings.status:
             return block
-        found = next((item for item in self.state.status if (item["db_id"], item["version"]) == (db_ref.id, db_ref.version)), None)
-        block["checked_at"] = self.state.status_at.isoformat() if self.state.status_at and found else None
+        block["status_at"] = self.state.status_at.isoformat() if self.state.status_at and found else None
         if found is None:
             return block
         newer = found["known"] and found["latest_version"] is not None and found["latest_version"] != found["version"]
+        checked = found.get("latest_checked_version")
         block.update({
-            "known": found["known"], "reliable": found["reliable"], "installations_12m": found["installations_12m"],
+            "known": found["known"], "installations_12m": found["installations_12m"],
             "newer_version": newer, "newer_valid_from": found["latest_valid_from"] if newer else None,
+            "checked_version_available": bool(found["known"] and checked and checked != found["version"]),
+            "merged_into": found.get("merged_into"),
         })  # fmt: skip
         return block
 
@@ -247,8 +291,7 @@ class CatalogExchange:
         grid_path = self.catalog.parent / GRID_CATALOG_FILE
         local = self._read(self.catalog)
         info = (local or {}).get(PACKAGE_INFO_KEY) or {}
-        current = info.get("database")
-        document = self.client.fetch_package(CATALOG_DATABASE, info.get("package_id") if current == CATALOG_DATABASE else None)
+        document = self.client.fetch_package(info.get("package_id"))
         if document is None:
             state.package_held = None
             state.package_next = self._next_package_check(now, info.get("valid_until"))
@@ -270,10 +313,11 @@ class CatalogExchange:
         tariffs, grid_fees = apply_package_import(plan, {})
         write_catalog_pair(self.catalog, tariffs, grid_path, grid_fees)
         self.refs = dict(self._refs())
+        self.checks = self._catalog_checks()
         state.package_held = None
         result.notes.extend(package.warnings)
         result.imported = True
-        log.info("Imported catalog package %s (%s database).", manifest.package_id, manifest.database)
+        log.info("Imported catalog package %s.", manifest.package_id)
 
     @staticmethod
     def _next_package_check(now: datetime, valid_until: str | None) -> datetime:

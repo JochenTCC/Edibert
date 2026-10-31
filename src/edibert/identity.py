@@ -129,9 +129,9 @@ def differs_from_db(raw: Mapping[str, Any], direction: str) -> bool | None:
     return version_of(tariff) != tariff.db_ref.version
 
 
-def db_ref_for(raw: Mapping[str, Any], direction: str, database: str) -> dict[str, str]:
-    """The ``db_ref`` a copy of this database entry carries: database, database ID and version."""
-    return {"database": database, "id": tariff_identity(raw, direction), "version": tariff_version(raw, direction)}
+def db_ref_for(raw: Mapping[str, Any], direction: str) -> dict[str, str]:
+    """The ``db_ref`` a copy of this database entry carries: database ID and version."""
+    return {"id": tariff_identity(raw, direction), "version": tariff_version(raw, direction)}
 
 
 def grid_area_identity(area: Mapping[str, Any]) -> str:

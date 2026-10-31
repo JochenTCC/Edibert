@@ -9,7 +9,8 @@ from __future__ import annotations
 from typing import Any
 
 from edibert.rules import HOLIDAY_MODES, MODES, REQUIRES, RULE_FIELDS
-from edibert.tariff import DATABASES, EXPORT_TYPES, IMPORT_TYPES, TARIFF_FIELDS
+from edibert.tariff import EXPORT_TYPES, IMPORT_TYPES, TARIFF_FIELDS
+from edibert.trust import CATALOG_CHECK_STATES
 
 _NUMBER: dict[str, Any] = {"type": "number"}
 _NON_NEGATIVE: dict[str, Any] = {"type": "number", "minimum": 0}
@@ -115,12 +116,22 @@ def _tariff_properties() -> dict[str, Any]:
         "valid_to": _DATE,
         "db_ref": {
             "type": "object",
-            "required": ["database", "id", "version"],
+            "required": ["id", "version"],
             "additionalProperties": False,
             "properties": {
-                "database": {"enum": list(DATABASES)},
                 "id": _TEXT,
                 "version": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            },
+        },
+        "check": {
+            "type": "object",
+            "required": ["state", "checked_at"],
+            "additionalProperties": False,
+            "properties": {
+                "state": {"enum": list(CATALOG_CHECK_STATES)},
+                "checked_at": _DATE,
+                "source": _TEXT,
+                "released_by": _TEXT,
             },
         },
         "monthly_fee_eur": _NON_NEGATIVE,

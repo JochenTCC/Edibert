@@ -166,7 +166,7 @@ def _db_ref_note(t: Translator, draft: TariffDraft) -> None:
     except EdibertError:  # the form shows the error itself; the note waits for a valid tariff
         return
     key = "ui.db_ref_differs" if differs else "ui.db_ref_same"
-    st.caption(t.t(key, database=t.t(f"ui.database.{ref.get('database')}"), id=ref.get("id"), version=str(ref.get("version"))[:8]))
+    st.caption(t.t(key, id=ref.get("id"), version=str(ref.get("version"))[:8]))
 
 
 def render_steps(t: Translator, draft: TariffDraft) -> None:

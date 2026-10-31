@@ -98,6 +98,7 @@ from edibert.tariff import (
     FALLBACK_PRIOR_MONTH,
     FALLBACK_PRIOR_YEAR,
     IMPORT,
+    CatalogCheck,
     DbRef,
     PriceResult,
     Tariff,
@@ -106,11 +107,13 @@ from edibert.tariff import (
     price_cent,
     version_at,
 )
+from edibert.trust import CHECK_STATES, TRUST_LEVELS, check_overdue, trust_level
 
-API_VERSION = 2  # raised on a breaking change to a name in __all__ (2: tariff_format, area_id required)
+API_VERSION = 3  # raised on a breaking change to a name in __all__ (2: tariff_format, area_id required; 3: DbRef without database)
 
 __all__ = [
     "API_VERSION",
+    "CHECK_STATES",
     "EXPORT",
     "FALLBACK_PRIOR_MONTH",
     "FALLBACK_PRIOR_YEAR",
@@ -124,11 +127,13 @@ __all__ = [
     "TAKE_PACKAGE",
     "TARIFF_FORMAT",
     "TARIFF_TRACK_FILES",
+    "TRUST_LEVELS",
     "USER_PREFIX",
     "CapacityBand",
     "CapacityCharge",
     "CapacityLadder",
     "CapacityState",
+    "CatalogCheck",
     "CatalogPackage",
     "DbRef",
     "EdibertError",
@@ -166,6 +171,7 @@ __all__ = [
     "capacity_charge_eur",
     "capacity_ladder",
     "charge_for_month",
+    "check_overdue",
     "differs_from_db",
     "evaluate",
     "flat_user_grid_area",
@@ -192,6 +198,7 @@ __all__ = [
     "tariff_identity",
     "tariff_price_series",
     "tariff_version",
+    "trust_level",
     "verify_package",
     "version_at",
     "write_catalog_pair",

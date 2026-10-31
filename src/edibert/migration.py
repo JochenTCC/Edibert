@@ -7,6 +7,8 @@ here touches the disk. What the migration does:
 * tags untagged files with ``tariff_format`` and removes the old ``earnie_data_model`` key;
 * creates user grid areas in ``user_grid_fees.json`` from areas handed in by the caller (Earnie takes them
   from the house profiles, see :func:`edibert.gridfee.flat_user_grid_area`);
+* removes ``database`` from the ``db_ref`` of user tariffs (contract v2 has one tariff database; the key is
+  ``DB_REF_LEGACY`` on load, never ignored);
 * asks for ``vat_percent`` on user tariffs without one (gross or net); the country's standard rate is offered as a
   prefill, but only an answer is ever written.
 
@@ -41,7 +43,7 @@ from edibert.gridfee import (
     parse_grid_fee_catalog,
 )
 from edibert.store import parse_tariff_documents
-from edibert.tariff import EXPORT, IMPORT
+from edibert.tariff import EXPORT, IMPORT, LEGACY_DB_REF_FIELD
 
 LEGACY_KEY = "earnie_data_model"  # Earnie's data-model stamp; read only here, removed by the migration
 STANDARD_VAT_PERCENT = {"AT": 20.0, "DE": 19.0, "CH": 8.1}  # prefill for the VAT question, never written unasked
@@ -167,6 +169,20 @@ def _add_user_grid_areas(run: _Run, areas: Sequence[Mapping[str, Any]]) -> None:
             )
 
 
+def _drop_legacy_db_ref(run: _Run) -> None:
+    document = run.docs.get(USER_FILE)
+    if document is None or run.blocked(USER_FILE):
+        return
+    for section in SECTIONS.values():
+        entries = document.get(section)
+        if not isinstance(entries, list):
+            continue  # a wrong shape is reported by the validation
+        for entry in entries:
+            ref = entry.get("db_ref") if isinstance(entry, dict) else None
+            if isinstance(ref, dict):
+                ref.pop(LEGACY_DB_REF_FIELD, None)
+
+
 def _vat_answer(question_id: str, value: object) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
         raise invalid(question_id, value)
@@ -250,6 +266,7 @@ def _run(docs: Docs, answers: Mapping[str, Any] | None, user_grid_areas: Sequenc
     run = _Run(_copy_docs(docs))
     _tag(run)
     _add_user_grid_areas(run, user_grid_areas)
+    _drop_legacy_db_ref(run)
     _ask_vat(run, answers)
     _validate(run)
     return run
