@@ -27,7 +27,7 @@ from edibert.gridfee import GridFee
 from edibert.i18n import Translator
 from edibert.report import price_lines
 from edibert.tariff import Tariff, evaluate, monthly_rate
-from edibert.ui import state
+from edibert.ui import state, widgets
 from edibert.ui.config import UiConfig
 
 
@@ -97,7 +97,7 @@ def _probe(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFee
     moment = right.time_input(t.t("ui.probe_time"), value=time(12, 0), step=900, key=state.k("ui.probe_time"))
     epex = None
     if tariff.uses_market_price:
-        epex = st.number_input(t.t("ui.probe_market"), value=10.0, step=0.5, format="%.2f", key=state.k("ui.probe_market"))
+        epex = st.number_input(t.t("ui.probe_market"), value=10.0, step=0.5, format=widgets.CENT_FORMAT, key=state.k("ui.probe_market"))
     slot = datetime.combine(day, moment)
     result = evaluate(tariff, slot, ctx, epex, grid_fee)
     st.code("\n".join(price_lines(t, tariff, result, ctx.to_local(slot), ctx.timezone)), language=None)
@@ -111,7 +111,7 @@ def _invoice(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridF
         month = st.date_input(t.t("ui.invoice_month"), value=date.today().replace(day=1), key=state.k("ui.inv_month"))
         market = None
         if tariff.uses_market_price:
-            market = st.number_input(t.t("ui.invoice_market"), value=10.0, step=0.5, format="%.2f", key=state.k("ui.inv_market"))
+            market = st.number_input(t.t("ui.invoice_market"), value=10.0, step=0.5, format=widgets.CENT_FORMAT, key=state.k("ui.inv_market"))
         _month_rate_hint(t, tariff, ctx, month.year, month.month)
         kwh: dict[str, float] = {}
         for band in invoice_bands(tariff, ctx, month, market_cent=market, grid_fee=grid_fee):

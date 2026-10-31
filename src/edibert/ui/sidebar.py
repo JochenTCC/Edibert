@@ -84,7 +84,7 @@ def _grid(t: Translator, config: UiConfig) -> None:
         st.caption(t.t("ui.grid_hint"))
         house.grid_enabled = st.checkbox(t.t("ui.grid_enabled"), value=house.grid_enabled, key=state.k("house.grid_enabled"))
         if house.grid_enabled:
-            house.grid_base_cent = st.number_input(t.t("ui.grid_base"), min_value=0.0, value=house.grid_base_cent, step=0.1, format="%.2f", key=state.k("house.grid_base"))
+            house.grid_base_cent = st.number_input(t.t("ui.grid_base"), min_value=0.0, value=house.grid_base_cent, step=0.1, format=widgets.CENT_FORMAT, key=state.k("house.grid_base"))
             st.caption(t.t("ui.grid_rules"))
             widgets.rule_editor(t, house.grid_rules, state.k("house.grid"))
         if st.button(t.t("ui.grid_save"), key=state.k("grid.save")):

@@ -12,6 +12,7 @@ from edibert.rules import MODE_ABSOLUTE, MODE_PERCENT_OFF, MODES
 from edibert.ui import state
 
 DEFAULT_START, DEFAULT_END = "08:00", "20:00"
+CENT_FORMAT = "%.3f"  # ct/kWh inputs keep three decimals (price sheets list e.g. 0,393 ct/kWh)
 
 
 def _to_time(text: str) -> time:
@@ -55,7 +56,7 @@ def _effect_fields(t: Translator, rule: RuleDraft, key) -> None:
     high = 100.0 if rule.mode == MODE_PERCENT_OFF else None
     start = rule.value if low is None else min(max(rule.value, low), high or rule.value)
     rule.value = right.number_input(
-        t.t("ui.rule_value"), value=float(start), min_value=low, max_value=high, step=0.1, format="%.2f", key=key(f"value.{rule.mode}")
+        t.t("ui.rule_value"), value=float(start), min_value=low, max_value=high, step=0.1, format=CENT_FORMAT, key=key(f"value.{rule.mode}")
     )
 
 

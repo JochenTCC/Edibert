@@ -21,7 +21,14 @@ from edibert.ui.sidebar import region_label
 
 
 def _number(t: Translator, label_key: str, value: float, name: str, **options) -> float:
-    return st.number_input(t.t(label_key), value=float(value), step=options.pop("step", 0.1), format="%.2f", key=state.key(name), **options)
+    return st.number_input(
+        t.t(label_key), value=float(value), step=options.pop("step", 0.1), format=options.pop("format", "%.2f"), key=state.key(name), **options
+    )
+
+
+def _cent(t: Translator, label_key: str, value: float, name: str, **options) -> float:
+    """A ct/kWh amount: three decimals, as on the price sheets."""
+    return _number(t, label_key, value, name, format=widgets.CENT_FORMAT, **options)
 
 
 def _vat_fields(t: Translator, draft: TariffDraft) -> None:
@@ -34,11 +41,11 @@ def _vat_fields(t: Translator, draft: TariffDraft) -> None:
 def _spot_fields(t: Translator, draft: TariffDraft) -> None:
     if draft.direction == IMPORT:
         draft.markup_percent = _number(t, "ui.markup_percent", draft.markup_percent, "markup")
-        draft.fee_cent = _number(t, "ui.fee_cent", draft.fee_cent, "fee")
+        draft.fee_cent = _cent(t, "ui.fee_cent", draft.fee_cent, "fee")
     else:
         draft.feed_in_fee_factor = _number(t, "ui.feed_in_fee_factor", draft.feed_in_fee_factor, "fee_factor", min_value=0.0, step=0.01)
-        draft.fee_cent = _number(t, "ui.fee_cent_export", draft.fee_cent, "fee")
-        draft.feed_in_fix_cent = _number(t, "ui.feed_in_fix_cent", draft.feed_in_fix_cent, "fix")
+        draft.fee_cent = _cent(t, "ui.fee_cent_export", draft.fee_cent, "fee")
+        draft.feed_in_fix_cent = _cent(t, "ui.feed_in_fix_cent", draft.feed_in_fix_cent, "fix")
     options = ("15min", "60min")
     draft.settlement_mtu = st.selectbox(
         t.t("ui.settlement"), options, index=options.index(draft.settlement_mtu), format_func=lambda o: t.t(f"ui.mtu.{o}"),
@@ -87,7 +94,7 @@ def step_base(t: Translator, draft: TariffDraft) -> None:
     )  # fmt: skip
     if draft.kind == "fixed":
         label = "ui.price_cent" if draft.direction == IMPORT else "ui.price_cent_export"
-        draft.price_cent = _number(t, label, draft.price_cent, "price", min_value=0.0)
+        draft.price_cent = _cent(t, label, draft.price_cent, "price", min_value=0.0)
     elif draft.kind == "spot":
         _spot_fields(t, draft)
     else:
@@ -123,7 +130,7 @@ def step_costs(t: Translator, draft: TariffDraft) -> None:
 def _limit(t: Translator, label: str, current: float | None, name: str) -> float | None:
     if not st.checkbox(t.t(label), value=current is not None, key=state.key(f"use_{name}")):
         return None
-    return st.number_input(t.t(f"{label}_value"), value=float(current or 0.0), step=0.1, format="%.2f", key=state.key(name))
+    return st.number_input(t.t(f"{label}_value"), value=float(current or 0.0), step=0.1, format=widgets.CENT_FORMAT, key=state.key(name))
 
 
 def step_advanced(t: Translator, draft: TariffDraft) -> None:

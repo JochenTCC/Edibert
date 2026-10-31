@@ -123,11 +123,22 @@ def test_grid_fee_is_entered_in_the_main_area_and_saved(data_dir):
     app = start("en")
     assert not [box for box in app.sidebar.checkbox if box.key == "house.grid_enabled"]
     app.checkbox(key="house.grid_enabled").check().run()
-    app.number_input(key="house.grid_base").set_value(4.96).run()
+    grid_base = app.number_input(key="house.grid_base")
+    assert grid_base.format == "%.3f"
+    grid_base.set_value(4.963).run()
     app.button(key="grid.save").click().run()
     assert not app.exception
     house = json.loads((data_dir / "house.json").read_text(encoding="utf-8"))
-    assert (house["grid_enabled"], house["grid_base_cent"]) == (True, 4.96)
+    assert (house["grid_enabled"], house["grid_base_cent"]) == (True, 4.963)
+
+
+def test_cent_amounts_keep_three_decimals(data_dir):
+    app = start()
+    create_fixed_tariff(app, price=12.205)
+    assert app.number_input(key=widget_key(app, "price")).format == "%.3f"
+    app.button(key="ui.save").click().run()
+    saved = json.loads((data_dir / "user_tariffs.json").read_text(encoding="utf-8"))
+    assert saved["import_tariffs"][0]["fix_cent_kwh"] == 12.205
 
 
 def test_import_pasted_tariff(data_dir):

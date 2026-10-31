@@ -19,7 +19,7 @@ def _unique(rule_id: str, taken: set[str]) -> str:
 
 def _rule(t: Translator, key: str, taken: set[str], spot: bool, base: float, factor: float, **fields) -> RuleDraft:
     label = t.t(f"editor.rule.{key}")
-    value = 0.0 if spot else round(base * factor, 2)
+    value = 0.0 if spot else round(base * factor, 3)
     return RuleDraft(
         id=_unique(slugify(key), taken), label=label, mode=MODE_ADD if spot else MODE_ABSOLUTE, value=value, **fields
     )
