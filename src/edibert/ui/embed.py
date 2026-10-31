@@ -88,7 +88,7 @@ def render_editor(
 
     ``config.key_prefix`` must be non-empty; ``config.host_house`` (optional) replaces the editor's own
     house settings, and then nothing is read from or written to ``house.json``. The house settings and
-    the row with the tariff list, new/copy/import go into ``list_container`` (default: above form and preview).
+    the own grid fee and the row with the tariff list, new/copy/import go into ``list_container`` (default: above form and preview).
     ``open_tariff=(direction, id)`` opens that user tariff once per distinct request; an unknown ID is shown
     as an error. ``share_default`` (required, no default) says whether saved tariffs start selected in the
     share section: ``ShareDefault.OPT_IN`` for Earnie, ``ShareDefault.SHARE`` for stand-alone Edibert.
@@ -102,6 +102,7 @@ def render_editor(
         _open_requested(t, config, open_tariff)
         with list_container if list_container is not None else st.container():
             sidebar.render_house(t, config)
+            sidebar.render_grid(t, config)
             sidebar.render_tools(t, config)
             share.render(t, config, share_default)
         render_body(t, config)

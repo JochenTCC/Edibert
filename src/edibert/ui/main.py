@@ -18,6 +18,7 @@ def main() -> None:
         st.set_page_config(page_title=t.t("ui.title"), layout="wide")
         sidebar.render(t, config)
         st.title(t.t("ui.title"))
+        sidebar.render_grid(t, config)
         sidebar.render_tools(t, config)
         share.render(t, config, ShareDefault.SHARE)  # stand-alone Edibert shares by default (concept 2026-10-29)
         render_body(t, config)

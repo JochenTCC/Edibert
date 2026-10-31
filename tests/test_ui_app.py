@@ -119,6 +119,17 @@ def test_house_region_removes_the_hint_and_is_saved(data_dir):
     assert (house["land"], house["region"]) == ("DE", "BY")
 
 
+def test_grid_fee_is_entered_in_the_main_area_and_saved(data_dir):
+    app = start("en")
+    assert not [box for box in app.sidebar.checkbox if box.key == "house.grid_enabled"]
+    app.checkbox(key="house.grid_enabled").check().run()
+    app.number_input(key="house.grid_base").set_value(4.96).run()
+    app.button(key="grid.save").click().run()
+    assert not app.exception
+    house = json.loads((data_dir / "house.json").read_text(encoding="utf-8"))
+    assert (house["grid_enabled"], house["grid_base_cent"]) == (True, 4.96)
+
+
 def test_import_pasted_tariff(data_dir):
     app = start("en")
     raw = {"id": "my day night", "type": "fixed_cent", "supplier_id": "s", "fix_cent_kwh": 30.0, "vat_percent": 20}

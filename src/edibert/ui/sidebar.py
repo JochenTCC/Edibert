@@ -72,14 +72,24 @@ def _house(t: Translator, config: UiConfig) -> None:
         house.capabilities = st.multiselect(
             t.t("ui.capabilities"), REQUIRES, default=house.capabilities, format_func=lambda r: t.t(f"requirement.{r}"), key=state.k("house.capabilities")
         )
+        if st.button(t.t("ui.house_save"), key=state.k("house.save")):
+            save_house(config.house_file, house)
+            state.notify(t.t("ui.house_saved"))
+
+
+def _grid(t: Translator, config: UiConfig) -> None:
+    """The grid operator's fee: part of the house (``house.json``), the same for every tariff."""
+    house = state.house()
+    with st.expander(t.t("ui.grid_title")):
+        st.caption(t.t("ui.grid_hint"))
         house.grid_enabled = st.checkbox(t.t("ui.grid_enabled"), value=house.grid_enabled, key=state.k("house.grid_enabled"))
         if house.grid_enabled:
             house.grid_base_cent = st.number_input(t.t("ui.grid_base"), min_value=0.0, value=house.grid_base_cent, step=0.1, format="%.2f", key=state.k("house.grid_base"))
             st.caption(t.t("ui.grid_rules"))
             widgets.rule_editor(t, house.grid_rules, state.k("house.grid"))
-        if st.button(t.t("ui.house_save"), key=state.k("house.save")):
+        if st.button(t.t("ui.grid_save"), key=state.k("grid.save")):
             save_house(config.house_file, house)
-            state.notify(t.t("ui.house_saved"))
+            state.notify(t.t("ui.grid_saved"))
 
 
 def _index(options, value) -> int:
@@ -329,6 +339,12 @@ def render_house(t: Translator, config: UiConfig) -> None:
         _house(t, config)
     else:
         _host_house(t, config)
+
+
+def render_grid(t: Translator, config: UiConfig) -> None:
+    """The editor's own grid fee in the main area; a host shows its grid area in the house facts instead."""
+    if config.host_house is None:
+        _grid(t, config)
 
 
 def render_tools(t: Translator, config: UiConfig) -> None:

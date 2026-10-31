@@ -45,6 +45,11 @@ In der Seitenleiste gibt es die Auswahl **Sprache** (Englisch oder Deutsch). Dei
 - **Zeitzone** (z. B. `Europe/Vienna`). Alle Zeiten sind Ortszeit des Hauses.
 - **Land** und **Bundesland / Kanton.** Die Region ist nötig, sobald ein Tarif Regeln für bestimmte Tage hat, weil Feiertage den Preis ändern können. Ohne Region bricht Edibert mit einer klaren Meldung ab, statt zu raten.
 - **Ausstattung des Hauses**: Smart Meter, Viertelstundenzähler, separater Zähler, steuerbare Verbrauchseinrichtung. Ein Tarif, der etwas verlangt, das dem Haus fehlt, bekommt einen Hinweis.
-- **Netzentgelt** (optional): Basispreis in ct/kWh (netto) und Zeitfenster, z. B. die Hoch- und Niedertarifstufe nach §14a EnWG Modul 3. Es ist ein Nettopreis: Bei einem Nettotarif wird es vor der USt addiert, bei einem Bruttotarif bekommt es den USt-Satz des Tarifs und wird dann addiert.
 
 Mit **Haus-Einstellungen speichern** bleiben sie erhalten.
+
+## Netzentgelt
+
+Das Netzentgelt des Netzbetreibers ist für alle Tarife gleich, egal welcher Stromanbieter. Du gibst es einmal in **Netzentgelt des Netzbetreibers** oben im Hauptfenster ein (optional): Basispreis in ct/kWh (netto) und Zeitfenster, z. B. die Hoch- und Niedertarifstufe nach §14a EnWG Modul 3. Es ist ein Nettopreis: Bei einem Nettotarif wird es vor der USt addiert, bei einem Bruttotarif bekommt es den USt-Satz des Tarifs und wird dann addiert. Mit **Netzentgelt speichern** bleibt es erhalten; es steht in `house.json`.
+
+Den festen Jahresbetrag des Netzbetreibers gibst du nicht hier ein, sondern in jedem Tarif unter **Weitere Kosten** (Netz-Grundpreis pro Monat).
