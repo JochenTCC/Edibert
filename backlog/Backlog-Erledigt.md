@@ -2,6 +2,10 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Earnie: share consent and exchange settings (2026-10-31)
+
+- [x] **Earnie: share consent and exchange settings** *(moved out of `0.1.d` on 2026-10-31; was step S4; work in the Earnie repository)*: Earnie pins `v0.1.12` and asks for its own consent on its Tarife page (stored in its runtime folder, revocable, separate from its usage statistics); only with consent and without `EDIBERT_EXCHANGE_OFF=1` does it pass `ExchangeClient` and `ServerTransport` to the embed, which keeps `ShareDefault.OPT_IN`. Earnie reports no use (no publisher loop). Its migration passes `grid_fee_area` (the area all house profiles share). Opening to users still waits for the legal review (Research Items). Details: Earnie backlog archive "Edibert pin v0.1.12 and share consent".
+
 ### Grid areas: the other 13 AT areas checked (0.1.d2b, 2026-10-31)
 
 - [x] **0.1.d2b — Grid areas: check the other 13 AT areas against the 2026 price sheets** *(left from `0.1.d2`, decided 2026-10-31: check all 13 instead of leaving them out of the first package; data only, no code change)*
