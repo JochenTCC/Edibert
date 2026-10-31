@@ -20,9 +20,9 @@ from edibert.catalog_import import (
     write_catalog_pair,
 )
 from edibert.errors import EdibertError, ErrorCode
+from edibert.exchange import CATALOG_DATABASE
 from edibert.fileformat import GRID_CATALOG_FILE
 from edibert.i18n import Translator
-from edibert.exchange import CATALOG_DATABASE
 from edibert.package import verify_package
 from edibert.ui import state
 from edibert.ui.config import UiConfig

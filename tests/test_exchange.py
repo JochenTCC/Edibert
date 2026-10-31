@@ -10,7 +10,12 @@ from typing import ClassVar
 import pytest
 
 from edibert.cli import main
-from edibert.contribution import SendStatus, contribution_items, contribution_payload, send_selected
+from edibert.contribution import (
+    SendStatus,
+    contribution_items,
+    contribution_payload,
+    send_selected,
+)
 from edibert.editor.userstore import read_document, save_user_tariff
 from edibert.errors import EdibertError, ErrorCode
 from edibert.exchange import (
