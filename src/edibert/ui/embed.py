@@ -17,7 +17,7 @@ from edibert.editor.userstore import SECTIONS, read_document
 from edibert.errors import EdibertError, ErrorCode
 from edibert.i18n import Translator
 from edibert.tariff import EXPORT, IMPORT, Tariff
-from edibert.ui import preview, share, sidebar, state
+from edibert.ui import db_status, preview, share, sidebar, state
 from edibert.ui.config import HostHouse, UiConfig, check_language
 from edibert.ui.steps import render_steps
 
@@ -72,6 +72,7 @@ def render_body(t: Translator, config: UiConfig) -> None:
         st.caption(f":orange[● {t.t('ui.unsaved_mark')}]")
     editor, side = st.columns([5, 7])
     with editor:
+        db_status.render(t, config, draft)
         render_steps(t, draft)
     with side:
         preview.render(t, draft, config)

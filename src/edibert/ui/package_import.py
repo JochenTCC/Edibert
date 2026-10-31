@@ -1,6 +1,8 @@
 """Import of a signed catalog package in the standalone editor (Catalog P5): check, preview, decide, write.
 
-Only the standalone page offers it; a host application (Earnie) owns its catalog files and imports itself.
+The package comes from a file or from the tariff database server (0.1.d S3: the verified database with an access
+key, else the free one; a verified catalog is never replaced by a free package). Only the standalone page offers
+it; a host application (Earnie) owns its catalog files and imports itself.
 """
 
 from __future__ import annotations
@@ -11,12 +13,13 @@ import streamlit as st
 
 from edibert.catalog_import import (
     CHOICES,
+    PACKAGE_INFO_KEY,
     ImportPlan,
     apply_package_import,
     plan_package_import,
     write_catalog_pair,
 )
-from edibert.errors import EdibertError, ErrorCode
+from edibert.errors import EdibertError, EdibertWarning, ErrorCode, WarningCode
 from edibert.fileformat import GRID_CATALOG_FILE
 from edibert.i18n import Translator
 from edibert.package import verify_package
@@ -70,18 +73,52 @@ def _decisions(t: Translator, plan: ImportPlan) -> dict[str, str]:
     return chosen
 
 
+def _download(t: Translator, config: UiConfig) -> None:
+    """Button that loads the newest package of the database this installation may use."""
+    if config.exchange is None:
+        st.caption(t.t("ui.package_server_off"))
+        return
+    info = ((_read_local(config.catalog) or {}) if config.catalog else {}).get(PACKAGE_INFO_KEY) or {}
+    current, offered = info.get("database"), "verified" if config.exchange.config.access_key else "free"
+    if current == "verified" and offered == "free":
+        st.caption(t.warning(EdibertWarning(WarningCode.PACKAGE_HELD_DATABASE, "no access key", {"current": current, "offered": offered})))
+        return
+    if not st.button(t.t("ui.package_fetch", database=t.t(f"ui.database.{offered}")), key=state.k("package.fetch")):
+        return
+    try:
+        document = config.exchange.fetch_package(offered, info.get("package_id") if current == offered else None)
+    except EdibertError as err:
+        st.error(t.error(err))
+        return
+    if document is None:
+        st.info(t.t("ui.package_unchanged", package_id=info.get("package_id")))
+        return
+    state.set_fetched_package(document)
+
+
+def _document(t: Translator, config: UiConfig) -> dict | None:
+    """The package to check: an uploaded file wins over one loaded from the server."""
+    upload = st.file_uploader(t.t("ui.package_file"), type=["json"], key=state.k("package.file"))
+    _download(t, config)
+    if upload is not None:
+        return json.loads(upload.getvalue().decode("utf-8"))
+    document = state.fetched_package()
+    if document is None:
+        st.caption(t.t("ui.package_hint"))
+    return document
+
+
 def render(t: Translator, config: UiConfig) -> None:
     with st.expander(t.t("ui.package_title")):
         if config.catalog is None:
             st.caption(t.t("ui.no_catalog"))
             return
-        upload = st.file_uploader(t.t("ui.package_file"), type=["json"], key=state.k("package.file"))
-        if upload is None:
-            st.caption(t.t("ui.package_hint"))
-            return
         grid_path = config.catalog.parent / GRID_CATALOG_FILE
         try:
-            package = verify_package(json.loads(upload.getvalue().decode("utf-8")))
+            document = _document(t, config)
+            if document is None:
+                return
+            package = verify_package(document)
             plan = plan_package_import(package, _read_local(config.catalog), _read_local(grid_path))
         except (EdibertError, ValueError) as err:
             st.error(t.error(err) if isinstance(err, EdibertError) else t.t("ui.package_unreadable"))
@@ -95,5 +132,6 @@ def render(t: Translator, config: UiConfig) -> None:
             except EdibertError as err:
                 st.error(t.error(err))
                 return
+            state.set_fetched_package(None)
             state.notify(t.t("ui.package_done", package_id=package.manifest.package_id))
             st.rerun()

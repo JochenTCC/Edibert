@@ -2,6 +2,11 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Document Review editor manual: origin of catalog tariffs (2026-10-31)
+
+- [x] **Editor manual: where catalog tariffs come from** *(found in manual test of 0.1.d Catalog P7, 2026-10-30)* — `docs/user/{en,de}/editor.md` § tool row: **Copy catalog tariff** copies from the local catalog files only. The manual does not say that tariffs of the free database (including shared ones) reach the local catalog only through a signed catalog package (`exchange fetch`, then `package import`, see `cli.md`), and that a shared tariff appears there only once a published package contains it. Add one sentence with a link to `cli.md` § catalog package; drop it again when the package download from the editor sidebar (0.1.d Catalog P7, client follow-ups) is built.
+  - **Done (2026-10-31):** `editor.md` (en, de) says that the catalog list shows the local catalog file and that tariffs of the tariff database, shared ones included, get there through a catalog package; the package download from the sidebar (0.1.d S3) is described in the new section *Catalog package and database status*.
+
 ### Bugfix share section: server rejection reason (2026-10-31)
 
 - [x] **Share section: server rejection without a reason** *(found in manual test of 0.1.d Catalog P7, 2026-10-30; fixed in 0.1.10; accepted 2026-10-31)* — the share section only shows "{rejected} rejected"; the server's `code` reaches `SendResult.code` but `ui/share.py` drops it. Seen with a tariff without `land`: valid locally, so it gets a checkbox, but the server rejects it (`TARIFF_INVALID`, no land means no database ID). Same area: `ServerTransport.send` never sends `based_on` although the tariff has a `db_ref` (contract `docs/spec/catalog-exchange.md` § 2), so a changed shared tariff starts a new entry instead of a new version. Fix: name every rejected tariff with its translated reason; refuse a tariff without `land` locally (`CONTRIBUTION_LAND_MISSING`, no checkbox); transport gets the `db_ref`. Regression tests: `tests/test_contribution.py` (land refusal, db_ref reaches the transport, rejection message per tariff), `tests/test_exchange.py` (`based_on` in the request body).

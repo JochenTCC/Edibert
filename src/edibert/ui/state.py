@@ -29,6 +29,8 @@ OPENED = "ui.opened"
 PENDING_DELETE = "ui.pending_delete"
 PENDING_LEAVE = "ui.pending_leave"
 BASELINE = "ui.baseline"
+FETCHED_PACKAGE = "ui.fetched_package"
+DB_STATUS = "ui.db_status"
 
 # The prefix of the render that is running. Not session data: it is set for the duration of one
 # render call (``scope``) and reset afterwards, so sessions and embeds never see each other's prefix.
@@ -79,6 +81,8 @@ def init(config: UiConfig) -> None:
     ss[k(PENDING_DELETE)] = None
     ss[k(PENDING_LEAVE)] = None
     ss[k(BASELINE)] = None
+    ss[k(FETCHED_PACKAGE)] = None
+    ss[k(DB_STATUS)] = {}
     if config.host_house is None:
         ss[k(HOUSE)] = load_house(config.house_file)
         assign_uids(ss[k(HOUSE)].grid_rules)
@@ -168,6 +172,20 @@ def pending_leave() -> tuple | None:
 
 def set_pending_leave(action: tuple | None) -> None:
     st.session_state[k(PENDING_LEAVE)] = action
+
+
+def fetched_package() -> dict | None:
+    """The package document loaded from the server, until it is imported or replaced."""
+    return st.session_state[k(FETCHED_PACKAGE)]
+
+
+def set_fetched_package(document: dict | None) -> None:
+    st.session_state[k(FETCHED_PACKAGE)] = document
+
+
+def db_status() -> dict[tuple[str, str], dict]:
+    """Status answers asked in this session, by ``(db_id, version)``."""
+    return st.session_state[k(DB_STATUS)]
 
 
 def key(name: str) -> str:

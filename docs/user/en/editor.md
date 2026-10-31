@@ -7,7 +7,7 @@ Click **New purchase tariff** (price you pay) or **New feed-in tariff** (remuner
 The row above the form holds three tools:
 
 - **My tariffs:** your saved tariffs, plus the buttons for a new tariff. Market-price tariffs show their settlement interval (quarter-hourly or hourly).
-- **Copy a catalog tariff:** filter by **Country** (starts with the country of the house), **Direction** and **Type**, then copy a tariff as the start of your own. The list is sorted by name; without a direction filter all purchase tariffs come first, then all feed-in tariffs. A catalog tariff offered only in some federal states or cantons is listed only when the house is in one of them; without a federal state / canton in the house settings it is listed too.
+- **Copy a catalog tariff:** filter by **Country** (starts with the country of the house), **Direction** and **Type**, then copy a tariff as the start of your own. The list is sorted by name; without a direction filter all purchase tariffs come first, then all feed-in tariffs. A catalog tariff offered only in some federal states or cantons is listed only when the house is in one of them; without a federal state / canton in the house settings it is listed too. The list shows the local catalog file; tariffs of the tariff database (shared ones included) get there through a catalog package, see below.
 - **Import JSON:** paste or upload tariffs.
 
 **Unsaved changes.** While the open tariff differs from its saved state, the editor shows **Not saved**. A copied catalog tariff counts as not saved until you save it. When you open another tariff, start a new one or copy one, the editor asks first: **Save**, **Discard** or **Cancel**. Leaving the whole page (another page of the host application, closing the browser tab) cannot be caught; save before you go.
@@ -19,6 +19,12 @@ Below the tool row, **Share with the free catalog** lists your saved tariffs. Ea
 Whether the tariffs start ticked depends on the program: the stand-alone Edibert ticks them (you leave out what you do not want to share), Earnie leaves them unticked (you choose what to share). **Send selected tariffs** sends the ticked ones. The message afterwards counts accepted, already known and rejected tariffs and names every rejected tariff with the reason the database gave.
 
 A tariff the database accepts (or already has) is linked to its database entry, so the form shows where it came from from then on. If the exchange is switched off (`EDIBERT_EXCHANGE_OFF=1`) or the embedding program does not send, sharing is off: the section says so, and the send button stays disabled. You can still check what would be sent; nothing leaves your computer.
+
+## Catalog package and database status
+
+In the stand-alone editor the sidebar holds **Import catalog package**. A package comes from a file or from the server: **Load newest package of the … tariff database** loads the verified database when an access key is set (`EDIBERT_ACCESS_KEY`), otherwise the free one. A catalog from the verified database is never replaced by a free package; without the key the section says so. Either way the package is checked (signature, content) and the dialog lists what it adds, changes and removes. Monthly rates you entered yourself are never overwritten without asking: decide for each one, then **Import package**. A shared tariff appears in the catalog once a published package contains it.
+
+A tariff copied from a catalog that came from a package shows under its "copied from" line what the tariff database knows about this version: whether it counts as **reliable**, how many installations used it in the last 12 months, and whether a newer version applies from a date on. **Ask the tariff database** asks the server now; if the publisher runs with the status job (see [Publishing](publishing.md)), its last answer is shown without asking. A copy whose prices you changed is a version the database does not know and shows no status.
 
 ## Step 1: Base price
 

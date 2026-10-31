@@ -14,6 +14,7 @@ from edibert.i18n import SOURCE_LANGUAGE, SUPPORTED_LANGUAGES
 
 if TYPE_CHECKING:
     from edibert.contribution import ContributionTransport
+    from edibert.exchange import ExchangeClient
 
 ENV_DATA_DIR = "EDIBERT_DATA_DIR"
 ENV_CATALOG = "EDIBERT_CATALOG"
@@ -40,6 +41,8 @@ class UiConfig:
     (``action`` is ``"save"`` or ``"delete"``), before the page reruns.
     ``contribution_transport``: sends shared tariffs to the free catalog; ``None`` = no endpoint configured,
     sharing is off and the share section says so.
+    ``exchange``: client of the tariff database server for the package download and the status of a copied
+    tariff; ``None`` = both are off and the editor says so.
     """
 
     data_dir: Path
@@ -50,6 +53,7 @@ class UiConfig:
     delete_guard: Callable[[str, str], str | None] | None = None
     on_change: Callable[[str, str, str], None] | None = None
     contribution_transport: ContributionTransport | None = None
+    exchange: ExchangeClient | None = None
 
     @property
     def user_file(self) -> Path:
@@ -67,8 +71,8 @@ def check_language(language: str, source: str) -> str:
 
 
 def config_from_env() -> UiConfig:
-    """Data folder (default ``./edibert_data``), optional catalog file, start language, and the share transport to
-    the tariff database server (off with ``EDIBERT_EXCHANGE_OFF=1``)."""
+    """Data folder (default ``./edibert_data``), optional catalog file, start language, and the client of the
+    tariff database server with its share transport (both off with ``EDIBERT_EXCHANGE_OFF=1``)."""
     from edibert.exchange import (
         ExchangeClient,
         ServerTransport,
@@ -77,7 +81,8 @@ def config_from_env() -> UiConfig:
 
     language = check_language(os.environ.get(ENV_LANG, SOURCE_LANGUAGE), ENV_LANG)
     catalog = os.environ.get(ENV_CATALOG)
-    exchange = exchange_config_from_env()
-    transport = None if exchange is None else ServerTransport(ExchangeClient(exchange))
+    settings = exchange_config_from_env()
+    client = None if settings is None else ExchangeClient(settings)
+    transport = None if client is None else ServerTransport(client)
     return UiConfig(Path(os.environ.get(ENV_DATA_DIR, "edibert_data")), Path(catalog) if catalog else None, language,
-                    contribution_transport=transport)  # fmt: skip
+                    contribution_transport=transport, exchange=client)  # fmt: skip

@@ -23,5 +23,3 @@ Fix is implemented and committed, acceptance (real tariff check, Home Assistant 
 ## Document Review Findings
 
 Docs-only corrections (README, user docs, spec links). Skill `doc-review-findings`.
-
-- [ ] **Editor manual: where catalog tariffs come from** *(found in manual test of 0.1.d Catalog P7, 2026-10-30)* — `docs/user/{en,de}/editor.md` § tool row: **Copy catalog tariff** copies from the local catalog files only. The manual does not say that tariffs of the free database (including shared ones) reach the local catalog only through a signed catalog package (`exchange fetch`, then `package import`, see `cli.md`), and that a shared tariff appears there only once a published package contains it. Add one sentence with a link to `cli.md` § catalog package; drop it again when the package download from the editor sidebar (0.1.d Catalog P7, client follow-ups) is built.

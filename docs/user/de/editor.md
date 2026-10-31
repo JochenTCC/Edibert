@@ -8,7 +8,7 @@ Klicke auf **Neuer Bezugstarif** (Preis, den du zahlst) oder **Neuer Einspeiseta
 Die Zeile über dem Formular enthält drei Werkzeuge:
 
 - **Meine Tarife:** deine gespeicherten Tarife und die Knöpfe für einen neuen Tarif. Börsentarife zeigen ihr Abrechnungsintervall (viertelstündlich oder stündlich).
-- **Katalogtarif kopieren:** nach **Land** (startet mit dem Land des Hauses), **Richtung** und **Art** filtern, dann einen Tarif als Vorlage für einen eigenen kopieren. Die Liste ist nach Namen sortiert; ohne Richtungsfilter kommen erst alle Bezugstarife, dann alle Einspeisetarife. Ein Katalogtarif, den es nur in einigen Bundesländern oder Kantonen gibt, erscheint nur, wenn das Haus in einem davon liegt; ist in den Hauseinstellungen kein Bundesland / Kanton gesetzt, erscheint er auch.
+- **Katalogtarif kopieren:** nach **Land** (startet mit dem Land des Hauses), **Richtung** und **Art** filtern, dann einen Tarif als Vorlage für einen eigenen kopieren. Die Liste ist nach Namen sortiert; ohne Richtungsfilter kommen erst alle Bezugstarife, dann alle Einspeisetarife. Ein Katalogtarif, den es nur in einigen Bundesländern oder Kantonen gibt, erscheint nur, wenn das Haus in einem davon liegt; ist in den Hauseinstellungen kein Bundesland / Kanton gesetzt, erscheint er auch. Die Liste zeigt die lokale Katalogdatei; Tarife der Tarifdatenbank (auch geteilte) kommen über ein Katalogpaket dorthin, siehe unten.
 - **JSON importieren:** Tarife einfügen oder hochladen.
 
 **Ungespeicherte Änderungen.** Solange der offene Tarif vom gespeicherten Stand abweicht, zeigt der Editor **Nicht gespeichert**. Ein kopierter Katalogtarif gilt als nicht gespeichert, bis du ihn speicherst. Öffnest du einen anderen Tarif, legst einen neuen an oder kopierst einen, fragt der Editor vorher: **Speichern**, **Verwerfen** oder **Abbrechen**. Das Verlassen der ganzen Seite (eine andere Seite der einbettenden Anwendung, Browser-Tab schließen) kann der Editor nicht abfangen; vorher speichern.
@@ -20,6 +20,12 @@ Unter der Werkzeugzeile listet **Mit dem freien Katalog teilen** deine gespeiche
 Ob die Tarife zu Beginn angehakt sind, hängt vom Programm ab: Das eigenständige Edibert hakt sie an (du wählst ab, was du nicht teilen willst), Earnie lässt sie leer (du wählst aus, was du teilen willst). **Ausgewählte Tarife senden** sendet die angehakten. Die Meldung danach zählt angenommene, schon bekannte und abgelehnte Tarife und nennt jeden abgelehnten Tarif mit dem Grund, den die Datenbank angegeben hat.
 
 Ein Tarif, den die Datenbank annimmt (oder schon hat), wird mit seinem Datenbank-Eintrag verknüpft; das Formular zeigt danach, woher er stammt. Ist der Austausch abgeschaltet (`EDIBERT_EXCHANGE_OFF=1`) oder sendet das einbettende Programm nicht, ist Teilen aus: Der Abschnitt sagt das, und der Sende-Knopf bleibt gesperrt. Du kannst trotzdem prüfen, was gesendet würde; nichts verlässt deinen Computer.
+
+## Katalogpaket und Datenbankstatus
+
+Im eigenständigen Editor steht in der Seitenleiste **Katalogpaket importieren**. Ein Paket kommt aus einer Datei oder vom Server: **Neuestes Paket der Tarifdatenbank „…“ laden** lädt die geprüfte Datenbank, wenn ein Zugangsschlüssel gesetzt ist (`EDIBERT_ACCESS_KEY`), sonst die freie. Ein Katalog aus der geprüften Datenbank wird nie durch ein freies Paket ersetzt; ohne Schlüssel sagt der Abschnitt das. In beiden Fällen wird das Paket geprüft (Signatur, Inhalt), und der Dialog zeigt, was es hinzufügt, ändert und entfernt. Selbst eingetragene Monatspreise werden nie ohne Rückfrage überschrieben: Entscheide je Monatspreis, dann **Paket importieren**. Ein geteilter Tarif erscheint im Katalog, sobald ein veröffentlichtes Paket ihn enthält.
+
+Ein Tarif, der aus einem Katalog aus einem Paket kopiert wurde, zeigt unter der Zeile „Kopiert aus …“, was die Tarifdatenbank über diese Version weiß: ob sie als **verlässlich** gilt, wie viele Installationen sie in den letzten 12 Monaten verwendet haben und ob ab einem Datum eine neuere Version gilt. **Tarifdatenbank fragen** fragt den Server sofort; läuft der Publisher mit der Status-Aufgabe (siehe [Veröffentlichen](publishing.md)), wird seine letzte Antwort ohne Rückfrage gezeigt. Eine Kopie mit geänderten Preisen ist eine Version, die die Datenbank nicht kennt, und zeigt keinen Status.
 
 ## Schritt 1: Basispreis
 
