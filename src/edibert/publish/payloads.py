@@ -79,8 +79,10 @@ def attributes(
     now: datetime,
     tomorrow_valid: bool,
     market: MarketData | None,
+    catalog: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Sensor attributes: today/tomorrow lists, the current components and day statistics."""
+    """Sensor attributes: today/tomorrow lists, the current components and day statistics; ``catalog`` is the
+    tariff's database version and status (``None`` without exchange or when the tariff stands for no version)."""
     today = _on(points, now.date())
     tomorrow = _on(points, now.date() + timedelta(days=1))
     current = current_point(points, now)
@@ -105,6 +107,7 @@ def attributes(
         "forecast": [interval(point) for point in forecast],
         "forecast_method": forecast_method,
         "market": market_block(market),
+        "catalog": catalog,
         "updated": now.isoformat(),
     }
 

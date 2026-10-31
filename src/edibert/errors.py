@@ -108,6 +108,11 @@ class WarningCode(StrEnum):
     CAPACITY_BANDS_NOT_CONVEX = "CAPACITY_BANDS_NOT_CONVEX"  # params: charge_id
     CAPACITY_STATE_UNAVAILABLE = "CAPACITY_STATE_UNAVAILABLE"  # params: area_id
     PACKAGE_EXPIRED = "PACKAGE_EXPIRED"  # params: valid_until
+    # Catalog exchange inside the publisher (0.1.d client follow-ups)
+    EXCHANGE_JOB_FAILED = "EXCHANGE_JOB_FAILED"  # params: job, code
+    PACKAGE_HELD_CONFLICTS = "PACKAGE_HELD_CONFLICTS"  # params: package_id, count
+    PACKAGE_HELD_REMOVES_USED = "PACKAGE_HELD_REMOVES_USED"  # params: package_id, entries
+    PACKAGE_HELD_DATABASE = "PACKAGE_HELD_DATABASE"  # params: current, offered
     # Sharing with the free catalog (Catalog P6)
     CONTRIBUTION_TRANSPORT_OFF = "CONTRIBUTION_TRANSPORT_OFF"  # params: none
 

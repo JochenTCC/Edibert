@@ -14,17 +14,21 @@ from zoneinfo import ZoneInfo
 
 from edibert.editor.house import HouseSettings, load_house
 from edibert.errors import EdibertError, EdibertWarning, ErrorCode, WarningCode
+from edibert.exchange import ExchangeClient, exchange_config_from_env
 from edibert.market.forecast import Forecaster
 from edibert.market.service import MarketData, MarketService, window_slots
 from edibert.market.sources import HttpGet, http_get, zone_for_land
 from edibert.publish import payloads
 from edibert.publish.config import (
     CONFIG_NAME,
+    ExchangeSettings,
     MqttSettings,
     PublishConfig,
     TariffRef,
     load_publish_config,
 )
+from edibert.publish.exchange_command import used_ref_map
+from edibert.publish.exchange_jobs import CatalogExchange
 from edibert.publish.forecasters import (
     FORECAST_KEY_ENV,
     build_forecaster,
@@ -63,15 +67,22 @@ class Publisher:
         link: MqttLink,
         market: MarketService,
         forecaster: Forecaster | None = None,
+        exchange: CatalogExchange | None = None,
+        reload: Callable[[], TariffSet] | None = None,
     ) -> None:
         self.config = config
         self.house = house
         self.link = link
         self.market = market
         self.forecaster = forecaster
+        self.exchange = exchange
+        self.reload = reload
         self.tz = ZoneInfo(house.timezone)
         self.ctx = house.context()
-        self.items: list[tuple[TariffRef, Tariff]] = [(ref, tariffs.get(ref.direction, ref.id)) for ref in config.tariffs]
+        self._take(tariffs)
+
+    def _take(self, tariffs: TariffSet) -> None:
+        self.items: list[tuple[TariffRef, Tariff]] = [(ref, tariffs.get(ref.direction, ref.id)) for ref in self.config.tariffs]
 
     # -- topics ---------------------------------------------------------------------------------
 
@@ -91,6 +102,7 @@ class Publisher:
     def run_cycle(self, now: datetime) -> CycleReport:
         """Publish the current state of every tariff. A tariff without data goes ``offline``, never to a guess."""
         report = CycleReport()
+        self._exchange(now, report)
         local = now.astimezone(self.tz)
         data = self._market_data(local, report)
         for ref, tariff in self.items:
@@ -101,6 +113,15 @@ class Publisher:
                 report.offline.append((ref.id, err))
                 self._put(ref, "availability", payloads.OFFLINE)
         return report
+
+    def _exchange(self, now: datetime, report: CycleReport) -> None:
+        """The catalog exchange jobs that are due; after a package import the tariffs are loaded again."""
+        if self.exchange is None:
+            return
+        tick = self.exchange.tick(now)
+        report.notes.extend(tick.notes)
+        if tick.imported and self.reload is not None:
+            self._take(self.reload())
 
     def _market_data(self, local: datetime, report: CycleReport) -> MarketData | None:
         if not any(tariff.uses_market_price for _, tariff in self.items):
@@ -121,6 +142,7 @@ class Publisher:
             tariff_id=ref.id, label=tariff.label, direction=ref.direction, resolution_min=self.config.resolution_min,
             points=points, forecast=forecast, now=local, tomorrow_valid=tomorrow_valid, market=data,
             forecast_method=self._forecast_label() if forecast else None,
+            catalog=self.exchange.status_block(ref) if self.exchange else None,
         )  # fmt: skip
         self._put(ref, "state", payloads.state_payload(payloads.current_point(points, local)))
         self._put(ref, "attributes", payloads.encode(body))
@@ -220,14 +242,35 @@ def build_publisher(
     get: HttpGet = http_get,
     env: Mapping[str, str] | None = None,
     forecaster_loader: Callable[[str, str], Forecaster] = load_forecaster,
+    exchange_factory: Callable[[ExchangeSettings], CatalogExchange | None] | None = None,
 ) -> Publisher:
-    """Wire a publisher from the files in ``data_dir``. The ENTSO-E token is read from ``ENTSOE_API_TOKEN``, the forecast key from ``EDIBERT_FORECAST_KEY``."""
+    """Wire a publisher from the files in ``data_dir``. The ENTSO-E token is read from ``ENTSOE_API_TOKEN``, the forecast key from ``EDIBERT_FORECAST_KEY``,
+    the exchange settings from ``EDIBERT_EXCHANGE_URL`` / ``EDIBERT_ACCESS_KEY`` / ``EDIBERT_EXCHANGE_OFF``."""
     environment = os.environ if env is None else env
     config = load_publish_config(config_path or data_dir / CONFIG_NAME)
     house = load_house(data_dir / "house.json")
-    tariffs = load_tariffs(catalog, data_dir / "user_tariffs.json")
+    user_file = data_dir / "user_tariffs.json"
+    tariffs = load_tariffs(catalog, user_file)
     market = MarketService(zone_for_land(house.land), data_dir, entsoe_token=environment.get(ENTSOE_TOKEN_ENV, ""), get=get)
     settings = config.forecast
     key = environment.get(FORECAST_KEY_ENV, "")
     forecaster = build_forecaster(settings.method, settings.name, key, ZoneInfo(house.timezone), forecaster_loader) if settings else None
-    return Publisher(config, tariffs, house, link_factory(config.mqtt), market, forecaster)
+    exchange = None
+    if config.exchange is not None and config.exchange.any:
+        make = exchange_factory or (lambda settings: _exchange_from_env(settings, data_dir, catalog, config, environment))
+        exchange = make(config.exchange)
+    return Publisher(config, tariffs, house, link_factory(config.mqtt), market, forecaster, exchange,
+                     reload=lambda: load_tariffs(catalog, user_file))  # fmt: skip
+
+
+def _exchange_from_env(settings: ExchangeSettings, data_dir: Path, catalog: Path | None, config: PublishConfig,
+                       env: Mapping[str, str]) -> CatalogExchange | None:  # fmt: skip
+    """The exchange of the stand-alone publisher, or ``None`` (logged) when ``EDIBERT_EXCHANGE_OFF=1`` switches it off."""
+    exchange_config = exchange_config_from_env(env)
+    if exchange_config is None:
+        log.warning("Catalog exchange is configured in publish.json but switched off by EDIBERT_EXCHANGE_OFF=1.")
+        return None
+    log.info("Catalog exchange with %s: report use %s, status %s, packages %s.", exchange_config.base_url,
+             settings.report_use, settings.status, settings.packages)  # fmt: skip
+    return CatalogExchange(ExchangeClient(exchange_config, env=env), settings, data_dir, catalog, config.tariffs,
+                           lambda: used_ref_map(data_dir, catalog, config.tariffs))  # fmt: skip

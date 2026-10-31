@@ -9,7 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -25,7 +25,7 @@ from edibert.exchange import (
     used_ref,
 )
 from edibert.i18n import Translator
-from edibert.publish.config import CONFIG_NAME, load_publish_config
+from edibert.publish.config import CONFIG_NAME, TariffRef, load_publish_config
 from edibert.tariff import DbRef
 
 
@@ -39,13 +39,18 @@ def _client() -> ExchangeClient:
 def used_refs(data_dir: Path, catalog: Path | None, config_path: Path | None) -> list[DbRef]:
     """Database versions of the tariffs ``publish.json`` names (a tariff standing for none is left out)."""
     refs = load_publish_config(config_path or data_dir / CONFIG_NAME).tariffs
+    return list(used_ref_map(data_dir, catalog, refs).values())
+
+
+def used_ref_map(data_dir: Path, catalog: Path | None, refs: Sequence[TariffRef]) -> dict[TariffRef, DbRef]:
+    """The database version each of ``refs`` stands for; a tariff standing for none has no entry."""
     user = read_document(data_dir / "user_tariffs.json")
     raws: dict[tuple[str, str], Any] = {(d, raw.get("id")): raw for d, section in SECTIONS.items() for raw in user.get(section, [])}
     database = None
     if catalog is not None:
         database = catalog_database(catalog)
         raws |= {(entry.direction, entry.raw.get("id")): entry.raw for entry in read_catalog(catalog)}
-    result = []
+    result = {}
     for ref in refs:
         raw = raws.get((ref.direction, ref.id))
         if raw is None:
@@ -53,7 +58,7 @@ def used_refs(data_dir: Path, catalog: Path | None, config_path: Path | None) ->
                                tariff_id=ref.id, direction=ref.direction)  # fmt: skip
         found = used_ref(raw, ref.direction, database)
         if found is not None:
-            result.append(found)
+            result[ref] = found
     return result
 
 

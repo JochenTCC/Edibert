@@ -60,6 +60,18 @@ Deviation from Earnie: Earnie places a stale cache before aWATTar by time; Edibe
 * The market cache keeps 7 days of history (`HISTORY_DAYS`) and merges new downloads into it; history is not downloaded, it accumulates while Edibert runs.
 * Attribute `forecast_method` names the method (or the plug-in name) when a forecast is present.
 
+## Catalog exchange (0.1.d client follow-ups)
+
+Optional block `exchange` in `publish.json` with three required booleans: `report_use`, `status`, `packages`. Without the block the publisher sends nothing to the tariff database server. Server address and access key come from `EDIBERT_EXCHANGE_URL` and `EDIBERT_ACCESS_KEY`; `EDIBERT_EXCHANGE_OFF=1` switches every job off whatever the file says (logged at start). Contract: [catalog-exchange.md](catalog-exchange.md).
+
+`Publisher.run_cycle` first runs the due jobs (`edibert.publish.exchange_jobs.CatalogExchange.tick`), then publishes. A failing job gives `EXCHANGE_JOB_FAILED` (job, code) and is retried after `RETRY_AFTER` (1 h); it never takes a tariff offline.
+
+* `report_use`: once per 24 h `plan_usage_reports` plans one report per database version of the published tariffs at a random time; each cycle sends the reports that are due. A report is removed from the plan only after the server took it.
+* `status`: once per day (`STATUS_EVERY`) `query_status` for the same versions.
+* `packages`: needs `--catalog`, else `VALUE_INVALID` at start. Database `verified` when an access key is set, else `free`; a catalog whose `package.database` is `verified` is never replaced by a free package (`PACKAGE_HELD_DATABASE`). The package is checked with `verify_package` and planned with `plan_package_import`. It is imported only when the plan has no conflict and removes no catalog tariff that `publish.json` names; otherwise `PACKAGE_HELD_CONFLICTS` or `PACKAGE_HELD_REMOVES_USED` and nothing is written (the editor's import dialog decides). After an import the publisher loads its tariffs again. Next check after 7 days (`PACKAGE_EVERY`), earlier when `valid_until` is less than 7 days away, never sooner than the next day.
+* State in `exchange_state.json` in the data folder (`state_format` 1): plan of pending reports, last status answer, next check times, the last held package. A broken file is `FILE_INVALID`, never reset silently.
+* Attribute `catalog` per tariff: `null` when the tariff stands for no database version; else `database`, `db_id`, `version`, and with `status` on `checked_at`, `known`, `reliable`, `installations_12m`, `newer_version`, `newer_valid_from` (the latter fields only after a status answer).
+
 ## Open points
 
 * Cleanup of retained topics of removed tariffs.

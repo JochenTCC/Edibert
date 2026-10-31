@@ -87,3 +87,23 @@ The Day-Ahead prices end with the next day. If you want prices further ahead (fo
 `hours` is how far the forecast reaches (1 to 72, default 48). The forecast ends where no price can be derived, at a whole hour. For `mirror`, Edibert keeps the last 7 days of prices in the cache, so it needs about a day of running time before it can look back that far.
 
 The free edition of Edibert contains no plug-in; the key unlocks it. If the plug-in or the key is missing, Edibert stops with an error and tells you to set the key or to choose `mirror` or `hold`. If a plug-in fails while running, only the exact prices are published and a warning is shown.
+
+## Tariff database (optional)
+
+The publisher can talk to the tariff database server (see [CLI](cli.md), section exchange): report which catalog tariffs you use, ask whether there is a newer version, and keep your catalog up to date. Nothing is sent unless you add this block to `publish.json`:
+
+```json
+"exchange": { "report_use": true, "status": true, "packages": true }
+```
+
+| Job | What it does |
+|---|---|
+| `report_use` | once a day, per tariff that comes from the database, one message at a random time with its database ID, version and a pseudonym computed on your computer (no installation ID, the pseudonym differs for every tariff) |
+| `status` | once a day asks for the newest version of these tariffs and whether they count as reliable |
+| `packages` | once a week (or before the current package expires) loads the catalog package and imports it; needs `--catalog` |
+
+All three must be named, `true` or `false`. `EDIBERT_EXCHANGE_OFF=1` switches everything off. With an access key in `EDIBERT_ACCESS_KEY` the verified database is loaded, otherwise the free one; a catalog from the verified database is never replaced by a free package.
+
+A package is imported automatically only when nothing is lost: if it would change monthly rates you entered yourself, or if it no longer contains a tariff you publish, it is not imported and a warning says why. Import it then in the editor (sidebar, *Import catalog package*) and decide there. A failure of the server never touches the prices; the job is tried again an hour later.
+
+Each tariff's attributes get a block `catalog` with its database ID and version and, with `status`, whether it is `reliable`, how many installations used it in the last 12 months and whether a newer version exists (`newer_version`, `newer_valid_from`). What the jobs remember is kept in `exchange_state.json` in the data folder.

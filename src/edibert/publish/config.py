@@ -26,10 +26,11 @@ CONFIG_NAME = "publish.json"
 DEFAULT_BASE_TOPIC = "edibert"
 DEFAULT_DISCOVERY_PREFIX = "homeassistant"
 MAX_FORECAST_HOURS = 72
-_ROOT_FIELDS = ("tariffs", "mqtt", "resolution_min", "forecast", "$schema")
+_ROOT_FIELDS = ("tariffs", "mqtt", "resolution_min", "forecast", "exchange", "$schema")
 _MQTT_FIELDS = ("host", "port", "username_env", "password_env", "tls", "base_topic", "discovery_prefix", "client_id")
 _TARIFF_FIELDS = ("id", "direction")
 _FORECAST_FIELDS = ("method", "name", "hours")
+_EXCHANGE_FIELDS = ("report_use", "status", "packages")
 
 
 @dataclass(frozen=True)
@@ -58,11 +59,25 @@ class ForecastSettings:
 
 
 @dataclass(frozen=True)
+class ExchangeSettings:
+    """Which exchange jobs with the tariff database server the publisher runs (all three must be named)."""
+
+    report_use: bool
+    status: bool
+    packages: bool
+
+    @property
+    def any(self) -> bool:
+        return self.report_use or self.status or self.packages
+
+
+@dataclass(frozen=True)
 class PublishConfig:
     mqtt: MqttSettings
     tariffs: tuple[TariffRef, ...] = field(default_factory=tuple)
     resolution_min: int = 15
     forecast: ForecastSettings | None = None
+    exchange: ExchangeSettings | None = None  # None: no exchange at all
 
 
 def _parse_mqtt(raw: object) -> MqttSettings:
@@ -114,6 +129,17 @@ def _parse_forecast(raw: object) -> ForecastSettings | None:
     return ForecastSettings(method, name or "", int(hours) if hours is not None else 48)
 
 
+def _parse_exchange(raw: object) -> ExchangeSettings | None:
+    if raw is None:
+        return None
+    data = as_dict(raw, "exchange")
+    check_known(data, _EXCHANGE_FIELDS, "exchange")
+    for name in _EXCHANGE_FIELDS:
+        if name not in data:
+            raise missing(f"exchange.{name}")  # every job is switched on or off explicitly
+    return ExchangeSettings(*(get_bool(data, name, "exchange", False) for name in _EXCHANGE_FIELDS))
+
+
 def parse_publish_config(raw: object) -> PublishConfig:
     data = as_dict(raw, "publish")
     check_known(data, _ROOT_FIELDS, "publish")
@@ -127,6 +153,7 @@ def parse_publish_config(raw: object) -> PublishConfig:
         tariffs=_parse_tariffs(data.get("tariffs")),
         resolution_min=int(resolution) if resolution is not None else 15,
         forecast=_parse_forecast(data.get("forecast")),
+        exchange=_parse_exchange(data.get("exchange")),
     )
 
 

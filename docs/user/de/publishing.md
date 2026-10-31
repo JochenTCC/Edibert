@@ -88,3 +88,23 @@ Die Day-Ahead-Preise enden mit dem nächsten Tag. Wenn du Preise weiter voraus w
 `hours` bestimmt, wie weit die Prognose reicht (1 bis 72, Standard 48). Sie endet, wo sich kein Preis ableiten lässt, und zwar zu einer vollen Stunde. Für `mirror` behält Edibert die letzten 7 Tage an Preisen im Zwischenspeicher; nach dem ersten Start dauert es also etwa einen Tag, bis weit genug zurückgeschaut werden kann.
 
 Die freie Edibert-Version enthält kein Plug-in; der Schlüssel schaltet es frei. Fehlt das Plug-in oder der Schlüssel, bricht Edibert mit einem Fehler ab und weist darauf hin, den Schlüssel zu setzen oder `mirror` bzw. `hold` zu wählen. Fällt ein Plug-in im laufenden Betrieb aus, werden nur die exakten Preise veröffentlicht und eine Warnung angezeigt.
+
+## Tarifdatenbank (optional)
+
+Der Publisher kann mit dem Server der Tarifdatenbank sprechen (siehe [CLI](cli.md), Abschnitt exchange): melden, welche Katalogtarife du verwendest, fragen, ob es eine neuere Version gibt, und deinen Katalog aktuell halten. Es wird nichts gesendet, solange du diesen Block nicht in `publish.json` einträgst:
+
+```json
+"exchange": { "report_use": true, "status": true, "packages": true }
+```
+
+| Aufgabe | Was passiert |
+|---|---|
+| `report_use` | einmal am Tag je Tarif aus der Datenbank eine Meldung zu einer zufälligen Zeit mit Datenbank-ID, Version und einem Pseudonym, das auf deinem Rechner berechnet wird (keine Installations-ID, das Pseudonym ist für jeden Tarif anders) |
+| `status` | fragt einmal am Tag nach der neuesten Version dieser Tarife und ob sie als verlässlich gelten |
+| `packages` | lädt einmal pro Woche (oder bevor das aktuelle Paket abläuft) das Katalogpaket und importiert es; braucht `--catalog` |
+
+Alle drei müssen genannt sein, `true` oder `false`. `EDIBERT_EXCHANGE_OFF=1` schaltet alles ab. Mit einem Zugangsschlüssel in `EDIBERT_ACCESS_KEY` wird die geprüfte Datenbank geladen, sonst die freie; ein Katalog aus der geprüften Datenbank wird nie durch ein freies Paket ersetzt.
+
+Ein Paket wird nur dann automatisch importiert, wenn dabei nichts verloren geht: Würde es selbst eingetragene Monatspreise ändern oder enthält es einen Tarif nicht mehr, den du veröffentlichst, wird es nicht importiert, und eine Warnung sagt warum. Importiere es dann im Editor (Seitenleiste, *Katalogpaket importieren*) und entscheide dort. Ein Ausfall des Servers berührt die Preise nie; die Aufgabe wird eine Stunde später erneut versucht.
+
+Die Attribute jedes Tarifs bekommen einen Block `catalog` mit Datenbank-ID und Version und, mit `status`, ob er `reliable` ist, wie viele Installationen ihn in den letzten 12 Monaten verwendet haben und ob es eine neuere Version gibt (`newer_version`, `newer_valid_from`). Was sich die Aufgaben merken, steht in `exchange_state.json` im Datenordner.
