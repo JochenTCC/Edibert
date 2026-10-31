@@ -2,6 +2,14 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Editor: persistence and logic tests for the embedded editor (0.1.h, 2026-10-31)
+
+- [x] **0.1.h — Editor: persistence and logic tests for the embedded editor** *(split decided 2026-10-27, Earnie `docs/dev/edibert-integration.md` § P7 D1; test concept "Earnie UI-Persistenztests")*
+  - **Selection cases in Earnie** (done in Earnie *Edibert P7* S5): TE1 filter vs. selection, TE2 profile switch, TE3 own fixed price, TE6 scenario switch (`tests/apptest/test_scenario_tariff_selection_apptest.py`), TE5 month boundary (`tests/test_scenario_editor_next_month.py`)
+  - **Editor cases in Edibert** (done with `0.1.m`, `tests/test_ui_embed.py`): TE4 file side at model level, rejected input leaves the file unchanged, success notice survives `st.rerun()`, stable language-independent widget keys
+  - **Browser check of the monthly-rate table** (the part left open): automated as an Earnie Playwright test instead of a one-off manual check, `tests/apptest/e2e/test_smoke.py::test_tariffs_monthly_rates_entered_in_the_table_are_saved`: on the Tarife page a new import tariff with *Monatspreise*, the current month's price changed in the `st.data_editor` cell, a row for the next month added through the toolbar, saved → `user_tariffs.json` holds both rates. Browser locale pinned to `de-AT` (the number cell editor parses the decimal separator by locale)
+  - **Found:** none in Edibert; the cell positions are measured again before each edit, because the preview reflows the page after the first edit
+
 ### Earnie: share consent and exchange settings (2026-10-31)
 
 - [x] **Earnie: share consent and exchange settings** *(moved out of `0.1.d` on 2026-10-31; was step S4; work in the Earnie repository)*: Earnie pins `v0.1.12` and asks for its own consent on its Tarife page (stored in its runtime folder, revocable, separate from its usage statistics); only with consent and without `EDIBERT_EXCHANGE_OFF=1` does it pass `ExchangeClient` and `ServerTransport` to the embed, which keeps `ShareDefault.OPT_IN`. Earnie reports no use (no publisher loop). Its migration passes `grid_fee_area` (the area all house profiles share). Opening to users still waits for the legal review (Research Items). Details: Earnie backlog archive "Edibert pin v0.1.12 and share consent".
