@@ -4,12 +4,12 @@ This directory is **reserved** for the tariff catalog. No catalog is stored here
 
 Planned structure:
 
-- The catalog is shipped as a **signed package** with a validity date, verifiable offline and importable manually.
+- Two databases. The **free database** holds tariffs shared by users, unchecked; a tariff version earns `reliable` by use (at least two installations within 12 months, the one who shared it counts). The **verified database** holds only tariffs we checked and keep current, available by subscription. Contributions earn no access; there is no GitHub-issue route.
+- Each database is shipped as a **signed catalog package** with a validity date, verified offline and importable manually or loaded from the server (`python -m edibert exchange fetch`, then `package import`; see the [CLI manual](../docs/user/en/cli.md)).
 - Each tariff carries: country, grid area, supplier, product, rules and prices, `source` (URL or document name), `last_verified` and the `verified` flag.
-- Access is available to users with an accepted contribution (time-limited) or with a one-time fee (time-limited). The terms are published after legal review, per country in the national language.
+- The terms are published after legal review, per country in the national language.
 - **Decided (2026-10-28, Earnie *Edibert P8*):** the public Earnie catalog (`share/config/tariffs.json`, `share/config/grid_fees.json`) is a frozen seed. It gets corrections and its monthly reference curves, but no new entries; new tariffs and grid areas reach users only through this channel.
 
 Open before anything is published here:
 
-- Legal review of the terms of use, of data protection for the upload, and of payment handling.
-- Signing and key management.
+- Legal review of the terms of use, of data protection for sharing, and of payment handling.

@@ -79,14 +79,14 @@ Edibert is a stand-alone tool that is also used by [Earnie](https://github.com/J
 
 ## Catalog and contributions
 
-Edibert has a curated catalog of tariffs (DE/AT/CH). You can always create your own tariffs. Access to the **community catalog and its updates** is available to users
+You can always create your own tariffs; the software works without any catalog. In addition there are two tariff databases (DE/AT/CH):
 
-- who have contributed a tariff themselves (for a limited time), or
-- who pay a small one-time fee.
+- **Free database:** tariffs shared by users, unchecked. A tariff version earns the status `reliable` by use: at least two installations used it within 12 months (the one who shared it counts). It is free for everyone.
+- **Verified database:** only tariffs we checked and keep current. It is available by subscription.
 
-A yearly subscription for automatic catalog updates is planned for later. The software itself always works, also without catalog access.
+Both reach you as **signed catalog packages** that Edibert checks offline before the import. An import never overwrites monthly prices you entered yourself without asking you. Sharing a tariff is a help to others with the same tariff; it earns no access and no reward, and there is no contribution route through GitHub issues.
 
-Only tariffs that are **not tailored to one person** are collected, and only **without personal data** (no postal code, name, meter number, free text or consumption data). Upload is voluntary, with a preview of the exact content. This describes the planned behavior, not a binding offer. Details: [CONTRIBUTING.md](CONTRIBUTING.md) and [catalog/README.md](catalog/README.md).
+Only tariffs that are **not tailored to one person** are shared, and only **without personal data** (no postal code, name, meter number, free text or consumption data). Sharing is voluntary, with a preview of the exact content, and every tariff can be left out. This describes the planned behavior, not a binding offer. Details: [CONTRIBUTING.md](CONTRIBUTING.md) and [catalog/README.md](catalog/README.md).
 
 ## License
 
@@ -102,7 +102,7 @@ The code is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE): 
 | T2 | Grid-fee rules and `tariff_price_series` (the single interface to the price series) |
 | T3 | Editor and import (template, JSON file) |
 | T3b | MQTT publisher, market price chain, forecast (mirror, hold, key-gated plug-in) |
-| T4 | Contribution path and signed catalog access |
+| T4 | Tariff databases: sharing, free and verified database, signed catalog packages |
 | later | Price-sheet assistant, output for evcc/EMHASS/Predbat, prices per meter |
 
 The format is described in [docs/spec/tariff-format.md](docs/spec/tariff-format.md) and [docs/spec/publishing.md](docs/spec/publishing.md); examples are in [examples/](examples/). User manuals: [docs/user/en/](docs/user/en/).

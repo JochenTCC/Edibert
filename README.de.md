@@ -79,14 +79,14 @@ Edibert ist ein eigenständiges Werkzeug und wird auch von [Earnie](https://gith
 
 ## Katalog und Beiträge
 
-Edibert hat einen gepflegten Katalog von Tarifen (DE/AT/CH). Du kannst jederzeit eigene Tarife anlegen. Der Zugang zum **Community-Katalog und seinen Updates** gilt für Nutzer,
+Du kannst jederzeit eigene Tarife anlegen; die Software funktioniert auch ganz ohne Katalog. Dazu gibt es zwei Tarifdatenbanken (DE/AT/CH):
 
-- die selbst einen Tarif beigetragen haben (zeitlich begrenzt), oder
-- die einmalig eine kleine Gebühr zahlen.
+- **Freie Datenbank:** von Nutzern geteilte Tarife, ungeprüft. Eine Tarifversion wird durch Nutzung `reliable` (verlässlich): mindestens zwei Installationen haben sie innerhalb von 12 Monaten verwendet (wer sie geteilt hat, zählt mit). Sie ist für alle kostenlos.
+- **Geprüfte Datenbank:** nur Tarife, die wir geprüft haben und aktuell halten. Sie gibt es im Abo.
 
-Später ist ein Jahresabo für automatische Katalog-Updates geplant. Die Software selbst funktioniert immer, auch ohne Katalogzugang.
+Beide kommen als **signierte Katalogpakete**, die Edibert vor dem Import ohne Internet prüft. Ein Import überschreibt Monatspreise, die du selbst eingetragen hast, nie ohne Rückfrage. Einen Tarif zu teilen hilft anderen mit demselben Tarif; es bringt keinen Zugang und keine Belohnung, und einen Beitragsweg über GitHub-Issues gibt es nicht.
 
-Gesammelt werden nur Tarife, die **nicht auf eine Person zugeschnitten** sind, und nur **ohne Personenbezug** (keine Postleitzahl, kein Name, keine Zählernummer, keine Freitexte, keine Verbrauchsdaten). Der Upload erfolgt freiwillig, mit Vorschau des genauen Inhalts. Das ist die geplante Funktionsweise, noch kein verbindliches Angebot. Details: [CONTRIBUTING.md](CONTRIBUTING.md) (englisch) und [catalog/README.md](catalog/README.md) (englisch).
+Geteilt werden nur Tarife, die **nicht auf eine Person zugeschnitten** sind, und nur **ohne Personenbezug** (keine Postleitzahl, kein Name, keine Zählernummer, keine Freitexte, keine Verbrauchsdaten). Das Teilen ist freiwillig, mit Vorschau des genauen Inhalts, und jeder Tarif lässt sich weglassen. Das ist die geplante Funktionsweise, noch kein verbindliches Angebot. Details: [CONTRIBUTING.md](CONTRIBUTING.md) (englisch) und [catalog/README.md](catalog/README.md) (englisch).
 
 ## Lizenz
 
@@ -102,7 +102,7 @@ Der Code steht unter der [PolyForm Noncommercial License 1.0.0](LICENSE): Quellc
 | T2 | Netzentgelt-Regeln und `tariff_price_series` (die eine Schnittstelle zur Preisreihe) |
 | T3 | Editor und Import (Vorlage, JSON-Datei) |
 | T3b | MQTT-Ausgabe, Börsenpreis-Kette, Prognose (Spiegeln, Halten, Plug-in mit Schlüssel) |
-| T4 | Beitragsweg und signierter Katalogzugang |
+| T4 | Tarifdatenbanken: Teilen, freie und geprüfte Datenbank, signierte Katalogpakete |
 | später | Preisblatt-Assistent, Ausgabe für evcc/EMHASS/Predbat, Preise je Zähler |
 
 Das Format ist in [docs/spec/tariff-format.md](docs/spec/tariff-format.md) (englisch) beschrieben, Beispiele liegen unter [examples/](examples/). Bedienungsanleitungen: [docs/user/de/](docs/user/de/).

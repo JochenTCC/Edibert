@@ -1,36 +1,34 @@
 # Contributing to Edibert
 
-Edibert is still in draft. This document describes how contributions will work later. The terms for contributions and the catalog, and the privacy notice, are published after legal review; **until then no tariffs are accepted**. The code is licensed under [PolyForm Noncommercial 1.0.0](LICENSE).
+Edibert is still in draft. This document describes how contributions will work later. The terms for sharing tariffs and for the catalog, and the privacy notice, are published after legal review; **until then no tariffs are accepted**. The code is licensed under [PolyForm Noncommercial 1.0.0](LICENSE).
 
-## Contributing tariffs
+## Sharing tariffs
 
-The catalog lives on tariffs that users have recorded. You can contribute a tariff if it
+Tariffs reach the **free database** only through the share section of the editor; there is no route through GitHub issues. A shared tariff is unchecked at first and earns the status `reliable` by use: a tariff version used by at least two installations within 12 months (you count as one). The **verified database** is kept separately by us and is not filled by shared tariffs directly. Sharing earns no catalog access and no reward; it helps others with the same tariff.
 
-- is **not tailored to you** (no special conditions, no customer code),
-- has a **public price sheet** you can point to,
-- passed the **invoice check** against a real invoice in the editor, or you can cite the price sheet.
+Share a tariff only if it is **not tailored to you** (no special conditions, no customer code). Tariffs you mark as `individual` are never shared, and a tariff without a country cannot be shared.
 
 ### What is transmitted
 
+Edibert builds the content from a fixed list of fields; everything else is left out.
+
 | Transmitted | Never transmitted |
 |---|---|
-| Country, grid area | Postal code, address, name |
+| Country, regions, grid area | Postal code, address, name |
 | Supplier, product name | Meter number, contract number |
-| Rules and prices | Consumption data |
-| Source (URL or document name), verification date | Free text (notes) |
-| Result of the invoice check (passed yes/no) | Invoice files or photos |
+| Rules, prices, fees, VAT, monthly rates | Consumption data |
+| Source (URL or document name), verification date, validity | Free text (notes, comments) |
+| | An installation ID |
 
-Before sending, Edibert shows the **exact content**. Nothing is sent without your explicit confirmation per tariff. Tariffs you mark as `individual` are never transmitted.
+Before sending, the share section shows the **exact content** of every selected tariff, and every tariff can be left out. Whether tariffs are selected by default is set by the program that embeds the editor: the stand-alone editor selects them, Earnie only after you opted in.
 
 ### What happens afterwards
 
-1. Check for duplicates and plausibility.
-2. Acceptance only after a passed invoice check or confirmation by a second user (`verified`).
-3. Accepted contributions give you time-limited access to the catalog and its updates.
+1. The server checks the tariff and answers with its database ID: accepted, already known (duplicate), or rejected with a reason the editor shows.
+2. A changed version of a tariff you shared before becomes a new version of the same entry.
+3. Accepted tariffs reach other users with the next free catalog package; use reports of installations decide when a version counts as `reliable`.
 
-Which terms apply: contributions through Edibert fall under Edibert's own contribution terms (see the README, section License; published after legal review). Contributions made from within Earnie are, until then, covered by the draft in Earnie's [`LICENSE.md`](https://github.com/JochenTCC/Earnie/blob/main/LICENSE.md) § 3 paragraphs 4–8; once Edibert's terms are published they take precedence there too.
-
-Until the upload function exists, the route is a GitHub issue using the "tariff contribution" template (to follow).
+Which terms apply: tariffs shared through Edibert fall under Edibert's own terms (see the README, section License; published after legal review). Tariffs shared from within Earnie are, until then, covered by the draft in Earnie's [`LICENSE.md`](https://github.com/JochenTCC/Earnie/blob/main/LICENSE.md) § 3 paragraphs 4–8; once Edibert's terms are published they take precedence there too.
 
 ## Contributing code
 
