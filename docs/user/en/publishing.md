@@ -102,7 +102,7 @@ The publisher can talk to the tariff database server (see [CLI](cli.md), section
 | `status` | once a day asks for the newest version of these tariffs and whether they count as reliable |
 | `packages` | once a week (or before the current package expires) loads the catalog package and imports it; needs `--catalog` |
 
-All three must be named, `true` or `false`. `EDIBERT_EXCHANGE_OFF=1` switches everything off. With an access key in `EDIBERT_ACCESS_KEY` the verified database is loaded, otherwise the free one; a catalog from the verified database is never replaced by a free package.
+All three must be named, `true` or `false`. `EDIBERT_EXCHANGE_OFF=1` switches everything off. The catalog is always loaded from the verified database, which is free and needs no key.
 
 A package is imported automatically only when nothing is lost: if it would change monthly rates you entered yourself, or if it no longer contains a tariff you publish, it is not imported and a warning says why. Import it then in the editor (sidebar, *Import catalog package*) and decide there. A failure of the server never touches the prices; the job is tried again an hour later.
 

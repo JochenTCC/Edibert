@@ -8,8 +8,8 @@ lost silently: a locally entered monthly rate or a tariff the publisher uses tha
 import back, and the editor's import dialog decides. When it is imported the publisher reloads its tariffs.
 
 What the jobs know survives a restart in ``exchange_state.json`` in the data folder, so a restart neither reports
-twice nor asks again early. The verified database is loaded when an access key is set, else the free one; a
-catalog that came from the verified database is never replaced by a free package.
+twice nor asks again early. The catalog always comes from the verified database, which needs no key; entries of
+the free database are only templates the user copies in the editor, never a catalog.
 """
 
 from __future__ import annotations
@@ -31,6 +31,7 @@ from edibert.catalog_import import (
 )
 from edibert.errors import EdibertError, EdibertWarning, ErrorCode, WarningCode
 from edibert.exchange import (
+    CATALOG_DATABASE,
     ExchangeClient,
     StatusEntry,
     install_secret,
@@ -53,6 +54,8 @@ PACKAGE_BEFORE_EXPIRY = timedelta(days=7)
 RETRY_AFTER = timedelta(hours=1)
 REPORT_DAY = timedelta(days=1)
 JOB_REPORT, JOB_STATUS, JOB_PACKAGE = "report_use", "status", "packages"
+# Held-back warning of the access-key era: its code no longer exists; a saved hold is dropped and the check runs again.
+RETIRED_HOLD = "PACKAGE_HELD_DATABASE"
 
 
 @dataclass
@@ -92,10 +95,12 @@ def load_state(path: Path) -> ExchangeState:
         raw = json.loads(path.read_text(encoding="utf-8"))
         if raw.get("state_format") != STATE_FORMAT:
             raise ValueError(f"state_format={raw.get('state_format')!r}")
+        held = raw.get("package_held")
+        retired = bool(held) and held.get("code") == RETIRED_HOLD
         return ExchangeState(
             _when(raw, "report_until"), list(raw.get("pending") or []),
             _when(raw, "status_next"), _when(raw, "status_at"), list(raw.get("status") or []),
-            _when(raw, "package_next"), raw.get("package_held"),
+            None if retired else _when(raw, "package_next"), None if retired else held,
         )  # fmt: skip
     except (OSError, ValueError, TypeError, AttributeError) as exc:
         raise EdibertError(ErrorCode.FILE_INVALID, f"Cannot read '{path}': {exc}", path=str(path)) from exc
@@ -142,10 +147,6 @@ class CatalogExchange:
         self.state = load_state(self.state_path)
         self._refs = refs
         self.refs: dict[TariffRef, DbRef] = dict(refs())  # database version of each published tariff
-
-    @property
-    def database(self) -> str:
-        return "verified" if self.client.config.access_key else "free"
 
     # -- one tick ---------------------------------------------------------------------------------
 
@@ -246,13 +247,8 @@ class CatalogExchange:
         grid_path = self.catalog.parent / GRID_CATALOG_FILE
         local = self._read(self.catalog)
         info = (local or {}).get(PACKAGE_INFO_KEY) or {}
-        current, offered = info.get("database"), self.database
-        if current == "verified" and offered == "free":
-            state.package_next = now + PACKAGE_EVERY
-            self._hold(result, EdibertWarning(WarningCode.PACKAGE_HELD_DATABASE, "verified catalog, no access key",
-                                              {"current": current, "offered": offered}))  # fmt: skip
-            return
-        document = self.client.fetch_package(offered, info.get("package_id") if current == offered else None)
+        current = info.get("database")
+        document = self.client.fetch_package(CATALOG_DATABASE, info.get("package_id") if current == CATALOG_DATABASE else None)
         if document is None:
             state.package_held = None
             state.package_next = self._next_package_check(now, info.get("valid_until"))

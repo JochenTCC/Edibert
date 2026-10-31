@@ -82,7 +82,9 @@ Edibert ist ein eigenständiges Werkzeug und wird auch von [Earnie](https://gith
 Du kannst jederzeit eigene Tarife anlegen; die Software funktioniert auch ganz ohne Katalog. Dazu gibt es zwei Tarifdatenbanken (DE/AT/CH):
 
 - **Freie Datenbank:** von Nutzern geteilte Tarife, ungeprüft. Eine Tarifversion wird durch Nutzung `reliable` (verlässlich): mindestens zwei Installationen haben sie innerhalb von 12 Monaten verwendet (wer sie geteilt hat, zählt mit). Sie ist für alle kostenlos.
-- **Geprüfte Datenbank:** nur Tarife, die wir geprüft haben und aktuell halten. Sie gibt es im Abo.
+- **Geprüfte Datenbank:** nur Tarife, die wir mit ihrer Quelle abgeglichen haben und aktuell halten. Sie ist ebenfalls kostenlos. „Geprüft“ heißt: mit der Quelle abgeglichen, mit Prüfdatum, ohne Garantie.
+
+Die freie Datenbank nutzt du **nur als Vorlage**: Du schaltest sie ein, kopierst einen Tarif in deine eigenen Tarife und gleichst ihn mit dem Preisblatt deines Anbieters ab. Die geprüfte Datenbank kannst du direkt als Katalog verwenden.
 
 Beide kommen als **signierte Katalogpakete**, die Edibert vor dem Import ohne Internet prüft. Ein Import überschreibt Monatspreise, die du selbst eingetragen hast, nie ohne Rückfrage. Einen Tarif zu teilen hilft anderen mit demselben Tarif; es bringt keinen Zugang und keine Belohnung, und einen Beitragsweg über GitHub-Issues gibt es nicht.
 

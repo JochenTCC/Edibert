@@ -52,7 +52,7 @@ python -m edibert exchange status --data-dir edibert_data [--catalog tariffs.jso
 python -m edibert exchange report --data-dir edibert_data [--catalog tariffs.json] [--no-delay]
 ```
 
-`fetch` downloads the latest catalog package of the free or the verified database (`--database verified` needs the access key of your subscription in the environment variable `EDIBERT_ACCESS_KEY`). With `--catalog`, nothing is downloaded while your catalog already holds the latest package. Check and import the file with `package import` as above.
+`fetch` downloads the latest catalog package of the free or the verified database; both are free and need no key. Use the verified database as your catalog; entries of the free database are meant as templates to copy. With `--catalog`, nothing is downloaded while your catalog already holds the latest package. Check and import the file with `package import` as above.
 
 `status` shows, for the tariffs `publish.json` names, whether the database has a newer version, whether the version counts as reliable and how many installations used it in the last twelve months. `report` tells the database which of these tariff versions you use: one message per tariff, each at a random time within the next 24 hours (`--no-delay` sends right away). A message holds only the database ID, the version and a code that is different for every tariff, so your tariffs cannot be linked to each other or to you. Only tariffs copied from the database with unchanged prices, and catalog tariffs from a package, are reported.
 

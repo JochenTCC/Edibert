@@ -1,7 +1,7 @@
 """Import of a signed catalog package in the standalone editor (Catalog P5): check, preview, decide, write.
 
-The package comes from a file or from the tariff database server (0.1.d S3: the verified database with an access
-key, else the free one; a verified catalog is never replaced by a free package). Only the standalone page offers
+The package comes from a file or from the tariff database server (0.1.d S3: always the verified database, which
+needs no key; entries of the free database are templates to copy, never a catalog). Only the standalone page offers
 it; a host application (Earnie) owns its catalog files and imports itself.
 """
 
@@ -19,9 +19,10 @@ from edibert.catalog_import import (
     plan_package_import,
     write_catalog_pair,
 )
-from edibert.errors import EdibertError, EdibertWarning, ErrorCode, WarningCode
+from edibert.errors import EdibertError, ErrorCode
 from edibert.fileformat import GRID_CATALOG_FILE
 from edibert.i18n import Translator
+from edibert.exchange import CATALOG_DATABASE
 from edibert.package import verify_package
 from edibert.ui import state
 from edibert.ui.config import UiConfig
@@ -74,15 +75,12 @@ def _decisions(t: Translator, plan: ImportPlan) -> dict[str, str]:
 
 
 def _download(t: Translator, config: UiConfig) -> None:
-    """Button that loads the newest package of the database this installation may use."""
+    """Button that loads the newest package of the verified database."""
     if config.exchange is None:
         st.caption(t.t("ui.package_server_off"))
         return
     info = ((_read_local(config.catalog) or {}) if config.catalog else {}).get(PACKAGE_INFO_KEY) or {}
-    current, offered = info.get("database"), "verified" if config.exchange.config.access_key else "free"
-    if current == "verified" and offered == "free":
-        st.caption(t.warning(EdibertWarning(WarningCode.PACKAGE_HELD_DATABASE, "no access key", {"current": current, "offered": offered})))
-        return
+    current, offered = info.get("database"), CATALOG_DATABASE
     if not st.button(t.t("ui.package_fetch", database=t.t(f"ui.database.{offered}")), key=state.k("package.fetch")):
         return
     try:

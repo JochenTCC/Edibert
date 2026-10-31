@@ -4,7 +4,7 @@ This directory is **reserved** for the tariff catalog. No catalog is stored here
 
 Planned structure:
 
-- Two databases. The **free database** holds tariffs shared by users, unchecked; a tariff version earns `reliable` by use (at least two installations within 12 months, the one who shared it counts). The **verified database** holds only tariffs we checked and keep current, available by subscription. Contributions earn no access; there is no GitHub-issue route.
+- Two databases. The **free database** holds tariffs shared by users, unchecked; a tariff version earns `reliable` by use (at least two installations within 12 months, the one who shared it counts). The **verified database** holds only tariffs we checked and keep current; it is free as well (changed 2026-10-31, before: by subscription). Entries of the free database are used only as templates, opt-in, copied into the user's own tariffs; the verified database can be used directly as a catalog. Contributions earn no access; there is no GitHub-issue route.
 - Each database is shipped as a **signed catalog package** with a validity date, verified offline and importable manually or loaded from the server (`python -m edibert exchange fetch`, then `package import`; see the [CLI manual](../docs/user/en/cli.md)).
 - Each tariff carries: country, grid area, supplier, product, rules and prices, `source` (URL or document name), `last_verified` and the `verified` flag.
 - The terms are published after legal review, per country in the national language.
@@ -12,4 +12,4 @@ Planned structure:
 
 Open before anything is published here:
 
-- Legal review of the terms of use, of data protection for sharing, and of payment handling.
+- Legal review of the terms of use, of data protection for sharing, and of the data license.

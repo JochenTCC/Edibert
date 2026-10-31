@@ -245,7 +245,7 @@ def build_publisher(
     exchange_factory: Callable[[ExchangeSettings], CatalogExchange | None] | None = None,
 ) -> Publisher:
     """Wire a publisher from the files in ``data_dir``. The ENTSO-E token is read from ``ENTSOE_API_TOKEN``, the forecast key from ``EDIBERT_FORECAST_KEY``,
-    the exchange settings from ``EDIBERT_EXCHANGE_URL`` / ``EDIBERT_ACCESS_KEY`` / ``EDIBERT_EXCHANGE_OFF``."""
+    the exchange settings from ``EDIBERT_EXCHANGE_URL`` / ``EDIBERT_EXCHANGE_OFF``."""
     environment = os.environ if env is None else env
     config = load_publish_config(config_path or data_dir / CONFIG_NAME)
     house = load_house(data_dir / "house.json")

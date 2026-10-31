@@ -117,7 +117,7 @@ def build_parser() -> argparse.ArgumentParser:
     imports.add_argument("--dry-run", action="store_true", help="show the plan, write nothing")
     exchange = sub.add_parser("exchange", help="exchange with the tariff database server (EDIBERT_EXCHANGE_OFF=1 switches it off)")
     exchange_sub = exchange.add_subparsers(dest="exchange_command", required=True)
-    fetch = exchange_sub.add_parser("fetch", help="download the latest package (verified: needs EDIBERT_ACCESS_KEY)")
+    fetch = exchange_sub.add_parser("fetch", help="download the latest package of a database (both are free)")
     fetch.add_argument("--database", choices=("free", "verified"), required=True)
     fetch.add_argument("--out", type=Path, required=True, help="package file to write; check and import it with 'package import'")
     fetch.add_argument("--catalog", type=Path, help="current tariffs.json: nothing is downloaded while its package is the latest")

@@ -34,7 +34,7 @@ DEFAULT_BASE_URL = "https://cloudserver.earnie-hems.com"
 PREFIX = "/edibert/v1"
 ENV_URL = "EDIBERT_EXCHANGE_URL"
 ENV_OFF = "EDIBERT_EXCHANGE_OFF"
-ENV_ACCESS_KEY = "EDIBERT_ACCESS_KEY"
+CATALOG_DATABASE = "verified"  # the database a catalog is loaded from; free entries are only copied as templates
 SECRET_FILE = "exchange_secret"
 USER_AGENT = f"Edibert/{__version__} (tariff exchange)"
 TIMEOUT_S = 20.0
@@ -66,10 +66,9 @@ def urllib_send(method: str, url: str, body: bytes | None, headers: Mapping[str,
 
 @dataclass(frozen=True)
 class ExchangeConfig:
-    """Where the server is and the access key for the verified database (``None``: free database only)."""
+    """Where the server is. Both databases are free; no request carries a key."""
 
     base_url: str = DEFAULT_BASE_URL
-    access_key: str | None = None
     timeout_s: float = TIMEOUT_S
 
 
@@ -79,11 +78,11 @@ def exchange_off(env: Mapping[str, str] | None = None) -> bool:
 
 
 def exchange_config_from_env(env: Mapping[str, str] | None = None) -> ExchangeConfig | None:
-    """Stand-alone settings: ``None`` when switched off, else base URL and access key from the environment."""
+    """Stand-alone settings: ``None`` when switched off, else the base URL from the environment."""
     environment = os.environ if env is None else env
     if exchange_off(environment):
         return None
-    return ExchangeConfig(environment.get(ENV_URL) or DEFAULT_BASE_URL, environment.get(ENV_ACCESS_KEY) or None)
+    return ExchangeConfig(environment.get(ENV_URL) or DEFAULT_BASE_URL)
 
 
 @dataclass(frozen=True)
@@ -174,10 +173,6 @@ class ExchangeClient:
         if database not in DATABASES:
             raise EdibertError(ErrorCode.VALUE_INVALID, f"database={database!r}", field="database", value=database)
         headers = {}
-        if database == "verified":
-            if not self.config.access_key:
-                raise EdibertError(ErrorCode.EXCHANGE_ACCESS_DENIED, "The verified database needs an access key.", route="packages", server_code="ACCESS_KEY_MISSING")
-            headers["Authorization"] = f"Bearer {self.config.access_key}"
         if known_package_id:
             headers["If-None-Match"] = f'"{known_package_id}"'
         route = f"/packages/{database}/latest"

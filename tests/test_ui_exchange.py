@@ -75,7 +75,7 @@ def server(monkeypatch):
 @pytest.fixture
 def catalog(tmp_path, monkeypatch):
     path = tmp_path / "tariffs.json"
-    info = {"database": "free", "package_id": "free-old", "issued_at": "2026-10-01T00:00:00+00:00", "valid_until": "2027-12-31"}
+    info = {"database": "verified", "package_id": "v-old", "issued_at": "2026-10-01T00:00:00+00:00", "valid_until": "2027-12-31"}
     path.write_text(json.dumps({"tariff_format": 1, "package": info, "import_tariffs": [CATALOG], "export_tariffs": []}), encoding="utf-8")
     (tmp_path / "grid_fees.json").write_text(json.dumps({"tariff_format": 1, "rule_sets": {}, "areas": [AREA]}), encoding="utf-8")
     monkeypatch.setenv(ENV_CATALOG, str(path))
@@ -85,7 +85,7 @@ def catalog(tmp_path, monkeypatch):
 def signed_package(monkeypatch):
     key = Ed25519PrivateKey.generate()
     monkeypatch.setattr(package_module, "TRUSTED_KEYS", {KEY_ID: public_key_text(key.public_key())})
-    manifest = {"database": "free", "package_id": "free-new", "issued_at": "2026-11-01T00:00:00+00:00",
+    manifest = {"database": "verified", "package_id": "v-new", "issued_at": "2026-11-01T00:00:00+00:00",
                 "valid_until": "2027-12-31", "tariff_format": 1, "key_id": KEY_ID}  # fmt: skip
     tariffs = {"tariff_format": 1, "import_tariffs": [NEWER], "export_tariffs": []}
     return build_package(tariffs, {"tariff_format": 1, "rule_sets": {}, "areas": [AREA]}, manifest, key)
@@ -100,16 +100,16 @@ def test_package_from_the_server_is_checked_and_imported(data_dir, catalog, serv
     app = start()
     app.sidebar.button(key="package.fetch").click().run()
     assert not app.exception
-    assert server.seen[0] == ("GET", "/edibert/v1/packages/free/latest", '"free-old"')
-    assert any("package free-new of the free tariff database" in item.value for item in app.sidebar.success)
+    assert server.seen[0] == ("GET", "/edibert/v1/packages/verified/latest", '"v-old"')
+    assert any("package v-new of the verified tariff database" in item.value for item in app.sidebar.success)
     app.sidebar.button(key="package.apply").click().run()
-    assert json.loads(catalog.read_text(encoding="utf-8"))["package"]["package_id"] == "free-new"
+    assert json.loads(catalog.read_text(encoding="utf-8"))["package"]["package_id"] == "v-new"
 
 
 def test_unchanged_package_says_so(data_dir, catalog, server):
     app = start()
     app.sidebar.button(key="package.fetch").click().run()
-    assert "The catalog already holds the newest package (free-old)." in [item.value for item in app.sidebar.info]
+    assert "The catalog already holds the newest package (v-old)." in [item.value for item in app.sidebar.info]
 
 
 def test_package_download_is_off_with_the_off_switch(data_dir, catalog):

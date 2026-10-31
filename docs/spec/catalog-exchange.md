@@ -37,17 +37,15 @@ Identifiers:
 * `db_id`: `<LAND>/<direction>/<id>`, `LAND` two upper-case letters, `direction` `import`, `export` or `grid`,
   `id` `[a-z0-9_]+` (catalog IDs, see `tariff_identity`; the server assigns IDs for shared tariffs).
 * `version`: 64 lower-case hex characters (`tariff_version`, `grid_area_version`).
-* Access key: `ek_` followed by 43 URL-safe base64 characters (32 random bytes). The server stores only its
-  SHA-256 with an expiry date.
 
 ## 1. Load package
 
 `GET /edibert/v1/packages/{database}/latest`, `database` is `free` or `verified`.
 
-* `verified` needs `Authorization: Bearer <access key>`; `free` needs none.
+* Both databases are free; no route takes a key or an `Authorization` header.
 * `If-None-Match: "<package_id>"` (optional): `304` when that package is still the latest.
 * `200`: body is the package file (Catalog P4), header `ETag: "<package_id>"`.
-* Errors: `401 ACCESS_KEY_MISSING` / `ACCESS_KEY_INVALID`, `403 ACCESS_KEY_EXPIRED`, `404 NO_PACKAGE`.
+* Errors: `404 NO_PACKAGE`.
 
 The client verifies the file (`verify_package`) and imports it (`plan_package_import`); a conflict is never
 resolved without a decision. When to ask: weekly, or when `valid_until` is less than 14 days away. A package
@@ -101,8 +99,9 @@ Answer `200`: `{"entries": [...]}` in the same order, each
 `known: false` entries carry only `db_id`, `version` and `known`. `latest_valid_from` is `null` without a
 validity date. Ask at most daily.
 
-## 5. Access key
+## 5. Access key (removed)
 
-Issued by the server after the subscription (or Earnie Companion Cloud) is checked; until a payment provider is
-chosen, by a server CLI. The client keeps it as a secret (`EDIBERT_ACCESS_KEY`, or the host's secret store)
-and sends it only to route 1 with `database = verified`.
+Until 2026-10-31 the verified database needed an access key (`EDIBERT_ACCESS_KEY`, `Authorization: Bearer`).
+Both databases are free now; the client sends no key, and the server ignores an `Authorization` header from
+older clients. A catalog is loaded only from the verified database; entries of the free database are templates
+the user copies.

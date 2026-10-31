@@ -52,7 +52,7 @@ def grid_doc():
     return {"tariff_format": 1, "rule_sets": {}, "areas": [AREA]}
 
 
-def package(signing, *imports, package_id="2026-12-a", database="free", **root):
+def package(signing, *imports, package_id="2026-12-a", database="verified", **root):
     manifest = {
         "database": database, "package_id": package_id, "issued_at": "2026-12-14T08:00:00+00:00",
         "valid_until": "2027-03-31", "tariff_format": 1, "key_id": KEY_ID,
@@ -92,10 +92,10 @@ def at_once(refs, secret, start):
     return [UsageReport(start, ref.id, ref.version, "unused") for ref in refs]
 
 
-def setup(tmp_path, signing, server, *, settings=ALL_ON, catalog_doc=None, key=None, published=("at_x_fix",), planner=at_once):
+def setup(tmp_path, signing, server, *, settings=ALL_ON, catalog_doc=None, published=("at_x_fix",), planner=at_once):
     save_house(tmp_path / "house.json", HouseSettings(timezone="Europe/Vienna", land="AT"))
     catalog = tmp_path / "tariffs.json"
-    catalog.write_text(json.dumps(catalog_doc or tariffs_doc(BASE, package={"database": "free", "package_id": "2026-11-a",
+    catalog.write_text(json.dumps(catalog_doc or tariffs_doc(BASE, package={"database": "verified", "package_id": "2026-11-a",
                        "issued_at": "2026-11-01T00:00:00+00:00", "valid_until": "2027-01-31"})), encoding="utf-8")  # fmt: skip
     (tmp_path / "grid_fees.json").write_text(json.dumps(grid_doc()), encoding="utf-8")
     document = {"mqtt": MQTT, "tariffs": [{"id": item} for item in published], "exchange": settings}
@@ -106,7 +106,7 @@ def setup(tmp_path, signing, server, *, settings=ALL_ON, catalog_doc=None, key=N
         from edibert.publish.exchange_command import used_ref_map
 
         config = parse_publish_config(document)
-        client = ExchangeClient(ExchangeConfig("https://db.test", key), server, env={})
+        client = ExchangeClient(ExchangeConfig("https://db.test"), server, env={})
         return CatalogExchange(client, exchange_settings, tmp_path, catalog, config.tariffs,
                                lambda: used_ref_map(tmp_path, catalog, config.tariffs),
                                trusted_keys=signing[1], planner=planner)  # fmt: skip
@@ -204,7 +204,7 @@ def test_status_reaches_the_attributes(tmp_path, signing):
     publisher, link = setup(tmp_path, signing, server, settings={"report_use": False, "status": True, "packages": False})
     publisher.run_cycle(NOW)
     assert link.attributes("at_x_fix")["catalog"] == {
-        "database": "free", "db_id": DB_ID, "version": version, "checked_at": NOW.isoformat(), "known": True,
+        "database": "verified", "db_id": DB_ID, "version": version, "checked_at": NOW.isoformat(), "known": True,
         "reliable": True, "installations_12m": 4, "newer_version": True, "newer_valid_from": "2027-01-01",
     }  # fmt: skip
     publisher.run_cycle(NOW + timedelta(hours=6))
@@ -247,21 +247,25 @@ def test_package_that_drops_a_published_tariff_is_held(tmp_path, signing):
     assert link.state("at_x_fix") == "0.2"
 
 
-def test_verified_catalog_is_not_replaced_without_an_access_key(tmp_path, signing):
-    verified = tariffs_doc(BASE, package={"database": "verified", "package_id": "v-1", "issued_at": "2026-11-01T00:00:00+00:00",
-                                          "valid_until": "2027-01-31"})  # fmt: skip
-    server = Server(package(signing, OTHER))
-    publisher, _ = setup(tmp_path, signing, server, catalog_doc=verified, settings={"report_use": False, "status": False, "packages": True})
+def test_catalog_from_the_free_database_is_replaced_by_the_verified_one(tmp_path, signing):
+    free = tariffs_doc(BASE, package={"database": "free", "package_id": "f-1", "issued_at": "2026-11-01T00:00:00+00:00",
+                                      "valid_until": "2027-01-31"})  # fmt: skip
+    server = Server(package(signing, BASE))
+    publisher, _ = setup(tmp_path, signing, server, catalog_doc=free, settings={"report_use": False, "status": False, "packages": True})
+    publisher.run_cycle(NOW)
+    _, route, _, headers = server.requests[0]
+    assert route == "/packages/verified/latest" and "If-None-Match" not in headers and "Authorization" not in headers
+    assert json.loads((tmp_path / "tariffs.json").read_text(encoding="utf-8"))["package"]["database"] == "verified"
+
+
+def test_hold_from_the_access_key_era_is_dropped(tmp_path, signing):
+    state = {"state_format": 1, "package_next": (NOW + timedelta(days=5)).isoformat(),
+             "package_held": {"code": "PACKAGE_HELD_DATABASE", "params": {"current": "verified", "offered": "free"}}}  # fmt: skip
+    (tmp_path / STATE_FILE).write_text(json.dumps(state), encoding="utf-8")
+    server = Server(None)
+    publisher, _ = setup(tmp_path, signing, server, settings={"report_use": False, "status": False, "packages": True})
     report = publisher.run_cycle(NOW)
-    assert [note.code for note in report.notes] == [WarningCode.PACKAGE_HELD_DATABASE]
-    assert server.requests == []
-    keyed_server = Server(None)
-    (tmp_path / "keyed").mkdir()
-    keyed, _ = setup(tmp_path / "keyed", signing, keyed_server, catalog_doc=verified, key="ek_test",
-                     settings={"report_use": False, "status": False, "packages": True})  # fmt: skip
-    keyed.run_cycle(NOW)
-    _, route, _, headers = keyed_server.requests[0]
-    assert (route, headers["Authorization"], headers["If-None-Match"]) == ("/packages/verified/latest", "Bearer ek_test", '"v-1"')
+    assert report.notes == [] and server.routes() == ["/packages/verified/latest"]
 
 
 def test_broken_state_file_is_an_error(tmp_path, signing):

@@ -53,7 +53,7 @@ python -m edibert exchange status --data-dir edibert_data [--catalog tariffs.jso
 python -m edibert exchange report --data-dir edibert_data [--catalog tariffs.json] [--no-delay]
 ```
 
-`fetch` lädt das neueste Katalogpaket der freien oder der geprüften Datenbank herunter (`--database verified` braucht den Zugangsschlüssel deines Abos in der Umgebungsvariable `EDIBERT_ACCESS_KEY`). Mit `--catalog` wird nichts heruntergeladen, solange dein Katalog schon das neueste Paket enthält. Prüfe und importiere die Datei wie oben mit `package import`.
+`fetch` lädt das neueste Katalogpaket der freien oder der geprüften Datenbank herunter; beide sind kostenlos und brauchen keinen Schlüssel. Als Katalog nimmst du die geprüfte Datenbank; Einträge der freien Datenbank sind als Vorlage zum Kopieren gedacht. Mit `--catalog` wird nichts heruntergeladen, solange dein Katalog schon das neueste Paket enthält. Prüfe und importiere die Datei wie oben mit `package import`.
 
 `status` zeigt für die Tarife aus `publish.json`, ob die Datenbank eine neuere Version hat, ob die Version als verlässlich gilt und wie viele Installationen sie in den letzten zwölf Monaten genutzt haben. `report` meldet der Datenbank, welche dieser Tarifversionen du nutzt: eine Meldung pro Tarif, jede zu einem zufälligen Zeitpunkt in den nächsten 24 Stunden (`--no-delay` sendet sofort). Eine Meldung enthält nur die Datenbank-ID, die Version und einen Code, der für jeden Tarif anders ist; deine Tarife lassen sich so weder miteinander noch mit dir verknüpfen. Gemeldet werden nur Tarife, die du mit unveränderten Preisen aus der Datenbank übernommen hast, und Katalogtarife aus einem Paket.
 

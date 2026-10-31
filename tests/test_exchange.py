@@ -52,9 +52,9 @@ class FakeServer:
         return HttpAnswer(status, extra, raw)
 
 
-def client(*answers, env=None, key=None):
+def client(*answers, env=None):
     fake = FakeServer(*answers)
-    return ExchangeClient(ExchangeConfig("https://db.test/", key), fake, env=env or {}), fake
+    return ExchangeClient(ExchangeConfig("https://db.test/"), fake, env=env or {}), fake
 
 
 def test_off_switch_stops_every_request():
@@ -77,21 +77,18 @@ def test_fetch_free_package_with_etag_and_unchanged_answer():
     assert second["headers"]["If-None-Match"] == '"p-7"'
 
 
-def test_verified_package_needs_and_sends_the_access_key():
-    exchange, fake = client()
-    with pytest.raises(EdibertError) as err:
-        exchange.fetch_package("verified")
-    assert err.value.code is ErrorCode.EXCHANGE_ACCESS_DENIED and fake.requests == []
-    exchange, fake = client((200, {}, {}), key="ek_secret")
-    exchange.fetch_package("verified")
-    assert fake.requests[0]["headers"]["Authorization"] == "Bearer ek_secret"
+def test_verified_package_is_free_and_sends_no_key():
+    exchange, fake = client((200, {"edibert_package": 1}, {}))
+    assert exchange.fetch_package("verified") == {"edibert_package": 1}
+    assert fake.requests[0]["url"] == "https://db.test/edibert/v1/packages/verified/latest"
+    assert "Authorization" not in fake.requests[0]["headers"]
 
 
 @pytest.mark.parametrize(
     ("status", "body", "code", "server_code"),
     [
-        (401, {"code": "ACCESS_KEY_INVALID"}, ErrorCode.EXCHANGE_ACCESS_DENIED, "ACCESS_KEY_INVALID"),
-        (403, {"code": "ACCESS_KEY_EXPIRED"}, ErrorCode.EXCHANGE_ACCESS_DENIED, "ACCESS_KEY_EXPIRED"),
+        (401, {"code": "UNAUTHORIZED"}, ErrorCode.EXCHANGE_ACCESS_DENIED, "UNAUTHORIZED"),
+        (403, {"code": "FORBIDDEN"}, ErrorCode.EXCHANGE_ACCESS_DENIED, "FORBIDDEN"),
         (404, {"code": "NO_PACKAGE"}, ErrorCode.EXCHANGE_REJECTED, "NO_PACKAGE"),
         (422, b"not json", ErrorCode.EXCHANGE_REJECTED, "422"),
         (429, {}, ErrorCode.EXCHANGE_RATE_LIMITED, None),

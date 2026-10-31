@@ -103,7 +103,7 @@ Der Publisher kann mit dem Server der Tarifdatenbank sprechen (siehe [CLI](cli.m
 | `status` | fragt einmal am Tag nach der neuesten Version dieser Tarife und ob sie als verlässlich gelten |
 | `packages` | lädt einmal pro Woche (oder bevor das aktuelle Paket abläuft) das Katalogpaket und importiert es; braucht `--catalog` |
 
-Alle drei müssen genannt sein, `true` oder `false`. `EDIBERT_EXCHANGE_OFF=1` schaltet alles ab. Mit einem Zugangsschlüssel in `EDIBERT_ACCESS_KEY` wird die geprüfte Datenbank geladen, sonst die freie; ein Katalog aus der geprüften Datenbank wird nie durch ein freies Paket ersetzt.
+Alle drei müssen genannt sein, `true` oder `false`. `EDIBERT_EXCHANGE_OFF=1` schaltet alles ab. Der Katalog wird immer aus der geprüften Datenbank geladen; sie ist kostenlos und braucht keinen Schlüssel.
 
 Ein Paket wird nur dann automatisch importiert, wenn dabei nichts verloren geht: Würde es selbst eingetragene Monatspreise ändern oder enthält es einen Tarif nicht mehr, den du veröffentlichst, wird es nicht importiert, und eine Warnung sagt warum. Importiere es dann im Editor (Seitenleiste, *Katalogpaket importieren*) und entscheide dort. Ein Ausfall des Servers berührt die Preise nie; die Aufgabe wird eine Stunde später erneut versucht.
 

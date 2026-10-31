@@ -82,7 +82,9 @@ Edibert is a stand-alone tool that is also used by [Earnie](https://github.com/J
 You can always create your own tariffs; the software works without any catalog. In addition there are two tariff databases (DE/AT/CH):
 
 - **Free database:** tariffs shared by users, unchecked. A tariff version earns the status `reliable` by use: at least two installations used it within 12 months (the one who shared it counts). It is free for everyone.
-- **Verified database:** only tariffs we checked and keep current. It is available by subscription.
+- **Verified database:** only tariffs we checked against their source and keep current. It is free as well. "Verified" means checked against the source with a check date, not a guarantee.
+
+You use the free database as a **template only**: you switch it on, then copy a tariff into your own tariffs and check it against your supplier's price sheet. The verified database can be used directly as a catalog.
 
 Both reach you as **signed catalog packages** that Edibert checks offline before the import. An import never overwrites monthly prices you entered yourself without asking you. Sharing a tariff is a help to others with the same tariff; it earns no access and no reward, and there is no contribution route through GitHub issues.
 
