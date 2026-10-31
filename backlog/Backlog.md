@@ -10,7 +10,8 @@ Spec: [`docs/spec/tariff-format.md`](../docs/spec/tariff-format.md). Internal de
 
 - [ ] **Name and trademark clearance** *(deferred)* — register searches (EUIPO TMview, DPMAregister, Austrian Patent Office) for "Edibert" and "Earnie", classes software, energy, services; domains (`edibert.de/.at/.com` are in use; `.ch/.eu/.io/.app/.energy/.dev` showed no DNS entry on 2026-10-12). Details are kept in the internal legal review checklist.
 - [ ] **Legal review of the draft texts** — catalog terms, contribution terms, privacy notice, checklist in the Earnie project folder; decide on code-contribution consent (CLA) so a commercial license stays possible
-  - **Tracker:** decide who reviews the draft texts and commission the review.
+  - **Note (2026-10-31):** drafts adapted to the two-database model; pre-review decisions recorded in the review checklist; code contributions: license CLA (simple, perpetual right of use including sublicensing), see `CONTRIBUTING.md`.
+  - **Tracker:** get offers from 2–3 reviewers; commission the review (planned early 2027).
 - [ ] **Verify test fixtures against real price sheets** — Octopus Go / dynamicOctopus offer for the own postal code, Westnetz / EWR Netz / e-netz Südhessen / N-ERGIE §14a Modul 3 sheets (do they differ on weekends and holidays?)
 - [ ] **Legal texts per country** — separate versions for Germany, Austria and Switzerland, each in the national language (German for all three); which version binds consumers; the current drafts are Austria-oriented
 - [ ] **HACS publishing requirements** — no license requirement found in the docs; check default-store CI checks (brands, manifest, info) before any HACS release

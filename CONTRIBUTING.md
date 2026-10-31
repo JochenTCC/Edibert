@@ -32,7 +32,7 @@ Which terms apply: tariffs shared through Edibert fall under Edibert's own terms
 
 ## Contributing code
 
-Not possible yet: the format is a draft. Questions and comments about the format are welcome as issues. Contributions are licensed under this repository's license ([LICENSE](LICENSE)). Open question: whether code contributions need consent to relicensing so that a commercial license remains possible.
+Not possible yet: the format is a draft. Questions and comments about the format are welcome as issues. Code contributions will need a contributor license agreement (CLA): you keep your copyright and grant a simple, perpetual right of use that includes the right to sublicense, so that commercial licenses remain possible. You sign it in the pull request. The text follows after legal review; until then no code contributions are accepted.
 
 ## Conventions
 
