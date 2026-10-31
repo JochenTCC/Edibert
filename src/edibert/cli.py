@@ -40,14 +40,17 @@ from edibert.checks import check_grid_fee
 from edibert.context import PricingContext
 from edibert.errors import EdibertError, ErrorCode
 from edibert.gridfee import (
+    CATALOG,
+    METERING,
     GridFee,
     load_grid_fee_config,
     load_grid_fees,
+    parse_grid_fee_catalog,
     resolve_grid_fee,
 )
 from edibert.i18n import SOURCE_LANGUAGE, SUPPORTED_LANGUAGES, Translator
 from edibert.package import load_trusted_keys, read_package, verify_package
-from edibert.report import price_lines
+from edibert.report import grid_fixed_lines, price_lines
 from edibert.schema import tariff_schema
 from edibert.series import RESOLUTIONS, PriceSeries, tariff_price_series
 from edibert.store import load_tariff_file
@@ -101,6 +104,11 @@ def build_parser() -> argparse.ArgumentParser:
     capacity.add_argument("--step", type=float, help="extra ladder rungs every STEP kW (needs --max)")
     capacity.add_argument("--max", dest="max_kw", type=float, help="highest ladder rung in kW (with --step)")
     capacity.add_argument("--format", choices=("table", "json"), default="table")
+    grid = sub.add_parser("grid", help="grid-area files of the database operator")
+    grid_sub = grid.add_subparsers(dest="grid_command", required=True)
+    grid_check = grid_sub.add_parser("check", help="validate a catalog grid file (the checks of a load) and list identity and version")
+    grid_check.add_argument("file", type=Path)
+    grid_check.add_argument("--require-check", action="store_true", help="every area needs its 'check' (ready for a package)")
     package = sub.add_parser("package", help="check or import a signed catalog package")
     package_sub = package.add_subparsers(dest="package_command", required=True)
     verify = package_sub.add_parser("verify", help="check signature and content of a package")
@@ -189,7 +197,7 @@ def run_price(args: argparse.Namespace, t: Translator) -> list[str]:
     slot = _parse_time(args.at, "--at")
     assert slot is not None
     result = evaluate(tariff, slot, ctx, args.epex, grid_fee)
-    return price_lines(t, tariff, result, ctx.to_local(slot), args.tz)
+    return price_lines(t, tariff, result, ctx.to_local(slot), args.tz) + grid_fixed_lines(t, grid_fee if tariff.direction == "import" else None)
 
 
 def _series_lines(t: Translator, series: PriceSeries) -> list[str]:
@@ -301,6 +309,36 @@ def run_package(args: argparse.Namespace, t: Translator) -> tuple[list[str], lis
     return [*lines, t.t("cli.package_done", package_id=manifest.package_id)], notes
 
 
+def run_grid_check(args: argparse.Namespace, t: Translator) -> list[str]:
+    """``grid check``: the operator's validated file path (0.1.d2). The file loads like a catalog ``grid_fees.json``;
+    each area is listed with database ID, version and check, and the fixed amounts per metering type."""
+    from edibert.identity import grid_area_identity, grid_document_versions
+
+    try:
+        document = json.loads(args.file.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError) as exc:
+        raise EdibertError(ErrorCode.FILE_INVALID, f"Cannot read file '{args.file}': {exc}", path=str(args.file)) from exc
+    catalog = parse_grid_fee_catalog(document, CATALOG, str(args.file))
+    versions = grid_document_versions(document)
+    lines = []
+    for area_id, area in catalog.areas.items():
+        raw = next(item for item in document["areas"] if item.get("id") == area_id)
+        if args.require_check and area.check is None:
+            raise EdibertError(
+                ErrorCode.PACKAGE_ENTRY_UNCHECKED, f"Grid area '{area_id}' has no check.", tariff_id=area_id
+            )
+        check = t.t("cli.grid_check_unchecked") if area.check is None else f"{area.check.state} {area.check.checked_at.isoformat()}"
+        lines.append(t.t("cli.grid_check_area", db_id=grid_area_identity(raw), version=versions[area_id][:12], label=area.label, check=check))
+        levies = catalog.levy_sets.get(area.levy_set) if area.levy_set else None
+        parts = area.fixed + (levies.fixed if levies else ())
+        for metering in METERING:
+            values = [part.by_metering[metering] for part in parts]
+            total = "–" if any(value is None for value in values) else t.number(sum(v for v in values if v is not None), 2)
+            components = len(area.components) + (len(levies.components) if levies else 0)
+            lines.append(t.t("cli.grid_check_metering", metering=metering, components=components, eur=total))
+    return lines
+
+
 def run_ui(args: argparse.Namespace, t: Translator) -> int:
     """Start Streamlit with the editor page. Settings travel as environment variables."""
     if importlib.util.find_spec("streamlit") is None:
@@ -337,6 +375,8 @@ def main(argv: list[str] | None = None) -> int:
             lines, notes = run_capacity(args, t)
         elif args.command == "package":
             lines, notes = run_package(args, t)
+        elif args.command == "grid":
+            lines, notes = run_grid_check(args, t), []
         elif args.command == "exchange":
             from edibert.publish.exchange_command import run_exchange
 

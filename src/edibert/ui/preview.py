@@ -12,6 +12,7 @@ import streamlit as st
 
 from edibert.checks import check_grid_fee, check_tariff
 from edibert.context import PricingContext
+from edibert.editor.house import load_house_grids
 from edibert.editor.invoice import (
     BASE_BAND,
     TOLERANCE_PERCENT,
@@ -25,8 +26,8 @@ from edibert.editor.userstore import save_user_tariff, user_tariff_ids
 from edibert.errors import EdibertError
 from edibert.gridfee import GridFee
 from edibert.i18n import Translator
-from edibert.report import price_lines
-from edibert.tariff import Tariff, evaluate, monthly_rate
+from edibert.report import grid_fixed_lines, price_lines
+from edibert.tariff import IMPORT, Tariff, evaluate, monthly_rate
 from edibert.ui import state, widgets
 from edibert.ui.config import UiConfig
 
@@ -100,7 +101,9 @@ def _probe(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFee
         epex = st.number_input(t.t("ui.probe_market"), value=10.0, step=0.5, format=widgets.CENT_FORMAT, key=state.k("ui.probe_market"))
     slot = datetime.combine(day, moment)
     result = evaluate(tariff, slot, ctx, epex, grid_fee)
-    st.code("\n".join(price_lines(t, tariff, result, ctx.to_local(slot), ctx.timezone)), language=None)
+    lines = price_lines(t, tariff, result, ctx.to_local(slot), ctx.timezone)
+    lines += grid_fixed_lines(t, grid_fee if tariff.direction == IMPORT else None)
+    st.code("\n".join(lines), language=None)
     for note in result.warnings:
         st.warning(t.warning(note))
 
@@ -124,6 +127,8 @@ def _invoice(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridF
         if total > 0 and any(kwh.values()):
             check = invoice_check(tariff, ctx, month, kwh, total, market_cent=market, grid_fee=grid_fee)
             st.write(t.t("ui.invoice_result", expected=t.number(check.expected_eur, 2), invoice=t.number(check.invoice_eur, 2), deviation=t.number(check.deviation_percent, 2)))
+            if check.grid_fixed_eur:
+                st.caption(t.t("ui.invoice_grid_fixed", eur=t.number(check.grid_fixed_eur, 2)))
             if check.ok:
                 st.success(t.t("ui.invoice_ok"))
             else:
@@ -152,7 +157,7 @@ def _house_facts(config: UiConfig) -> tuple[PricingContext, GridFee | None, list
     if host is not None:
         return host.context, host.grid_fee, list(host.capabilities)
     house = state.house()
-    return house.context(), house.grid_fee(), house.capabilities
+    return house.context(), house.grid_fee(load_house_grids(config.catalog, config.data_dir)), house.capabilities
 
 
 def render_curves(t: Translator, tariff: Tariff, ctx: PricingContext, grid_fee: GridFee | None, capabilities: list[str]) -> None:

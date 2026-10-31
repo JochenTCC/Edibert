@@ -1,4 +1,4 @@
-<!-- source: docs/user/en/cli.md @ 0.1.e -->
+<!-- source: docs/user/en/cli.md @ 0.1.d2 -->
 # Kommandozeile
 
 Mit `--lang de` vor dem Befehl erscheint die Ausgabe auf Deutsch.
@@ -23,6 +23,10 @@ python -m edibert series --tariff examples/spot_evening_surcharge_cap.json \
 `--resolution` ist 15, 30 oder 60 Minuten. Die Börsenpreisdatei hat eine Zeile je Viertelstunde: `timestamp,cent_kwh`. Fehlt ein Preis, bricht der Befehl mit einem Fehler ab. `--format json` gibt die ganze Reihe aus. `--has smart_meter` (wiederholbar) nennt die Ausstattung des Hauses und schaltet die Prüfung der Voraussetzungen ein.
 
 ## Netzentgelt
+
+Ein Netzgebiet kann neben dem Arbeitspreis weitere Bestandteile je kWh und Fixbeträge je Jahr haben; `price` zeigt die Bestandteile des Netzentgelts und die Fixbeträge (netto, EUR pro Jahr) unter dem Preis des Zeitpunkts, nie darin.
+
+Für Betreiber einer Tarifdatenbank: `python -m edibert grid check DATEI [--require-check]` prüft eine Katalog-Netzentgeltdatei wie beim Laden und listet jedes Netzgebiet mit Datenbank-ID, Version, Prüfung und den Fixbeträgen je Messart (`–`, wo ein Wert nicht abgebildet ist); `--require-check` schlägt bei einem Netzgebiet ohne Prüfung fehl.
 
 Mit `--grid-fee house_grid.json` wird ein Netzentgelt eingerechnet. Die Datei enthält das Objekt `netznutzung` des Hausprofils, das per `area_id` einen Netzbereich auswählt (siehe `examples/netznutzung_modul3_example.json`). Der Bereich kommt aus `--grid-catalog grid_fees.json` (Katalog-Netzbereiche) oder `--user-grid-fees user_grid_fees.json` (eigene Netzbereiche, IDs beginnen mit `user_`, siehe `examples/grid_fee_modul3_example.json`); beide Angaben sind kombinierbar. Ein unbekannter Netzbereich bricht den Befehl mit einem Fehler ab.
 
@@ -56,7 +60,7 @@ python -m edibert exchange report --data-dir edibert_data [--catalog tariffs.jso
 
 `fetch` lädt das neueste Katalogpaket der Tarifdatenbank herunter; es ist kostenlos, braucht keinen Schlüssel und enthält nur geprüfte und vom Anbieter freigegebene Tarife. Mit `--catalog` wird nichts heruntergeladen, solange dein Katalog schon das neueste Paket enthält. Prüfe und importiere die Datei wie oben mit `package import`.
 
-`templates` listet die ungeprüften Tarife, die andere Nutzer geteilt haben, für ein Land und eine Richtung (`import`, `export`; `grid` mit `--grid-area`, sobald Netzgebiete in der Datenbank sind). `--supplier` sucht in Anbieter und Bezeichnung (mindestens zwei Zeichen). Jede Zeile zeigt Datenbank-ID, Version, Bezeichnung, Anbieter, Vertrauensstufe und Installationen. Vorlagen werden nie als Katalog importiert: Kopiere eine im Editor (**Vorlage kopieren**) und gleiche sie mit dem Preisblatt ab.
+`templates` listet die ungeprüften Tarife, die andere Nutzer geteilt haben, für ein Land und eine Richtung (`import`, `export`, `grid`; `--grid-area` grenzt `grid` auf ein Netzgebiet ein). `--supplier` sucht in Anbieter und Bezeichnung (mindestens zwei Zeichen). Jede Zeile zeigt Datenbank-ID, Version, Bezeichnung, Anbieter, Vertrauensstufe und Installationen. Vorlagen werden nie als Katalog importiert: Kopiere eine im Editor (**Vorlage kopieren**) und gleiche sie mit dem Preisblatt ab.
 
 `status` zeigt für die Tarife aus `publish.json` die Vertrauensstufe (vom Anbieter freigegeben, geprüft, verlässlich, ungeprüft), ob die Datenbank eine neuere oder eine geprüfte Version hat, ob der Eintrag mit einem anderen zusammengeführt wurde, ob die Version als verlässlich gilt und wie viele Installationen sie in den letzten zwölf Monaten genutzt haben. `report` meldet der Datenbank, welche dieser Tarifversionen du nutzt: eine Meldung pro Tarif, jede zu einem zufälligen Zeitpunkt in den nächsten 24 Stunden (`--no-delay` sendet sofort). Eine Meldung enthält nur die Datenbank-ID, die Version und einen Code, der für jeden Tarif anders ist; deine Tarife lassen sich so weder miteinander noch mit dir verknüpfen. Gemeldet werden nur Tarife, die du mit unveränderten Preisen aus der Datenbank übernommen hast, und Katalogtarife aus einem Paket.
 

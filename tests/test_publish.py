@@ -249,3 +249,31 @@ def test_config_errors_are_coded(raw, code):
     with pytest.raises(EdibertError) as err:
         parse_publish_config(raw)
     assert err.value.code == code
+
+
+def test_grid_area_of_the_house_gives_breakdown_and_fixed_block(tmp_path):
+    from test_grid_areas import DOC
+
+    catalog = tmp_path / "catalog" / "tariffs.json"
+    catalog.parent.mkdir()
+    catalog.write_text(json.dumps({"tariff_format": 1, "import_tariffs": [], "export_tariffs": []}), encoding="utf-8")
+    (catalog.parent / "grid_fees.json").write_text(json.dumps(DOC), encoding="utf-8")
+    save_user_tariff(tmp_path / "user_tariffs.json", FIXED, IMPORT)
+    save_house(tmp_path / "house.json", HouseSettings(timezone="Europe/Vienna", land="AT", region="8", grid_area_id="AT-Q"))
+    (tmp_path / "publish.json").write_text(json.dumps({"mqtt": MQTT, "tariffs": [{"id": "user_fix"}]}), encoding="utf-8")
+    link = FakeLink()
+    publisher = build_publisher(tmp_path, catalog=catalog, link_factory=lambda settings: link, get=FakeWeb(), env={})
+    publisher.run_cycle(MORNING)
+    attributes = link.attributes("user_fix")
+    assert attributes["grid_breakdown"] == {"work": 0.05, "grid_loss": 0.004, "renewables_work": 0.005, "renewables_loss": 0.0003}
+    assert attributes["grid_fixed"]["total_eur_year"] == 70.0
+    assert attributes["components"]["grid"] == pytest.approx(0.0593)
+
+
+def test_unmigrated_house_grid_fee_stops_the_publisher(tmp_path):
+    (tmp_path / "house.json").write_text(json.dumps({"land": "AT", "grid_enabled": True, "grid_base_cent": 5.0}), encoding="utf-8")
+    save_user_tariff(tmp_path / "user_tariffs.json", FIXED, IMPORT)
+    (tmp_path / "publish.json").write_text(json.dumps({"mqtt": MQTT, "tariffs": [{"id": "user_fix"}]}), encoding="utf-8")
+    with pytest.raises(EdibertError) as err:
+        build_publisher(tmp_path, link_factory=lambda settings: FakeLink(), get=FakeWeb(), env={})
+    assert err.value.code == ErrorCode.HOUSE_GRID_LEGACY

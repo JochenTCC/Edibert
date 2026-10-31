@@ -16,7 +16,7 @@ The folder is the one you use for the editor (`--data-dir`):
 | File | Content |
 |---|---|
 | `user_tariffs.json` | your tariffs, written by the editor |
-| `house.json` | time zone, country, region and grid fee, written by the editor |
+| `house.json` | time zone, country, region, metering and the chosen grid area, written by the editor |
 | `publish.json` | which tariffs to publish and where (you write this file once) |
 
 ```json
@@ -68,7 +68,7 @@ For a tariff `<id>` with direction `<dir>` (`import` or `export`):
 | `edibert/status` | `online` while Edibert runs, `offline` when it stops or the connection is lost |
 | `homeassistant/sensor/edibert_<dir>_<id>/config` | Home Assistant discovery |
 
-Attributes (excerpt): `current_cent_kwh`, `components` (supplier, grid, vat in EUR/kWh), `next`, `average_today`, `min_today`, `max_today`, `raw_today` and `raw_tomorrow` (lists of `{start, end, value}` in EUR/kWh, the format known from Nordpool and evcc), `tomorrow_valid`, `forecast`, `market` (zone, source, time of download, attribution) and `updated`.
+Attributes (excerpt): `current_cent_kwh`, `components` (supplier, grid, vat in EUR/kWh), `grid_breakdown` (the grid fee split into work price and further charges, EUR/kWh, net), `grid_fixed` (the grid area's fixed yearly amounts, EUR per year, net; never part of a price), `next`, `average_today`, `min_today`, `max_today`, `raw_today` and `raw_tomorrow` (lists of `{start, end, value}` in EUR/kWh, the format known from Nordpool and evcc), `tomorrow_valid`, `forecast`, `market` (zone, source, time of download, attribution) and `updated`.
 
 ## Forecast (optional)
 

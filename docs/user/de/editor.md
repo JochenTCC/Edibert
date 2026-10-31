@@ -1,4 +1,4 @@
-<!-- source: docs/user/en/editor.md @ 0.1.d -->
+<!-- source: docs/user/en/editor.md @ 0.1.d2 -->
 # Der Tarif-Editor
 
 Klicke auf **Neuer Bezugstarif** (Preis, den du zahlst) oder **Neuer Einspeisetarif** (Vergütung, die du bekommst). Das Formular hat vier Schritte. Alles, was du änderst, wird sofort geprüft, und die Vorschau rechts aktualisiert sich.
@@ -54,7 +54,7 @@ Nutze diesen Schritt, wenn sich der Preis zu bestimmten Zeiten ändert. Jede Zei
 
 ## Schritt 3: Weitere Kosten
 
-Feste Monatskosten: Grundpreis, Messentgelt, Netz-Grundpreis, Sonstiges. Gib sie so ein wie die Preise (netto oder brutto wie in Schritt 1). 0 lassen, wenn es keine gibt.
+Feste Monatskosten des Stromanbieters: Grundpreis, Messentgelt, Sonstiges. Die Netz-Grundgebühr gehört zum Netzentgelt (siehe Erste Schritte, Netzentgelt), nicht zu einem Tarif. Gib sie so ein wie die Preise (netto oder brutto wie in Schritt 1). 0 lassen, wenn es keine gibt.
 
 ## Schritt 4: Erweitert
 

@@ -23,6 +23,10 @@ python -m edibert series --tariff examples/spot_evening_surcharge_cap.json \
 
 ## Grid fee
 
+A grid area can carry further charges per kWh and fixed yearly amounts next to the work price; `price` prints the parts of the grid fee and the fixed amounts (net, EUR per year) below the slot price, never inside it.
+
+For the operator of a tariff database: `python -m edibert grid check FILE [--require-check]` checks a catalog grid file like a load and lists each area with database ID, version, check and the fixed amounts per metering type (`–` where a value is not modeled); `--require-check` fails for an area without a check.
+
 Add `--grid-fee house_grid.json` to include a grid fee. The file holds the `netznutzung` object of the house profile, which selects a grid area by `area_id` (see `examples/netznutzung_modul3_example.json`). The area comes from `--grid-catalog grid_fees.json` (catalog areas) or `--user-grid-fees user_grid_fees.json` (own areas with IDs starting with `user_`, see `examples/grid_fee_modul3_example.json`); both may be given. An unknown area stops the command with an error.
 
 ## Capacity charge
@@ -55,7 +59,7 @@ python -m edibert exchange report --data-dir edibert_data [--catalog tariffs.jso
 
 `fetch` downloads the latest catalog package of the tariff database; it is free, needs no key and holds only checked tariffs and tariffs released by their supplier. With `--catalog`, nothing is downloaded while your catalog already holds the latest package. Check and import the file with `package import` as above.
 
-`templates` lists the unchecked tariffs other users shared, for one country and direction (`import`, `export`; `grid` with `--grid-area` once grid areas are in the database). `--supplier` searches supplier and label (at least two characters). Each line shows database ID, version, label, supplier, trust level and installations. Templates are never imported as a catalog: copy one in the editor (**Copy a template**) and check it against the price sheet.
+`templates` lists the unchecked tariffs other users shared, for one country and direction (`import`, `export`, `grid`; `--grid-area` narrows `grid` to one area). `--supplier` searches supplier and label (at least two characters). Each line shows database ID, version, label, supplier, trust level and installations. Templates are never imported as a catalog: copy one in the editor (**Copy a template**) and check it against the price sheet.
 
 `status` shows, for the tariffs `publish.json` names, the trust level (released by the supplier, checked, reliable, unchecked), whether the database has a newer version or a checked version, whether the entry was merged into another one, whether the version counts as reliable and how many installations used it in the last twelve months. `report` tells the database which of these tariff versions you use: one message per tariff, each at a random time within the next 24 hours (`--no-delay` sends right away). A message holds only the database ID, the version and a code that is different for every tariff, so your tariffs cannot be linked to each other or to you. Only tariffs copied from the database with unchanged prices, and catalog tariffs from a package, are reported.
 

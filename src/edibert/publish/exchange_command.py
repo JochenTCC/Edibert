@@ -15,17 +15,22 @@ from pathlib import Path
 from typing import Any
 
 from edibert.editor.catalog import catalog_package, read_catalog
+from edibert.editor.house import grid_catalog_path, load_house
 from edibert.editor.userstore import SECTIONS, read_document
 from edibert.errors import EdibertError, ErrorCode
 from edibert.exchange import (
+    GRID,
     ExchangeClient,
     exchange_config_from_env,
     install_secret,
     plan_usage_reports,
+    used_grid_ref,
     used_ref,
 )
+from edibert.fileformat import USER_GRID_FILE
 from edibert.i18n import Translator
 from edibert.publish.config import CONFIG_NAME, TariffRef, load_publish_config
+from edibert.store import USER_PREFIX
 from edibert.tariff import DbRef
 from edibert.trust import trust_level
 
@@ -60,7 +65,31 @@ def used_ref_map(data_dir: Path, catalog: Path | None, refs: Sequence[TariffRef]
         found = used_ref(raw, ref.direction, from_package)
         if found is not None:
             result[ref] = found
+    grid = house_grid_ref(data_dir, catalog, from_package)
+    if grid is not None:
+        result[grid[0]] = grid[1]
     return result
+
+
+def house_grid_ref(data_dir: Path, catalog: Path | None, from_package: bool) -> tuple[TariffRef, DbRef] | None:
+    """The grid area of ``house.json`` as ``(TariffRef(area_id, "grid"), db_ref)`` when it stands for a database
+    version (0.1.d2: use reports and the status query cover the chosen grid area like the published tariffs)."""
+    house = load_house(data_dir / "house.json")
+    area_id = house.grid_area_id
+    if house.legacy_grid is not None or area_id is None:
+        return None
+    if area_id.startswith(USER_PREFIX):
+        path = data_dir / USER_GRID_FILE
+    else:
+        found = grid_catalog_path(catalog)
+        if found is None:
+            return None
+        path = found
+    if not path.exists():
+        return None
+    document = json.loads(path.read_text(encoding="utf-8"))
+    ref = used_grid_ref(document, area_id, from_package)
+    return None if ref is None else (TariffRef(area_id, GRID), ref)
 
 
 def _known_package_id(catalog: Path | None) -> str | None:
@@ -115,15 +144,17 @@ def _templates(args: argparse.Namespace, t: Translator, client: ExchangeClient) 
         items = [{"db_id": item.db_id, "version": item.version, "direction": item.direction, "tariff": dict(item.tariff),
                   "valid_from": item.valid_from.isoformat() if item.valid_from else None, "check_state": item.check_state,
                   "reliable": item.reliable, "installations_12m": item.installations_12m,
-                  "latest_version": item.latest_version, "latest_checked_version": item.latest_checked_version}
+                  "latest_version": item.latest_version, "latest_checked_version": item.latest_checked_version,
+                  **({"grid_area": dict(item.grid_area)} if item.grid_area is not None else {})}
                  for item in found.templates]  # fmt: skip
         return [json.dumps({"templates": items, "truncated": found.truncated}, ensure_ascii=False, indent=2)]
     if not found.templates:
         return [t.t("cli.exchange_templates_none")]
     lines = [t.t("cli.exchange_templates_note")]
     for item in found.templates:
+        body = item.grid_area if item.grid_area is not None else item.tariff
         lines.append(t.t("cli.exchange_template", db_id=item.db_id, version=item.version[:12],
-                         label=str(item.tariff.get("label", "")), supplier=str(item.tariff.get("supplier_id", "")),
+                         label=str(body.get("label", "")), supplier=str(body.get("supplier_id", body.get("operator", ""))),
                          trust=t.t(f"trust.{trust_level(item.check_state, item.reliable)}"),
                          count=item.installations_12m))  # fmt: skip
     if found.truncated:

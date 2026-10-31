@@ -1,4 +1,4 @@
-<!-- source: docs/user/en/publishing.md @ 0.1.e -->
+<!-- source: docs/user/en/publishing.md @ 0.1.d2 -->
 # Preise über MQTT veröffentlichen
 
 Edibert kann die Preise deiner Tarife an einen MQTT-Broker senden. Home Assistant findet die Sensoren selbst (MQTT-Discovery); andere Systeme lesen die Topics direkt.
@@ -17,7 +17,7 @@ Der Ordner ist derselbe wie beim Editor (`--data-dir`):
 | Datei | Inhalt |
 |---|---|
 | `user_tariffs.json` | deine Tarife, vom Editor geschrieben |
-| `house.json` | Zeitzone, Land, Region und Netzentgelt, vom Editor geschrieben |
+| `house.json` | Zeitzone, Land, Region, Messart und das gewählte Netzgebiet, vom Editor geschrieben |
 | `publish.json` | welche Tarife wohin veröffentlicht werden (einmal selbst anlegen) |
 
 ```json
@@ -69,7 +69,7 @@ Für einen Tarif `<id>` mit Richtung `<dir>` (`import` oder `export`):
 | `edibert/status` | `online`, solange Edibert läuft, `offline` beim Beenden oder bei Verbindungsverlust |
 | `homeassistant/sensor/edibert_<dir>_<id>/config` | Home-Assistant-Discovery |
 
-Attribute (Auszug): `current_cent_kwh`, `components` (Lieferant, Netz, USt in EUR/kWh), `next`, `average_today`, `min_today`, `max_today`, `raw_today` und `raw_tomorrow` (Listen aus `{start, end, value}` in EUR/kWh, das von Nordpool und evcc bekannte Format), `tomorrow_valid`, `forecast`, `market` (Zone, Quelle, Zeitpunkt des Abrufs, Quellenangabe) und `updated`.
+Attribute (Auszug): `current_cent_kwh`, `components` (Lieferant, Netz, USt in EUR/kWh), `grid_breakdown` (das Netzentgelt aufgeteilt in Arbeitspreis und weitere Bestandteile, EUR/kWh, netto), `grid_fixed` (die Fixbeträge des Netzgebiets, EUR pro Jahr, netto; nie Teil eines Preises), `next`, `average_today`, `min_today`, `max_today`, `raw_today` und `raw_tomorrow` (Listen aus `{start, end, value}` in EUR/kWh, das von Nordpool und evcc bekannte Format), `tomorrow_valid`, `forecast`, `market` (Zone, Quelle, Zeitpunkt des Abrufs, Quellenangabe) und `updated`.
 
 ## Prognose (optional)
 

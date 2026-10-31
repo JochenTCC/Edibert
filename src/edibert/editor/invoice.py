@@ -34,6 +34,7 @@ class InvoiceCheck:
     fees_eur: float
     deviation_percent: float
     ok: bool
+    grid_fixed_eur: float = 0.0  # the grid area's fixed amounts for the month, with the tariff's VAT
 
 
 def _slots_of_month(month: date):
@@ -76,6 +77,13 @@ def monthly_fees_eur(tariff: Tariff) -> float:
     return total if tariff.prices_include_vat else total * (1.0 + tariff.vat_percent / 100.0)
 
 
+def grid_fixed_month_eur(tariff: Tariff, grid_fee: GridFee | None) -> float:
+    """One twelfth of the grid area's fixed yearly amounts (net) with the tariff's VAT, as on the invoice."""
+    if grid_fee is None or tariff.direction == EXPORT:
+        return 0.0
+    return grid_fee.fixed_eur_year / 12.0 * (1.0 + tariff.vat_percent / 100.0)
+
+
 def invoice_check(
     tariff: Tariff,
     ctx: PricingContext,
@@ -86,7 +94,8 @@ def invoice_check(
     market_cent: float | None = None,
     grid_fee: GridFee | None = None,
 ) -> InvoiceCheck:
-    """Compare the invoice total with kWh per band times band price plus the monthly fees."""
+    """Compare the invoice total with kWh per band times band price plus the monthly fees and the grid area's
+    fixed amounts (one twelfth of the yearly amount)."""
     if tariff.direction == EXPORT or invoice_eur <= 0:
         raise invalid("invoice_eur", invoice_eur)
     bands = {band.id: band for band in invoice_bands(tariff, ctx, month, market_cent=market_cent, grid_fee=grid_fee)}
@@ -95,12 +104,13 @@ def invoice_check(
             raise invalid(f"kwh_by_band.{band_id}", band_id)
     energy = sum(kwh * bands[band_id].cent / 100.0 for band_id, kwh in kwh_by_band.items())
     fees = monthly_fees_eur(tariff)
-    expected = energy + fees
+    grid_fixed = grid_fixed_month_eur(tariff, grid_fee)
+    expected = energy + fees + grid_fixed
     deviation = (expected - invoice_eur) / invoice_eur * 100.0
     return InvoiceCheck(
         round(expected, 2), round(invoice_eur, 2), round(energy, 2), round(fees, 2), round(deviation, 2),
-        abs(deviation) <= TOLERANCE_PERCENT,
+        abs(deviation) <= TOLERANCE_PERCENT, round(grid_fixed, 2),
     )  # fmt: skip
 
 
-__all__ = ["BASE_BAND", "Band", "InvoiceCheck", "invoice_bands", "invoice_check", "monthly_fees_eur", "timedelta"]
+__all__ = ["BASE_BAND", "Band", "InvoiceCheck", "grid_fixed_month_eur", "invoice_bands", "invoice_check", "monthly_fees_eur", "timedelta"]

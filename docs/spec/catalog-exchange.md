@@ -8,9 +8,14 @@ format and import: [tariff-format.md](tariff-format.md) section 11. Payload of a
 database in which every version carries a check state. v1 was never used by a published client; its package
 paths `/packages/free/latest` and `/packages/verified/latest` are gone, not redirected.
 
+**Grid areas** (`0.1.d2`, TariffDB P4) join the same database. This is an **additive extension of v2**, not v3:
+a new route 2b, grid-area IDs in `db_id`, and `grid_area` in place of `tariff` in route 5 for `direction=grid`.
+Every v2 route and answer keeps its shape, and no v2 client was published before the extension (both ship in the
+same release), so no version bump is needed.
+
 ## Model
 
-* **One database, one ID space.** Every tariff (later every grid area) has a database ID and versions. Catalog IDs
+* **One database, one ID space.** Every tariff and every grid area has a database ID and versions. Catalog IDs
   of the seed and IDs the server assigns to shared tariffs (`shared_…`) live side by side; an ID is never renamed.
 * **Per version** three independent properties:
 
@@ -69,8 +74,9 @@ Client error codes: `EXCHANGE_OFF`, `EXCHANGE_UNREACHABLE` (network, timeout, `5
 
 Identifiers:
 
-* `db_id`: `<LAND>/<direction>/<id>`, `LAND` two upper-case letters, `direction` `import`, `export` or `grid`,
-  `id` `[a-z0-9_]+` (catalog IDs, see `tariff_identity`; the server assigns IDs for shared tariffs).
+* `db_id`: `<LAND>/<direction>/<id>`, `LAND` two upper-case letters, `direction` `import`, `export` or `grid`;
+  `id` is `[a-z0-9_]+` for tariffs (catalog IDs, see `tariff_identity`) and `[A-Za-z0-9_-]+` for grid areas (seed IDs
+  such as `AT-VBG`, `grid_area_identity`); the server assigns `shared_…` IDs for shared tariffs and grid areas.
 * `version`: 64 lower-case hex characters (`tariff_version`, `grid_area_version`).
 * `db_ref` (on a user tariff, in `based_on`): `{"id": "<db_id>", "version": "<64 hex>"}`. v1 carried a third
   key `database`; a file with it is migrated explicitly (`tariff-format.md` section 11, `DB_REF_LEGACY`).
@@ -111,6 +117,24 @@ downloaded by hand goes through the same check.
   `MODERATION_REJECTED`).
 * The client then sets `db_ref = {"id": db_id, "version": version}` on the user tariff.
 
+## 2b. Submit grid area
+
+`POST /edibert/v1/grid_areas`, body:
+
+```json
+{"contribution_format": 1, "direction": "grid", "grid_area": {...}, "version": "<64 hex>",
+ "based_on": {"id": "AT/grid/AT-VBG", "version": "<64 hex>"}}
+```
+
+* `grid_area`: the payload of `contribution.grid_contribution_payload` unchanged: the whitelisted area (no ID) with
+  its rules (`rules`) and levies (`levies`) inlined.
+* `version`: `grid_area_version` of the local area (`exchange.payload_version` of the payload). The server rebuilds the
+  area with the Edibert version it pins, rejects any field the pinned whitelist would not have sent
+  (`TARIFF_INVALID`) and a version mismatch (`VERSION_MISMATCH`).
+* `based_on`, the answer, the answer codes and moderation are those of route 2; a new entry gets
+  `<LAND>/grid/shared_…`, a submission based on an existing grid entry of the same land becomes a new version of it.
+* The client then sets `db_ref` on the user grid area.
+
 ## 3. Report use
 
 `POST /edibert/v1/usage`, body `{"db_id": "...", "version": "<64 hex>", "pseudonym": "<64 hex>"}`, answer `204`.
@@ -119,7 +143,9 @@ downloaded by hand goes through the same check.
   32 random bytes kept in the data folder (`exchange_secret`) and never sent. The pseudonym differs per
   tariff, so the server cannot link the tariffs of one installation.
 * Which entries: every tariff in use whose prices equal a database version: a user tariff with `db_ref` and no
-  price change since (`differs_from_db` is false), or a catalog tariff of an imported package catalog.
+  price change since (`differs_from_db` is false), or a catalog tariff of an imported package catalog; and the grid
+  area the house uses on the same terms (`exchange.used_grid_ref`; a user area with unchanged `db_ref`, or a catalog
+  area of an imported package). Route 4 asks the status of the same entries.
 * **One request per entry, at a random time of the day** (`plan_usage_reports`), never several entries in one
   request. Together with the missing IP log this keeps the entries of one installation apart.
 * At most one report per entry and day; the server treats a repeat of the same `(db_id, version, pseudonym)`
@@ -179,7 +205,10 @@ Ask at most daily.
 * `tariff` is the P6 payload tariff (no `id`); the client copies it as a user tariff with
   `db_ref = {"id": db_id, "version": version}` and checks that the version it computes matches (`EXCHANGE_ANSWER_INVALID`
   otherwise).
-* Grid areas are not in the database yet (`0.1.d2`): `direction=grid` answers an empty list.
+* `direction=grid` (`0.1.d2`): each template carries `grid_area` (the route 2b payload area with rules and levies)
+  instead of `tariff`; `supplier` searches the operator and the label. The client recomputes the version from
+  `grid_area` (`EXCHANGE_ANSWER_INVALID` otherwise) and copies it only as the user's own grid values with
+  `db_ref = {"id": db_id, "version": version}`.
 
 ## 6. Moderation (server side, not a route)
 
@@ -193,6 +222,11 @@ The server CLI sets the check state; it is not reachable over HTTP. Commands (ea
 * **merge** `<source db_id> <target db_id>`: the source entry is merged into the target; its versions stay
   known (route 4 names the target) but leave the templates.
 
+The commands work on grid areas the same way (`AT/grid/...`). The offline package build adds the operator's grid
+file (completed or corrected areas with their `check`, in place of the seed areas of the same ID), the seed areas
+that carry a check in the export, and the checked shared grid areas; a seed area without a check stops the build
+unless the operator leaves unchecked seed areas out explicitly.
+
 ## Changes from v1
 
 | v1 | v2 |
@@ -203,3 +237,4 @@ The server CLI sets the check state; it is not reachable over HTTP. Commands (ea
 | route 4 `known`, `reliable`, `installations_12m`, `latest_version`, `latest_valid_from` | plus `check_state`, `checked_at`, `latest_checked_version`, `merged_into` |
 | templates: the free database package | route 5 |
 | package format 1 with `manifest.database` | package format 2, one catalog |
+| no grid areas | route 2b `/grid_areas`, grid `db_id` with `[A-Za-z0-9_-]`, route 5 `grid_area`, grid areas in packages carry `check` (`0.1.d2`, additive) |

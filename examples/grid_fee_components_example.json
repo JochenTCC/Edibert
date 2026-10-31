@@ -1,0 +1,90 @@
+{
+  "tariff_format": 1,
+  "description": "Example (placeholder prices): an own grid area with work price, a time window on the work price, a further charge per kWh, a fixed yearly amount and national levies defined once as a levy set. Net prices.",
+  "rule_sets": {
+    "user_home_rules": [
+      {
+        "id": "summer_low",
+        "label": "Summer low (example)",
+        "months": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "time": {
+          "from": "10:00",
+          "to": "16:00"
+        },
+        "effect": {
+          "mode": "percent_off",
+          "value": 20.0
+        }
+      }
+    ]
+  },
+  "levy_sets": {
+    "user_levies": {
+      "label": "National levies (placeholder)",
+      "components": [
+        {
+          "id": "renewables_work",
+          "label": "Renewables contribution on the work price",
+          "cent_kwh": {
+            "unmetered_power": 0.6,
+            "metered_power": 0.4
+          }
+        },
+        {
+          "id": "renewables_loss",
+          "label": "Renewables contribution on the grid loss charge",
+          "cent_kwh": 0.04
+        }
+      ],
+      "fixed_eur_year": [
+        {
+          "id": "renewables_flat",
+          "label": "Renewables flat fee per metering point",
+          "eur_year": 20.0
+        }
+      ]
+    }
+  },
+  "areas": [
+    {
+      "id": "user_home",
+      "label": "My grid area",
+      "land": "AT",
+      "regions": [
+        "8"
+      ],
+      "operator": "Example Netz GmbH",
+      "base_cent_kwh": {
+        "unmetered_power": 5.0,
+        "metered_power": 3.0
+      },
+      "rule_set": "user_home_rules",
+      "components": [
+        {
+          "id": "grid_loss",
+          "label": "Grid loss charge",
+          "cent_kwh": 0.4
+        }
+      ],
+      "fixed_eur_year": [
+        {
+          "id": "grid_base_fee",
+          "label": "Grid base fee",
+          "eur_year": {
+            "unmetered_power": 50.0,
+            "metered_power": null
+          }
+        }
+      ],
+      "levy_set": "user_levies",
+      "source": "placeholder"
+    }
+  ]
+}

@@ -186,3 +186,92 @@ def send_selected(transport: ContributionTransport | None, items: Sequence[Contr
     if refused:
         raise ValueError(f"Items that cannot be shared were passed to send_selected: {', '.join(refused)}.")
     return [transport.send(item.payload, item.db_ref) for item in items]  # type: ignore[arg-type]
+
+
+# --- grid areas (0.1.d2) ------------------------------------------------------------------------------------------
+
+GRID = "grid"
+# Area fields that go into a grid-area payload: what changes a price, plus land, regions, network operator and the
+# label and source of the area. Component, fixed-amount and rule labels are free text and are dropped (as for tariff
+# rules); their IDs name the lines of a breakdown.
+GRID_AREA_WHITELIST = (
+    "label", "land", "regions", "operator", "base_cent_kwh", "components", "fixed_eur_year", "capacity_charges", "source",
+)  # fmt: skip
+GRID_PART_WHITELIST = {"components": ("id", "cent_kwh"), "fixed_eur_year": ("id", "eur_year")}
+GRID_RULE_WHITELIST = (*RULE_WHITELIST, "status")
+CAPACITY_WHITELIST = ("id", "basis", "min_kw", "bands", "valid_from", "valid_to", "status")
+BAND_WHITELIST = ("up_to_kw", "cent_per_kw_month")
+
+
+def _grid_rule(raw: Mapping[str, Any]) -> dict[str, Any]:
+    rule = _pick(raw, GRID_RULE_WHITELIST)
+    for key in ("time", "effect"):
+        if isinstance(rule.get(key), Mapping):
+            rule[key] = _pick(rule[key], _NESTED_WHITELIST[key])
+    return rule
+
+
+def _grid_parts(raw: Mapping[str, Any]) -> dict[str, Any]:
+    result = {}
+    for key, allowed in GRID_PART_WHITELIST.items():
+        if key in raw:
+            result[key] = [_pick(item, allowed) for item in raw[key]]
+    return result
+
+
+def grid_area_fields(entry: Mapping[str, Any]) -> dict[str, Any]:
+    """The whitelisted payload of an inlined area (``gridfee.area_document``): area fields, rules and levies."""
+    area = _pick(entry["area"], GRID_AREA_WHITELIST)
+    area.update(_grid_parts(area))
+    if "capacity_charges" in area:
+        area["capacity_charges"] = [
+            {**_pick(charge, CAPACITY_WHITELIST), "bands": [_pick(band, BAND_WHITELIST) for band in charge.get("bands", [])]}
+            for charge in area["capacity_charges"]
+        ]
+    rules = [_grid_rule(rule) for rule in entry.get("rules") or []]
+    if rules:
+        area["rules"] = rules
+    levies = entry.get("levies")
+    if levies:
+        area["levies"] = _grid_parts(levies)
+    return area
+
+
+def grid_payload_entry(grid_area: Mapping[str, Any]) -> dict[str, Any]:
+    """The payload's ``grid_area`` back as an inlined area (``{"area", "rules", "levies"}``), without an ID."""
+    area = {key: value for key, value in grid_area.items() if key not in ("rules", "levies")}
+    return {"area": area, "rules": list(grid_area.get("rules") or []), "levies": grid_area.get("levies")}
+
+
+def grid_contribution_payload(document: Mapping[str, Any], area_id: str) -> dict[str, Any]:
+    """The payload for one user grid area of ``user_grid_fees.json`` (the editor's own area ``user_house``).
+
+    The area is validated with its rule and levy set first, then copied field by field from the whitelist; there is
+    no free text beyond the area label and source, and no meter or consumption data. Without ``land`` it is
+    ``CONTRIBUTION_LAND_MISSING``; an area that does not load is the load error.
+    """
+    from edibert.gridfee import USER, area_document, parse_grid_fee_catalog
+
+    parse_grid_fee_catalog(document, USER)
+    entry = area_document(document, area_id)
+    if not entry["area"].get("land"):
+        raise EdibertError(
+            ErrorCode.CONTRIBUTION_LAND_MISSING, f"Grid area '{area_id}' has no land and cannot be shared.", tariff_id=area_id
+        )
+    return {"contribution_format": CONTRIBUTION_FORMAT, "direction": GRID, "grid_area": grid_area_fields(entry)}
+
+
+def grid_contribution_item(document: Mapping[str, Any] | None, area_id: str, label: str) -> ContributionItem:
+    """The share-list row of the house's own grid area: its payload, or the coded reason it cannot be shared."""
+    from edibert.gridfee import area_document
+
+    if document is None:
+        err = EdibertError(ErrorCode.CONTRIBUTION_GRID_AREA_UNAVAILABLE, f"No own grid area '{area_id}'.", area_id=area_id)
+        return ContributionItem(GRID, area_id, label, None, err)
+    try:
+        payload = grid_contribution_payload(document, area_id)
+        ref = area_document(document, area_id)["area"].get("db_ref")
+        db_ref = DbRef(ref["id"], ref["version"]) if isinstance(ref, dict) else None
+        return ContributionItem(GRID, area_id, label, payload, None, db_ref)
+    except EdibertError as err:
+        return ContributionItem(GRID, area_id, label, None, err)

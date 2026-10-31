@@ -10,8 +10,8 @@ A package is one JSON file::
 The signature covers the manifest; the manifest holds the SHA-256 of every content file. So nothing in the
 package can change without breaking the check, and the check needs no network. Edibert only verifies:
 the private key lives with the tariff database, never in this repository and never on a server.
-There is one tariff database and one catalog: every tariff of a package carries its ``check`` (``checked`` or
-``released_by_supplier``), because the signature stands for checked versions only. Format 1 (with
+There is one tariff database and one catalog: every tariff and every grid area of a package carries its ``check``
+(``checked`` or ``released_by_supplier``), because the signature stands for checked versions only. Format 1 (with
 ``manifest.database``) was never published and is not read.
 An expired package (``valid_until`` in the past) stays usable and only warns: a client keeps the last package
 received.
@@ -225,8 +225,15 @@ def _check_content(content: Mapping[str, Any], manifest: PackageManifest) -> tup
                     f"Package tariff '{tariff_id}' has no check; a signed package carries checked versions only.",
                     tariff_id=tariff_id,
                 )
-    for area in grid_fees.get("areas") or []:
+    for area in grid_fees.get("areas") or []:  # grid areas too (0.1.d2): checked or operator-released only
         grid_area_identity(area)
+        if area.get("check") is None:
+            area_id = str(area.get("id"))
+            raise EdibertError(
+                ErrorCode.PACKAGE_ENTRY_UNCHECKED,
+                f"Package grid area '{area_id}' has no check; a signed package carries checked versions only.",
+                tariff_id=area_id,
+            )
     return tariffs, grid_fees
 
 

@@ -40,7 +40,8 @@ MONTHLY = {
     "id": "at_x_monthly", "type": "monthly_table", "supplier_id": "x", "land": "AT", "vat_percent": 20,
     "monthly_rates": [{"year": 2026, "month": 9, "tariff_cent_kwh": 9.0}, {"year": 2026, "month": 10, "tariff_cent_kwh": 9.5}],
 }  # fmt: skip
-AREA = {"id": "AT-X", "label": "X", "land": "AT", "base_cent_kwh": {"unmetered_power": 8.0, "metered_power": 6.0}}
+CHECK = {"state": "checked", "checked_at": "2026-10-20", "source": "price sheet 2026-10"}
+AREA = {"id": "AT-X", "label": "X", "land": "AT", "base_cent_kwh": {"unmetered_power": 8.0, "metered_power": 6.0}, "check": CHECK}
 KEY_ID = "test-1"
 CHECK = {"state": "checked", "checked_at": "2026-10-20", "source": "price sheet 2026-10"}
 TODAY = date(2026, 10, 29)

@@ -18,7 +18,7 @@ from typing import Any
 from edibert._fields import as_dict, get_str, missing
 from edibert.errors import EdibertError, ErrorCode
 from edibert.fileformat import FORMAT_KEY, TARIFF_FORMAT
-from edibert.gridfee import parse_grid_fee_catalog
+from edibert.gridfee import USER, area_document, parse_grid_fee_catalog
 from edibert.rules import Rule
 from edibert.store import USER_PREFIX
 from edibert.tariff import EXPORT, IMPORT, Tariff, parse_tariff
@@ -46,7 +46,7 @@ USED_BASE_FIELDS = {
     (EXPORT, "monthly_table"): ("monthly_rates",),
 }
 RULE_IGNORED = ("id", "label", "source", "note")
-AREA_IGNORED = ("$comment", "id", "label", "note", "source")
+CHARGE_IGNORED = ("id", "label", "source", "note")
 
 
 def _plain(value: Any) -> Any:
@@ -71,19 +71,6 @@ def _plain(value: Any) -> Any:
     if isinstance(value, Mapping):
         return sorted(([_plain(key), _plain(item)] for key, item in value.items()), key=repr)
     raise TypeError(f"no canonical form for {value!r}")
-
-
-def _raw_plain(value: Any) -> Any:
-    """Raw JSON with numbers as floats and display fields removed (grid areas are hashed as written)."""
-    if isinstance(value, bool) or value is None or isinstance(value, str):
-        return value
-    if isinstance(value, (int, float)):
-        return float(value)
-    if isinstance(value, Mapping):
-        return {key: _raw_plain(item) for key, item in value.items() if key not in AREA_IGNORED}
-    if isinstance(value, list):
-        return [_raw_plain(item) for item in value]
-    raise TypeError(f"not JSON data: {value!r}")
 
 
 def _digest(value: Any) -> str:
@@ -149,9 +136,70 @@ def grid_area_identity(area: Mapping[str, Any]) -> str:
     return f"{land.upper()}/{GRID}/{area_id}"
 
 
-def grid_area_version(area: Mapping[str, Any], rule_sets: Mapping[str, Any]) -> str:
-    """Version of a catalog grid area: SHA-256 (hex) over its prices and the rules of its ``rule_set``."""
-    rule_set = area.get("rule_set")
-    sets = {rule_set: rule_sets[rule_set]} if rule_set in rule_sets else {}
-    parse_grid_fee_catalog({FORMAT_KEY: TARIFF_FORMAT, "rule_sets": sets, "areas": [dict(area)]})  # validate
-    return _digest(_raw_plain({"area": dict(area), "rules": sets.get(rule_set, [])}))
+def _parts_plain(parts: Any) -> list[Any]:
+    return [_plain(part.by_metering) for part in parts]
+
+
+def entry_version(entry: Mapping[str, Any]) -> str:
+    """Version of an inlined grid area (``gridfee.area_document``): SHA-256 (hex) over the **parsed** prices: land,
+    work price, rules of its rule set (as for tariffs, without ``id``, ``label``, ``source``, ``note``), components,
+    fixed amounts and capacity charges (without their names), and the levies of its levy set. So a copy under another
+    ID or set name, or saved unchanged by the editor, keeps the version, and every price change makes a new one."""
+    area = dict(as_dict(entry.get("area"), "area"))
+    rules, levies = list(entry.get("rules") or []), entry.get("levies")
+    probe_id = "user_probe"  # IDs never enter a version; validated as a user area (rule statuses optional)
+    document: dict[str, Any] = {FORMAT_KEY: TARIFF_FORMAT, "rule_sets": {}, "levy_sets": {}, "areas": []}
+    probe = {key: value for key, value in area.items() if key not in ("rule_set", "levy_set", "db_ref", "check", "id")}
+    probe["id"] = probe_id
+    if rules:
+        document["rule_sets"][probe_id] = rules
+        probe["rule_set"] = probe_id
+    if levies:
+        document["levy_sets"][f"{probe_id}_levies"] = dict(levies)
+        probe["levy_set"] = f"{probe_id}_levies"
+    document["areas"].append(probe)
+    parsed = parse_grid_fee_catalog(document, USER, "grid_area")
+    found = parsed.areas[probe_id]
+    levy_set = parsed.levy_sets.get(found.levy_set) if found.levy_set else None
+    capacity = [
+        {f.name: _plain(getattr(charge, f.name)) for f in dataclasses.fields(charge) if f.name not in CHARGE_IGNORED}
+        for charge in found.capacity_charges
+    ]
+    return _digest({
+        "land": found.land,
+        "base_cent_kwh": _plain(found.base_cent_kwh),
+        "rules": [_plain(rule) for rule in parsed.rule_sets.get(probe_id, ())],
+        "components": _parts_plain(found.components),
+        "fixed_eur_year": _parts_plain(found.fixed),
+        "capacity_charges": capacity,
+        "levy_components": _parts_plain(levy_set.components) if levy_set else [],
+        "levy_fixed_eur_year": _parts_plain(levy_set.fixed) if levy_set else [],
+    })
+
+
+def grid_area_version(area: Mapping[str, Any], rule_sets: Mapping[str, Any], levy_sets: Mapping[str, Any] | None = None) -> str:
+    """Version of a grid area of a document: its prices with the rules of its ``rule_set`` and the levies of its
+    ``levy_set`` (a ``levy_set`` without ``levy_sets`` is ``VALUE_INVALID``)."""
+    document = {"rule_sets": dict(rule_sets), "levy_sets": dict(levy_sets or {}), "areas": [dict(area)]}
+    return entry_version(area_document(document, str(area.get("id"))))
+
+
+def grid_document_versions(document: Mapping[str, Any]) -> dict[str, str]:
+    """``{area id: version}`` of every area of a grid document."""
+    data = as_dict(document, "grid_fees")
+    return {str(area.get("id")): entry_version(area_document(data, str(area.get("id")))) for area in data.get("areas") or []}
+
+
+def grid_db_ref_for(document: Mapping[str, Any], area_id: str) -> dict[str, str]:
+    """The ``db_ref`` a copy of the catalog grid area ``area_id`` carries: database ID and version."""
+    entry = area_document(document, area_id)
+    return {"id": grid_area_identity(entry["area"]), "version": entry_version(entry)}
+
+
+def grid_differs_from_db(document: Mapping[str, Any], area_id: str) -> bool | None:
+    """``None`` when the area has no ``db_ref``, else whether its prices are no longer the referenced version."""
+    entry = area_document(document, area_id)
+    ref = entry["area"].get("db_ref")
+    if ref is None:
+        return None
+    return entry_version(entry) != as_dict(ref, f"{area_id}.db_ref").get("version")

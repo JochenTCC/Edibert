@@ -32,7 +32,8 @@ MONTHLY = {
     "monthly_rates": [{"year": 2026, "month": 9, "tariff_cent_kwh": 9.0}, {"year": 2026, "month": 10, "tariff_cent_kwh": 9.5}],
 }  # fmt: skip
 OTHER = {**BASE, "id": "at_y_fix", "label": "Y Fix", "supplier_id": "y", "fix_cent_kwh": 25}
-AREA = {"id": "AT-X", "label": "X", "land": "AT", "base_cent_kwh": {"unmetered_power": 8.0, "metered_power": 6.0}}
+AREA = {"id": "AT-X", "label": "X", "land": "AT", "base_cent_kwh": {"unmetered_power": 8.0, "metered_power": 6.0},
+        "check": {"state": "checked", "checked_at": "2026-10-20", "source": "price sheet 2026-10"}}
 ALL_ON = {"report_use": True, "status": True, "packages": True}
 KEY_ID = "test-1"
 DB_ID = "AT/import/at_x_fix"

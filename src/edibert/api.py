@@ -47,6 +47,11 @@ from edibert.gridfee import (
     GridFee,
     GridFeeCatalog,
     GridFeeConfig,
+    GridPart,
+    GridSlot,
+    LevySet,
+    ResolvedPart,
+    area_document,
     flat_user_grid_area,
     parse_grid_fee_config,
     resolve_grid_fee,
@@ -55,6 +60,8 @@ from edibert.identity import (
     differs_from_db,
     grid_area_identity,
     grid_area_version,
+    grid_db_ref_for,
+    grid_differs_from_db,
     tariff_identity,
     tariff_version,
 )
@@ -145,9 +152,12 @@ __all__ = [
     "GridFee",
     "GridFeeCatalog",
     "GridFeeConfig",
+    "GridPart",
+    "GridSlot",
     "HoldLastForecaster",
     "ImportPlan",
     "LadderRung",
+    "LevySet",
     "MarketArchive",
     "MarketData",
     "MarketRange",
@@ -163,10 +173,12 @@ __all__ = [
     "PriceResult",
     "PriceSeries",
     "PricingContext",
+    "ResolvedPart",
     "Tariff",
     "TariffSet",
     "WarningCode",
     "apply_package_import",
+    "area_document",
     "builtin_forecaster",
     "capacity_charge_eur",
     "capacity_ladder",
@@ -177,6 +189,8 @@ __all__ = [
     "flat_user_grid_area",
     "grid_area_identity",
     "grid_area_version",
+    "grid_db_ref_for",
+    "grid_differs_from_db",
     "known_at",
     "load_grid_fee_catalog",
     "load_grid_fees",
@@ -231,13 +245,20 @@ def load_grid_fees(catalog: Path | None, user: Path | None = None) -> GridFeeCat
     return _gridfee.load_grid_fees(catalog, user)
 
 
-def save_user_grid_area(path: Path, area: Mapping[str, Any]) -> None:
+def save_user_grid_area(
+    path: Path,
+    area: Mapping[str, Any],
+    *,
+    rule_sets: Mapping[str, Any] | None = None,
+    levy_sets: Mapping[str, Any] | None = None,
+) -> None:
     """Add or replace one area (same ID) in ``user_grid_fees.json``; the file is created if missing.
 
     ``area`` has the shape of an entry in ``areas`` (see :func:`flat_user_grid_area` for an own flat work
-    price). The whole file is validated first; on any error it stays unchanged.
+    price); ``rule_sets`` / ``levy_sets`` (IDs ``user_...``) are added or replaced next to it. The whole file is
+    validated first; on any error it stays unchanged.
     """
-    _gridfee.save_user_grid_area(path, area)
+    _gridfee.save_user_grid_area(path, area, rule_sets=rule_sets, levy_sets=levy_sets)
 
 
 def market_zone(land: str) -> str:

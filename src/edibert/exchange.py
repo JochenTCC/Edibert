@@ -25,9 +25,16 @@ from typing import Any
 from urllib.parse import urlencode
 
 from edibert import __version__
-from edibert.contribution import SendResult, SendStatus
+from edibert.contribution import SendResult, SendStatus, grid_payload_entry
 from edibert.errors import EdibertError, ErrorCode
-from edibert.identity import db_ref_for, differs_from_db, tariff_version
+from edibert.identity import (
+    db_ref_for,
+    differs_from_db,
+    entry_version,
+    grid_db_ref_for,
+    grid_differs_from_db,
+    tariff_version,
+)
 from edibert.store import USER_PREFIX
 from edibert.tariff import EXPORT, IMPORT, DbRef, parse_tariff
 from edibert.trust import CHECK_STATES
@@ -44,7 +51,9 @@ SECRET_FILE = "exchange_secret"
 USER_AGENT = f"Edibert/{__version__} (tariff exchange)"
 TIMEOUT_S = 20.0
 MAX_STATUS_ENTRIES = 100
-DB_ID = re.compile(r"^[A-Z]{2}/(import|export|grid)/[a-z0-9_]+$")
+# Tariff IDs are lower case; grid-area IDs of the seed catalog are like ``AT-VBG`` (0.1.d2 widened the pattern).
+DB_ID = re.compile(r"^[A-Z]{2}/((import|export)/[a-z0-9_]+|grid/[A-Za-z0-9_-]+)$")
+GRID_SUBMIT_ROUTE = "/grid_areas"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -123,7 +132,8 @@ class StatusEntry:
 
 @dataclass(frozen=True)
 class Template:
-    """One version of route 5: a tariff to copy (``tariff`` is the payload tariff, without ``id``)."""
+    """One version of route 5: a tariff to copy (``tariff`` is the payload tariff, without ``id``), or for
+    ``direction=grid`` a grid area (``grid_area`` is the payload area with its rules and levies, ``tariff`` empty)."""
 
     db_id: str
     version: str
@@ -135,10 +145,17 @@ class Template:
     installations_12m: int
     latest_version: str | None
     latest_checked_version: str | None
+    grid_area: Mapping[str, Any] | None = None
 
     @property
     def db_ref(self) -> DbRef:
         return DbRef(self.db_id, self.version)
+
+    def entry(self) -> dict[str, Any]:
+        """A grid template as an inlined area (``gridfee.area_document`` shape), for "copy as own values"."""
+        if self.grid_area is None:
+            raise ValueError(f"Template {self.db_id} is not a grid area.")
+        return grid_payload_entry(self.grid_area)
 
 
 @dataclass(frozen=True)
@@ -223,11 +240,12 @@ class ExchangeClient:
         return document
 
     def submit(self, payload: Mapping[str, Any], db_ref: DbRef | None = None) -> SubmitAnswer:
-        """Route 2: one P6 payload with its version (and ``based_on`` when the tariff has a ``db_ref``)."""
+        """Route 2 (route 2b ``/grid_areas`` for a grid-area payload): one P6 payload with its version (and
+        ``based_on`` when the entry has a ``db_ref``)."""
         body = {**payload, "version": payload_version(payload)}
         if db_ref is not None:
             body["based_on"] = db_ref.to_dict()
-        route = "/tariffs"
+        route = GRID_SUBMIT_ROUTE if payload.get("direction") == GRID else "/tariffs"
         data = self._json(self._request("POST", route, body), route)
         if not isinstance(data, dict):
             raise _answer_invalid(route, "answer is not an object")
@@ -315,19 +333,21 @@ def _date(value: object) -> date | None:
 
 def _template(item: object, direction: str, route: str) -> Template:
     """One template; its version is recomputed, so a copy never claims a version its prices are not."""
-    if not isinstance(item, dict) or item.get("direction") != direction or not isinstance(item.get("tariff"), dict):
+    body_key = "grid_area" if direction == GRID else "tariff"
+    if not isinstance(item, dict) or item.get("direction") != direction or not isinstance(item.get(body_key), dict):
         raise _answer_invalid(route, f"template {item!r}")
     db_id, version = _check(item.get("db_id"), DB_ID, route, "db_id"), _check(item.get("version"), HEX64, route, "version")
     state = item.get("check_state")
     if state not in CHECK_STATES:
         raise _answer_invalid(route, f"check_state={state!r}")
     try:
-        computed = payload_version({"direction": direction, "tariff": item["tariff"]}) if direction != GRID else version
+        computed = payload_version({"direction": direction, body_key: item[body_key]})
         template = Template(
-            db_id, version, direction, dict(item["tariff"]), _date(item.get("valid_from")), str(state),
-            bool(item.get("reliable")), int(item.get("installations_12m") or 0),
+            db_id, version, direction, dict(item["tariff"]) if direction != GRID else {}, _date(item.get("valid_from")),
+            str(state), bool(item.get("reliable")), int(item.get("installations_12m") or 0),
             _optional(item.get("latest_version"), route, "latest_version"),
             _optional(item.get("latest_checked_version"), route, "latest_checked_version"),
+            dict(item["grid_area"]) if direction == GRID else None,
         )  # fmt: skip
     except EdibertError as exc:
         raise _answer_invalid(route, f"template {db_id}: {exc}") from exc
@@ -339,7 +359,10 @@ def _template(item: object, direction: str, route: str) -> Template:
 
 
 def payload_version(payload: Mapping[str, Any]) -> str:
-    """``tariff_version`` of a P6 payload. The payload has no ID; the ID never enters a version."""
+    """``tariff_version`` of a P6 payload, or the grid-area version of a grid payload. The payload has no ID; the
+    ID never enters a version."""
+    if payload["direction"] == GRID:
+        return entry_version(grid_payload_entry(payload["grid_area"]))
     return tariff_version({**payload["tariff"], "id": "shared"}, payload["direction"])
 
 
@@ -389,6 +412,22 @@ def used_ref(raw: Mapping[str, Any], direction: str, from_package: bool) -> DbRe
     if not tariff.id.startswith(USER_PREFIX) and from_package:
         return DbRef(**db_ref_for(raw, direction))
     return None
+
+
+def used_grid_ref(document: Mapping[str, Any] | None, area_id: str | None, from_package: bool) -> DbRef | None:
+    """The database version the house's grid area stands for (like :func:`used_ref` for a tariff).
+
+    A user area counts with its ``db_ref`` while its prices are unchanged; a catalog area counts when the catalog came
+    from a package. ``document`` is the grid file that holds ``area_id``.
+    """
+    if document is None or area_id is None:
+        return None
+    if area_id.startswith(USER_PREFIX):
+        if grid_differs_from_db(document, area_id) is not False:
+            return None
+        ref = next(item["db_ref"] for item in document.get("areas") or [] if item.get("id") == area_id)
+        return DbRef(ref["id"], ref["version"])
+    return DbRef(**grid_db_ref_for(document, area_id)) if from_package else None
 
 
 @dataclass(frozen=True)

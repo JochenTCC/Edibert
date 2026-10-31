@@ -80,9 +80,12 @@ def attributes(
     tomorrow_valid: bool,
     market: MarketData | None,
     catalog: dict[str, Any] | None = None,
+    grid_fixed: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Sensor attributes: today/tomorrow lists, the current components and day statistics; ``catalog`` is the
-    tariff's database version and status (``None`` without exchange or when the tariff stands for no version)."""
+    tariff's database version and status (``None`` without exchange or when the tariff stands for no version).
+    ``grid_breakdown`` splits the current net grid fee (EUR/kWh) into the work price and the area's components;
+    ``grid_fixed`` is the area's fixed yearly amounts (``series.grid_fixed_block``), never part of a price."""
     today = _on(points, now.date())
     tomorrow = _on(points, now.date() + timedelta(days=1))
     current = current_point(points, now)
@@ -96,6 +99,8 @@ def attributes(
         "resolution_min": resolution_min,
         "current_cent_kwh": current.cent if current else None,
         "components": components(current),
+        "grid_breakdown": {part: eur(cent) for part, cent in current.grid_breakdown} if current and current.grid_breakdown else None,
+        "grid_fixed": grid_fixed,
         "quality": current.quality if current else None,
         "next": eur(upcoming.cent) if upcoming else None,
         "average_today": round(sum(values) / len(values), _DECIMALS) if values else None,

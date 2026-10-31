@@ -1,4 +1,4 @@
-<!-- source: docs/user/en/checking.md @ 0.1.c -->
+<!-- source: docs/user/en/checking.md @ 0.1.d2 -->
 # Einen Tarif prüfen
 
 Die rechte Hälfte des Editors zeigt, was dein Tarif tut.
@@ -28,4 +28,4 @@ Wähle Datum und Uhrzeit. Edibert zeigt Basispreis, angewendete Regel, Netzentge
 2. Die kWh dieses Monats je Preisband (Basispreis und jedes Zeitfenster) eintragen, dazu den Rechnungsbetrag inklusive USt. Bei Börsentarifen außerdem den durchschnittlichen Börsenpreis des Monats.
 3. Edibert rechnet den Betrag mit deinem Tarif nach, addiert die festen Monatskosten und zeigt die Abweichung.
 
-Eine Abweichung bis 2 % ist normal (Rundung). Eine größere heißt meist: netto/brutto vertauscht, ein Zeitfenster vergessen, eine Gebühr oder das Netzentgelt fehlt.
+Eine Abweichung bis 2 % ist normal (Rundung). Eine größere heißt meist: netto/brutto vertauscht, ein Zeitfenster vergessen, eine Gebühr oder das Netzentgelt fehlt. Die Prüfung enthält ein Zwölftel der Fixbeträge des Netzgebiets (mit dem USt-Satz des Tarifs) und nennt es unter dem Ergebnis.

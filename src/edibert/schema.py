@@ -135,7 +135,6 @@ def _tariff_properties() -> dict[str, Any]:
             },
         },
         "monthly_fee_eur": _NON_NEGATIVE,
-        "grid_monthly_fee_eur": _NON_NEGATIVE,
         "metering_monthly_fee_eur": _NON_NEGATIVE,
         "other_monthly_fee_eur": _NON_NEGATIVE,
     }

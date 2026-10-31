@@ -53,7 +53,7 @@ Use this step when the price changes at certain times. Each row is a **time wind
 
 ## Step 3: Further costs
 
-Fixed monthly costs: base fee, metering fee, grid base fee, other. Enter them like the prices (net or gross as set in step 1). Leave 0 if there are none.
+Fixed monthly costs of the supplier: base fee, metering fee, other. The grid base fee is part of the grid fee (see Getting started, Grid fee), not of a tariff. Enter them like the prices (net or gross as set in step 1). Leave 0 if there are none.
 
 ## Step 4: Advanced
 

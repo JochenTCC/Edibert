@@ -23,6 +23,11 @@ class ErrorCode(StrEnum):
     UNSUPPORTED_FEATURE = "UNSUPPORTED_FEATURE"  # params: feature, tariff_id
     RULE_VALUE_MISSING = "RULE_VALUE_MISSING"  # params: rule_id
     GRID_AREA_UNKNOWN = "GRID_AREA_UNKNOWN"  # params: area_id
+    GRID_METERING_NOT_MODELED = "GRID_METERING_NOT_MODELED"  # params: area_id, item_id, power_metering
+    GRID_MONTHLY_FEE_LEGACY = "GRID_MONTHLY_FEE_LEGACY"  # params: tariff_id
+    GRID_MONTHLY_FEE_AMBIGUOUS = "GRID_MONTHLY_FEE_AMBIGUOUS"  # params: tariff_ids, values
+    GRID_MONTHLY_FEE_NO_TARGET = "GRID_MONTHLY_FEE_NO_TARGET"  # params: tariff_ids, area_id
+    HOUSE_GRID_LEGACY = "HOUSE_GRID_LEGACY"  # params: path
     VAT_PERCENT_MISSING = "VAT_PERCENT_MISSING"  # params: tariff_id
     # Files and identifiers
     FILE_INVALID = "FILE_INVALID"  # params: path
@@ -67,6 +72,7 @@ class ErrorCode(StrEnum):
     # Sharing with the tariff database (Catalog P6)
     CONTRIBUTION_INDIVIDUAL = "CONTRIBUTION_INDIVIDUAL"  # params: tariff_id
     CONTRIBUTION_LAND_MISSING = "CONTRIBUTION_LAND_MISSING"  # params: tariff_id
+    CONTRIBUTION_GRID_AREA_UNAVAILABLE = "CONTRIBUTION_GRID_AREA_UNAVAILABLE"  # params: area_id
     CONTRIBUTION_TRANSPORT_OFF = "CONTRIBUTION_TRANSPORT_OFF"  # params: none
     # Exchange with the tariff database server (Catalog P7)
     EXCHANGE_OFF = "EXCHANGE_OFF"  # params: env

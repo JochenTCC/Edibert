@@ -1,11 +1,14 @@
 """Editor form model: form values <-> tariff JSON, templates."""
 
+import json
+
 import pytest
 from conftest import load_example
 
 from edibert.editor.model import RuleDraft, TariffDraft, slugify, validate
 from edibert.editor.templates import TEMPLATES, rules_for_template
-from edibert.errors import ErrorCode
+from edibert.errors import EdibertError, ErrorCode
+from edibert.gridfee import GridFeeCatalog
 from edibert.i18n import Translator
 from edibert.tariff import EXPORT, IMPORT, parse_tariff
 
@@ -112,17 +115,47 @@ def test_a_tariff_needs_a_name():
     assert (result.error.code, result.error.params["field"]) == (ErrorCode.FIELD_MISSING, "label")
 
 
-def test_house_grid_fee_is_an_in_memory_user_grid_area(ctx_plain):
+def test_own_grid_values_are_the_user_area_user_house(ctx_plain):
     from conftest import at
 
-    from edibert.editor.house import HOUSE_GRID_AREA, HouseSettings
+    from edibert.editor.house import (
+        HOUSE_GRID_AREA,
+        GridDraft,
+        HouseSettings,
+        PartDraft,
+    )
+    from edibert.gridfee import USER, parse_grid_fee_catalog
 
-    assert HouseSettings(grid_base_cent=8.0).grid_fee() is None  # switched off
     night = RuleDraft(id="night", start="00:00", end="06:00", value=2.0)
-    house = HouseSettings(grid_enabled=True, grid_base_cent=8.0, grid_rules=[night])
-    fee = house.grid_fee()
-    assert fee is not None
+    draft = GridDraft(base={"unmetered_power": 8.0, "metered_power": 8.0}, rules=[night],
+                      components=[PartDraft(label="Loss", values={"unmetered_power": 0.4, "metered_power": 0.4})],
+                      fixed=[PartDraft(label="Base fee", values={"unmetered_power": 54.0, "metered_power": None})])
+    house = HouseSettings(grid_area_id=HOUSE_GRID_AREA)
+    fee = draft.resolve(house)
     assert fee.area_id == HOUSE_GRID_AREA
     assert fee.work_cent(ctx_plain.to_local(at("2026-10-12 03:00")), ctx_plain) == (2.0, "night")
-    assert fee.work_cent(ctx_plain.to_local(at("2026-10-12 12:00")), ctx_plain) == (8.0, None)
-    assert house.grid_area_document()["tariff_format"] == 1
+    slot = fee.slot(ctx_plain.to_local(at("2026-10-12 12:00")), ctx_plain)
+    assert (slot.total_cent, slot.breakdown) == (8.4, (("work", 8.0), ("component_1", 0.4)))
+    assert fee.fixed_eur_year == 54.0
+    document = draft.document()
+    assert document["tariff_format"] == 1 and document["areas"][0]["rule_set"] == HOUSE_GRID_AREA
+    grids = parse_grid_fee_catalog(document, USER)
+    assert HouseSettings(grid_area_id=None).grid_fee(grids) is None  # no grid fee
+    metered = HouseSettings(grid_area_id=HOUSE_GRID_AREA, power_metering="metered_power")
+    with pytest.raises(EdibertError) as err:
+        metered.grid_fee(grids)  # the base fee of metered power is not modeled: an error, never 0
+    assert err.value.code == ErrorCode.GRID_METERING_NOT_MODELED
+
+
+def test_legacy_house_grid_fee_is_not_read_silently(tmp_path):
+    from edibert.editor.house import load_house
+
+    path = tmp_path / "house.json"
+    path.write_text(json.dumps({"land": "AT", "grid_enabled": True, "grid_base_cent": 5.0, "grid_rules": []}), encoding="utf-8")
+    house = load_house(path)
+    with pytest.raises(EdibertError) as err:
+        house.grid_fee(GridFeeCatalog({}, {}))
+    assert err.value.code == ErrorCode.HOUSE_GRID_LEGACY
+    areas, rule_sets, own = house.legacy_migration_input()
+    assert own == "user_house" and areas[0]["base_cent_kwh"]["unmetered_power"] == 5.0 and rule_sets == {}
+    assert house.migrated().to_json()["grid_area_id"] == "user_house"

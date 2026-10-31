@@ -22,7 +22,8 @@ from edibert.ui.config import ENV_CATALOG, ENV_DATA_DIR, ENV_LANG
 
 CATALOG = {"id": "at_x_fix", "label": "X Fix", "type": "fixed_cent", "supplier_id": "x", "land": "AT", "fix_cent_kwh": 20, "vat_percent": 20}
 NEWER = {**CATALOG, "fix_cent_kwh": 22}
-AREA = {"id": "AT-X", "label": "X", "land": "AT", "base_cent_kwh": {"unmetered_power": 8.0, "metered_power": 6.0}}
+AREA = {"id": "AT-X", "label": "X", "land": "AT", "base_cent_kwh": {"unmetered_power": 8.0, "metered_power": 6.0},
+        "check": {"state": "checked", "checked_at": "2026-10-20", "source": "price sheet 2026-10"}}
 COPY = {**CATALOG, "id": "user_copy", "supplier_id": "user_demo", "db_ref": db_ref_for(CATALOG, IMPORT)}
 SHARED = {"label": "Shared Fix", "type": "fixed_cent", "supplier_id": "user_sun", "land": "AT", "fix_cent_kwh": 19.5,
           "vat_percent": 20, "prices_include_vat": True}  # fmt: skip

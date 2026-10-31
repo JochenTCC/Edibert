@@ -387,10 +387,6 @@
       "type": "number",
       "minimum": 0
     },
-    "grid_monthly_fee_eur": {
-      "type": "number",
-      "minimum": 0
-    },
     "metering_monthly_fee_eur": {
       "type": "number",
       "minimum": 0

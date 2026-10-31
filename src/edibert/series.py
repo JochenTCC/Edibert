@@ -45,9 +45,10 @@ class PricePoint:
     quality: str
     market_cent: float | None = None
     method: str | None = METHOD_EXACT
+    grid_breakdown: tuple[tuple[str, float], ...] | None = None  # net parts of ``grid_cent``; None without grid fee
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "start": self.start.isoformat(),
             "end": self.end.isoformat(),
             "cent": self.cent,
@@ -58,6 +59,9 @@ class PricePoint:
             "market_cent": self.market_cent,
             "method": self.method,
         }
+        if self.grid_breakdown is not None:
+            result["grid_breakdown"] = dict(self.grid_breakdown)
+        return result
 
 
 @dataclass(frozen=True)
@@ -68,6 +72,7 @@ class PriceSeries:
     points: tuple[PricePoint, ...]
     warnings: tuple[EdibertWarning, ...]
     capacity: tuple[dict[str, Any], ...] | None = None  # section 5b; None when the grid fee has no capacity charge
+    grid_fixed: dict[str, Any] | None = None  # section 5a; the area's fixed yearly amounts, never in a slot price
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -79,6 +84,8 @@ class PriceSeries:
         }
         if self.capacity is not None:
             result["capacity"] = list(self.capacity)
+        if self.grid_fixed is not None:
+            result["grid_fixed"] = self.grid_fixed
         return result
 
 
@@ -135,6 +142,13 @@ def _point(
     mean_cent = sum(result.cent for result in results) / size
     supplier = sum(result.after_limits_cent for result in results) / size
     grid = sum(result.grid_cent for result in results) / size
+    breakdown = None
+    if any(result.grid_breakdown for result in results):
+        sums: dict[str, float] = {}
+        for result in results:
+            for part, cent in result.grid_breakdown:
+                sums[part] = sums.get(part, 0.0) + cent
+        breakdown = tuple((part, round(total / size, 4)) for part, total in sums.items())
     start = ctx.to_local(group[0][0])
     return PricePoint(
         start=start,
@@ -146,6 +160,7 @@ def _point(
         quality=QUALITY_FORECAST if forecast else QUALITY_EXACT,
         market_cent=round(sum(markets) / size, 4) if markets else None,
         method=forecast_method if forecast else METHOD_EXACT,
+        grid_breakdown=breakdown,
     )
 
 
@@ -185,7 +200,8 @@ def tariff_price_series(
 
     For an import tariff whose ``grid_fee`` carries a capacity charge, ``capacity`` holds one block per calendar
     month of the range (section 5b); ``capacity_state`` is the measured month-to-date peak, never assumed.
-    The slot prices do not change.
+    The slot prices do not change. The grid area's fixed yearly amounts come as the ``grid_fixed`` block, also never
+    folded into a slot price; every point of an import tariff with a grid fee carries ``grid_breakdown``.
     """
     local_start = ctx.to_local(start)
     _check_alignment(local_start, resolution_min)
@@ -204,4 +220,19 @@ def tariff_price_series(
     capacity = None
     if grid_fee is not None and grid_fee.capacity and tariff.direction == IMPORT:
         capacity = tuple(capacity_block(grid_fee.capacity, grid_fee.area_id, capacity_state, ctx, start, end))
-    return PriceSeries(tariff.id, tariff.direction, resolution_min, points, tuple(notes), capacity)
+    return PriceSeries(
+        tariff.id, tariff.direction, resolution_min, points, tuple(notes), capacity,
+        grid_fixed_block(grid_fee) if grid_fee is not None and tariff.direction == IMPORT else None,
+    )  # fmt: skip
+
+
+def grid_fixed_block(grid_fee: GridFee) -> dict[str, Any] | None:
+    """The fixed yearly amounts of the grid area as a separate block (net, EUR per year); ``None`` without any."""
+    if not grid_fee.fixed:
+        return None
+    return {
+        "area_id": grid_fee.area_id,
+        "unit": "EUR per year, net",
+        "total_eur_year": round(grid_fee.fixed_eur_year, 2),
+        "items": [{"id": part.id, "label": part.label, "eur_year": part.value} for part in grid_fee.fixed],
+    }

@@ -9,6 +9,10 @@ here touches the disk. What the migration does:
   from the house profiles, see :func:`edibert.gridfee.flat_user_grid_area`);
 * removes ``database`` from the ``db_ref`` of user tariffs (contract v2 has one tariff database; the key is
   ``DB_REF_LEGACY`` on load, never ignored);
+* moves ``grid_monthly_fee_eur`` of user tariffs into the grid area the caller names (``grid_fee_area``) as a fixed
+  yearly amount (0.1.d2: the grid base fee belongs to the grid area). It never guesses: one value, net of the
+  tariff's VAT, times twelve, into a user area; several different values, no area, or a catalog area are blockers
+  (``GRID_MONTHLY_FEE_AMBIGUOUS``, ``GRID_MONTHLY_FEE_NO_TARGET``). A value of 0 is removed without a move;
 * asks for ``vat_percent`` on user tariffs without one (gross or net); the country's standard rate is offered as a
   prefill, but only an answer is ever written.
 
@@ -42,13 +46,15 @@ from edibert.gridfee import (
     merge_grid_fee_catalogs,
     parse_grid_fee_catalog,
 )
-from edibert.store import parse_tariff_documents
-from edibert.tariff import EXPORT, IMPORT, LEGACY_DB_REF_FIELD
+from edibert.store import USER_PREFIX, parse_tariff_documents
+from edibert.tariff import EXPORT, IMPORT, LEGACY_DB_REF_FIELD, LEGACY_GRID_FEE_FIELD
 
 LEGACY_KEY = "earnie_data_model"  # Earnie's data-model stamp; read only here, removed by the migration
 STANDARD_VAT_PERCENT = {"AT": 20.0, "DE": 19.0, "CH": 8.1}  # prefill for the VAT question, never written unasked
 QUESTION_VAT_PERCENT = "VAT_PERCENT"  # UI text: question.VAT_PERCENT
 SECTIONS = {IMPORT: "import_tariffs", EXPORT: "export_tariffs"}
+MOVED_FEE_ID = "grid_base_fee"  # ID of the fixed amount the moved ``grid_monthly_fee_eur`` becomes
+MOVED_FEE_LABEL = "Grid base fee"
 
 Docs = Mapping[str, Mapping[str, Any] | None]
 
@@ -114,6 +120,8 @@ class _Run:
     questions: list[MigrationQuestion] = field(default_factory=list)
     blockers: list[MigrationBlocker] = field(default_factory=list)
     pending_vat: list[tuple[str, int, float | None]] = field(default_factory=list)  # direction, index, prefill
+    moves_grid_fee: bool = False  # planned only: the grid fee move waits for the VAT answers
+    probe_docs: dict[str, dict[str, Any]] | None = None  # planned only: prefills and the move applied, for checking
 
     def block(self, error: EdibertError, file: str | None) -> None:
         self.blockers.append(MigrationBlocker(error.code, file, dict(error.params), str(error)))
@@ -183,6 +191,100 @@ def _drop_legacy_db_ref(run: _Run) -> None:
                 ref.pop(LEGACY_DB_REF_FIELD, None)
 
 
+def _add_user_grid_rule_sets(run: _Run, rule_sets: Mapping[str, Sequence[Any]]) -> None:
+    """Rule sets handed in with the areas (the editor's own grid rules); identical = no change, other = blocker."""
+    if not rule_sets or run.blocked(USER_GRID_FILE):
+        return
+    document = run.docs.setdefault(USER_GRID_FILE, empty_user_grid_document())
+    existing = document.setdefault("rule_sets", {})
+    if not isinstance(existing, dict):
+        run.block(invalid(f"{USER_GRID_FILE}.rule_sets", existing), USER_GRID_FILE)
+        return
+    for set_id, rules in rule_sets.items():
+        if set_id not in existing:
+            existing[set_id] = copy.deepcopy(list(rules))
+        elif existing[set_id] != list(rules):
+            run.block(
+                EdibertError(ErrorCode.GRID_ID_COLLISION, f"User rule set '{set_id}' exists with other rules.", grid_id=set_id),
+                USER_GRID_FILE,
+            )
+
+
+def _net_year(entry: Mapping[str, Any]) -> float | None:
+    """``grid_monthly_fee_eur`` of a tariff as a net yearly amount (the tariff's price convention, times twelve)."""
+    value = entry.get(LEGACY_GRID_FEE_FIELD)
+    vat = entry.get("vat_percent")
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+        return None  # a wrong value is reported by the validation
+    if entry.get("prices_include_vat", True) is True:
+        if isinstance(vat, bool) or not isinstance(vat, (int, float)):
+            return None  # the VAT question comes first
+        return round(value * 12 / (1 + vat / 100), 4)
+    return round(value * 12.0, 4)
+
+
+def _target_area(run: _Run, area_id: str | None) -> dict[str, Any] | None:
+    """The user area the fee moves into; a catalog area (or none) is never a target."""
+    if area_id is None or not area_id.startswith(USER_PREFIX) or run.blocked(USER_GRID_FILE):
+        return None
+    areas = (run.docs.get(USER_GRID_FILE) or {}).get("areas")
+    if not isinstance(areas, list):
+        return None
+    return next((item for item in areas if isinstance(item, dict) and item.get("id") == area_id), None)
+
+
+def _move_grid_monthly_fee(run: _Run, grid_fee_area: str | None) -> None:
+    """Move ``grid_monthly_fee_eur`` from the user tariffs into the fixed amounts of the user area ``grid_fee_area``."""
+    document = run.docs.get(USER_FILE)
+    if document is None or run.blocked(USER_FILE):
+        return
+    carriers: list[tuple[dict[str, Any], float | None]] = []
+    for section in SECTIONS.values():
+        entries = document.get(section)
+        for entry in entries if isinstance(entries, list) else []:
+            if isinstance(entry, dict) and LEGACY_GRID_FEE_FIELD in entry:
+                carriers.append((entry, _net_year(entry)))
+    if not carriers:
+        return
+    moving = [(entry, value) for entry, value in carriers if entry.get(LEGACY_GRID_FEE_FIELD) != 0]
+    if any(value is None for _, value in moving):
+        return  # an invalid value: the validation names it (GRID_MONTHLY_FEE_LEGACY), nothing is moved
+    if moving:
+        ids = ", ".join(str(entry.get("id")) for entry, _ in moving)
+        values = sorted({value for _, value in moving if value is not None})
+        target = _target_area(run, grid_fee_area)
+        if target is None:
+            run.block(
+                EdibertError(
+                    ErrorCode.GRID_MONTHLY_FEE_NO_TARGET,
+                    f"Tariffs {ids} carry a monthly grid fee, but there is no own grid area to move it to "
+                    f"(house area: {grid_fee_area or '-'}).",
+                    tariff_ids=ids,
+                    area_id=grid_fee_area or "-",
+                ),
+                USER_FILE,
+            )
+            return
+        fixed = target.setdefault("fixed_eur_year", [])
+        present = [item.get("eur_year") for item in fixed if isinstance(item, dict) and item.get("id") == MOVED_FEE_ID]
+        if len(values) > 1 or (present and present[0] != values[0]):
+            shown = ", ".join(f"{value:g}" for value in [*values, *present])
+            run.block(
+                EdibertError(
+                    ErrorCode.GRID_MONTHLY_FEE_AMBIGUOUS,
+                    f"Tariffs {ids} carry different grid base fees ({shown} EUR/year net); decide the area's value.",
+                    tariff_ids=ids,
+                    values=shown,
+                ),
+                USER_FILE,
+            )
+            return
+        if not present:
+            fixed.append({"id": MOVED_FEE_ID, "label": MOVED_FEE_LABEL, "eur_year": values[0]})
+    for entry, _ in carriers:
+        entry.pop(LEGACY_GRID_FEE_FIELD)
+
+
 def _vat_answer(question_id: str, value: object) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
         raise invalid(question_id, value)
@@ -224,6 +326,8 @@ def _ask_vat(run: _Run, answers: Mapping[str, Any] | None) -> None:
 
 def _probe_docs(run: _Run) -> dict[str, dict[str, Any]]:
     """The documents as validated: pending VAT questions filled with their prefill (or 0), for checking only."""
+    if run.probe_docs is not None:
+        return run.probe_docs
     if not run.pending_vat:
         return run.docs
     probe = copy.deepcopy(run.docs)
@@ -262,12 +366,28 @@ def _validate(run: _Run) -> None:
         _check(run, USER_GRID_FILE, lambda: merge_grid_fee_catalogs(parsed[GRID_CATALOG_FILE], parsed[USER_GRID_FILE]))
 
 
-def _run(docs: Docs, answers: Mapping[str, Any] | None, user_grid_areas: Sequence[Mapping[str, Any]]) -> _Run:
+def _run(
+    docs: Docs,
+    answers: Mapping[str, Any] | None,
+    user_grid_areas: Sequence[Mapping[str, Any]],
+    user_grid_rule_sets: Mapping[str, Sequence[Any]],
+    grid_fee_area: str | None,
+) -> _Run:
     run = _Run(_copy_docs(docs))
     _tag(run)
+    _add_user_grid_rule_sets(run, user_grid_rule_sets)
     _add_user_grid_areas(run, user_grid_areas)
     _drop_legacy_db_ref(run)
     _ask_vat(run, answers)
+    if not run.pending_vat:
+        _move_grid_monthly_fee(run, grid_fee_area)
+    else:  # the net amount needs the VAT answers: the plan checks the move with the prefills and moves nothing
+        probe = _Run(_probe_docs(run))
+        _move_grid_monthly_fee(probe, grid_fee_area)
+        run.blockers.extend(probe.blockers)
+        if probe.docs.get(USER_GRID_FILE) != run.docs.get(USER_GRID_FILE):
+            run.moves_grid_fee = True
+        run.probe_docs = probe.docs
     _validate(run)
     return run
 
@@ -276,12 +396,25 @@ def _changed(before: Docs, after: Mapping[str, dict[str, Any]]) -> tuple[str, ..
     return tuple(name for name in TARIFF_TRACK_FILES if name in after and before.get(name) != after[name])
 
 
-def plan_migration(docs: Docs, *, user_grid_areas: Sequence[Mapping[str, Any]] = ()) -> MigrationPlan:
-    """What :func:`migrate` would change, which questions it needs answered, and what blocks it."""
-    run = _run(docs, None, user_grid_areas)
+def plan_migration(
+    docs: Docs,
+    *,
+    user_grid_areas: Sequence[Mapping[str, Any]] = (),
+    user_grid_rule_sets: Mapping[str, Sequence[Any]] | None = None,
+    grid_fee_area: str | None = None,
+) -> MigrationPlan:
+    """What :func:`migrate` would change, which questions it needs answered, and what blocks it.
+
+    ``grid_fee_area`` names the user grid area the house uses: the only place a ``grid_monthly_fee_eur`` of the
+    user tariffs moves to. ``None`` (no own area, or the house uses a catalog area) blocks such a move.
+    """
+    run = _run(docs, None, user_grid_areas, user_grid_rule_sets or {}, grid_fee_area)
     changed = _changed(docs, run.docs)
-    if run.pending_vat and USER_FILE not in changed:
-        changed = tuple(name for name in TARIFF_TRACK_FILES if name in changed or name == USER_FILE)
+    pending = {USER_FILE} if run.pending_vat else set()
+    if run.moves_grid_fee:
+        pending.add(USER_GRID_FILE)
+    if pending - set(changed):
+        changed = tuple(name for name in TARIFF_TRACK_FILES if name in changed or name in pending)
     current = {name: document.get(FORMAT_KEY) for name, document in docs.items() if document is not None}
     return MigrationPlan(current, TARIFF_FORMAT, changed, tuple(run.questions), tuple(run.blockers))
 
@@ -291,6 +424,8 @@ def migrate(
     answers: Mapping[str, Any] | None = None,
     *,
     user_grid_areas: Sequence[Mapping[str, Any]] = (),
+    user_grid_rule_sets: Mapping[str, Sequence[Any]] | None = None,
+    grid_fee_area: str | None = None,
 ) -> MigrationResult:
     """Bring the tariff-track files to the current ``tariff_format``.
 
@@ -298,7 +433,7 @@ def migrate(
     answer is ``MIGRATION_ANSWER_MISSING``, an invalid answer ``VALUE_INVALID``. Running it on migrated files
     changes nothing.
     """
-    run = _run(docs, answers or {}, user_grid_areas)
+    run = _run(docs, answers or {}, user_grid_areas, user_grid_rule_sets or {}, grid_fee_area)
     if run.blockers:
         return MigrationResult(_copy_docs(docs), (), tuple(run.blockers))
     return MigrationResult(run.docs, _changed(docs, run.docs), ())

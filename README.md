@@ -54,6 +54,7 @@ Many tariffs cannot be described by a single "ct/kWh" field:
 - night tariffs and weekend prices (peak/off-peak), summer midday windows
 - market price with markups, price cap and floor
 - time-variable grid fees (§14a EnWG module 3: high, standard and low tariff)
+- the whole grid fee of your grid area: work price, grid loss charge, national levies and the fixed yearly amounts, chosen from the catalog by federal state or entered as own values
 - feed-in with "no remuneration at negative prices"
 - public holidays that count like a Sunday
 

@@ -29,15 +29,25 @@ from edibert.editor.userstore import (
     user_tariff_ids,
 )
 from edibert.errors import EdibertError, ErrorCode
+from edibert.gridfee import METERING
 from edibert.i18n import SUPPORTED_LANGUAGES, Translator
 from edibert.identity import db_ref_for
 from edibert.rules import REQUIRES
 from edibert.store import parse_tariff_documents
 from edibert.tariff import EXPORT, IMPORT
-from edibert.ui import migrate_gate, package_import, preview, state, templates, widgets
+from edibert.ui import (
+    grid,
+    migrate_gate,
+    package_import,
+    preview,
+    state,
+    templates,
+)
 from edibert.ui.config import UiConfig
 
-MIGRATE_CODES = (ErrorCode.FORMAT_MISSING, ErrorCode.DB_REF_LEGACY)  # problems the migration gate solves
+MIGRATE_CODES = (  # problems the migration gate solves
+    ErrorCode.FORMAT_MISSING, ErrorCode.DB_REF_LEGACY, ErrorCode.GRID_MONTHLY_FEE_LEGACY, ErrorCode.HOUSE_GRID_LEGACY,
+)  # fmt: skip
 
 AT_STATES = {
     "1": "Burgenland", "2": "Kärnten", "3": "Niederösterreich", "4": "Oberösterreich", "5": "Salzburg",
@@ -75,24 +85,17 @@ def _house(t: Translator, config: UiConfig) -> None:
         house.capabilities = st.multiselect(
             t.t("ui.capabilities"), REQUIRES, default=house.capabilities, format_func=lambda r: t.t(f"requirement.{r}"), key=state.k("house.capabilities")
         )
+        house.power_metering = st.selectbox(
+            t.t("ui.power_metering"), list(METERING), index=_index(METERING, house.power_metering),
+            format_func=lambda m: t.t(f"metering.{m}"), help=t.t("ui.power_metering_help"), key=state.k("house.power_metering"),
+        )  # fmt: skip
         if st.button(t.t("ui.house_save"), key=state.k("house.save")):
-            save_house(config.house_file, house)
-            state.notify(t.t("ui.house_saved"))
-
-
-def _grid(t: Translator, config: UiConfig) -> None:
-    """The grid operator's fee: part of the house (``house.json``), the same for every tariff."""
-    house = state.house()
-    with st.expander(t.t("ui.grid_title")):
-        st.caption(t.t("ui.grid_hint"))
-        house.grid_enabled = st.checkbox(t.t("ui.grid_enabled"), value=house.grid_enabled, key=state.k("house.grid_enabled"))
-        if house.grid_enabled:
-            house.grid_base_cent = st.number_input(t.t("ui.grid_base"), min_value=0.0, value=house.grid_base_cent, step=0.1, format=widgets.CENT_FORMAT, key=state.k("house.grid_base"))
-            st.caption(t.t("ui.grid_rules"))
-            widgets.rule_editor(t, house.grid_rules, state.k("house.grid"))
-        if st.button(t.t("ui.grid_save"), key=state.k("grid.save")):
-            save_house(config.house_file, house)
-            state.notify(t.t("ui.grid_saved"))
+            try:
+                save_house(config.house_file, house)
+            except EdibertError as err:
+                st.error(t.error(err))
+            else:
+                state.notify(t.t("ui.house_saved"))
 
 
 def _index(options, value) -> int:
@@ -344,15 +347,18 @@ def render_house(t: Translator, config: UiConfig) -> None:
 
 
 def render_grid(t: Translator, config: UiConfig) -> None:
-    """The editor's own grid fee in the main area; a host shows its grid area in the house facts instead."""
+    """The grid-fee section in the main area (catalog area or own values); a host shows its grid area in the house
+    facts instead."""
     if config.host_house is None:
-        _grid(t, config)
+        grid.render(t, config)
 
 
 def render_tools(t: Translator, config: UiConfig) -> None:
     """The row above form and preview: my tariffs with new/delete, copy from catalog, import."""
     _leave_prompt(t, config)
     try:
+        if config.host_house is None:
+            state.house().to_json()  # a pre-0.1.d2 house.json (own grid fee inside) is HOUSE_GRID_LEGACY
         parse_tariff_documents(None, read_document(config.user_file), ("-", str(config.user_file)))
     except EdibertError as err:
         if err.code in MIGRATE_CODES:

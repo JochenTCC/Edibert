@@ -54,6 +54,7 @@ Viele Tarife lassen sich nicht in einem Feld „ct/kWh“ beschreiben:
 - Nachttarife und Wochenendpreise (HT/NT), Sommer-Mittagsfenster
 - Börsenpreis mit Aufschlägen, Deckel und Boden
 - zeitvariable Netzentgelte (§14a Modul 3: Hoch-, Standard- und Niedertarif)
+- das ganze Netzentgelt deines Netzgebiets: Arbeitspreis, Netzverlustentgelt, bundesweite Abgaben und die Fixbeträge je Jahr, aus dem Katalog nach Bundesland gewählt oder als eigene Werte erfasst
 - Einspeisung mit „keine Vergütung bei negativem Preis“
 - Feiertage, die wie ein Sonntag zählen
 

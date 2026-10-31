@@ -12,8 +12,16 @@ from contextvars import ContextVar
 
 import streamlit as st
 
-from edibert.editor.house import HouseSettings, load_house
+from edibert.editor.house import (
+    GridDraft,
+    HouseSettings,
+    PartDraft,
+    load_grid_draft,
+    load_house,
+)
 from edibert.editor.model import RuleDraft, TariffDraft
+from edibert.errors import EdibertError
+from edibert.fileformat import USER_GRID_FILE
 from edibert.i18n import Translator
 from edibert.ui.config import UiConfig
 
@@ -32,6 +40,9 @@ BASELINE = "ui.baseline"
 FETCHED_PACKAGE = "ui.fetched_package"
 DB_STATUS = "ui.db_status"
 TEMPLATES = "ui.templates"
+GRID_DRAFT = "ui.grid_draft"
+GRID_VER = "ui.grid_ver"
+GRID_TEMPLATES = "ui.grid_templates"
 
 # The prefix of the render that is running. Not session data: it is set for the duration of one
 # render call (``scope``) and reset afterwards, so sessions and embeds never see each other's prefix.
@@ -85,9 +96,47 @@ def init(config: UiConfig) -> None:
     ss[k(FETCHED_PACKAGE)] = None
     ss[k(DB_STATUS)] = {}
     ss[k(TEMPLATES)] = None
+    ss[k(GRID_VER)] = 0
+    ss[k(GRID_TEMPLATES)] = None
     if config.host_house is None:
         ss[k(HOUSE)] = load_house(config.house_file)
-        assign_uids(ss[k(HOUSE)].grid_rules)
+        reload_grid_draft(config)
+
+
+def reload_grid_draft(config: UiConfig) -> None:
+    """The own grid values from ``user_grid_fees.json``; a broken file leaves ``None`` (the grid section says why)."""
+    try:
+        draft = load_grid_draft(config.data_dir / USER_GRID_FILE)
+    except (EdibertError, OSError, ValueError):
+        draft = None
+    adopt_grid(draft)
+
+
+def adopt_grid(draft: GridDraft | None) -> None:
+    """Make ``draft`` the own grid values being edited; new widget keys start the rows fresh."""
+    st.session_state[k(GRID_DRAFT)] = draft
+    st.session_state[k(GRID_VER)] += 1
+    if draft is not None:
+        assign_uids(draft.rules)
+        assign_uids(draft.components)  # type: ignore[arg-type]
+        assign_uids(draft.fixed)  # type: ignore[arg-type]
+
+
+def grid_draft() -> GridDraft | None:
+    return st.session_state[k(GRID_DRAFT)]
+
+
+def grid_key(name: str) -> str:
+    """Widget key of the own grid values, tied to their version (like ``key`` for the tariff form)."""
+    return f"{_PREFIX.get()}grid{st.session_state[k(GRID_VER)]}.{name}"
+
+
+def grid_templates() -> tuple[str, object] | None:
+    return st.session_state[k(GRID_TEMPLATES)]
+
+
+def set_grid_templates(value: tuple[str, object] | None) -> None:
+    st.session_state[k(GRID_TEMPLATES)] = value
 
 
 def translator() -> Translator:
@@ -99,7 +148,7 @@ def next_uid() -> int:
     return st.session_state[k(UID)]
 
 
-def assign_uids(rules: Iterable[RuleDraft]) -> None:
+def assign_uids(rules: Iterable[RuleDraft | PartDraft]) -> None:
     """Give every rule a stable number that its form widgets use as key (never stored)."""
     for rule in rules:
         if not rule.uid:

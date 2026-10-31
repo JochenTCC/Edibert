@@ -21,7 +21,7 @@ TYPE_BY_KIND = {
 }
 DAY_NAMES = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 HOLIDAY = "holiday"
-FEE_KEYS = ("monthly_fee_eur", "metering_monthly_fee_eur", "grid_monthly_fee_eur", "other_monthly_fee_eur")
+FEE_KEYS = ("monthly_fee_eur", "metering_monthly_fee_eur", "other_monthly_fee_eur")  # the grid base fee is part of the grid area
 _UMLAUTS = {"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss", "Ä": "ae", "Ö": "oe", "Ü": "ue"}
 
 

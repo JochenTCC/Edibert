@@ -44,9 +44,9 @@ def create_fixed_tariff(app: AppTest, label: str = "Mein Tarif", price: float = 
 
 def test_start_page_in_both_languages(data_dir):
     english = start("en")
-    assert english.info[0].value.startswith("Create a new tariff")
+    assert any(item.value.startswith("Create a new tariff") for item in english.info)
     german = start("de")
-    assert german.info[0].value.startswith("Lege oben einen neuen Tarif an")
+    assert any(item.value.startswith("Lege oben einen neuen Tarif an") for item in german.info)
     assert german.title[0].value == "Edibert Tarif-Editor"
 
 
@@ -121,15 +121,24 @@ def test_house_region_removes_the_hint_and_is_saved(data_dir):
 
 def test_grid_fee_is_entered_in_the_main_area_and_saved(data_dir):
     app = start("en")
-    assert not [box for box in app.sidebar.checkbox if box.key == "house.grid_enabled"]
-    app.checkbox(key="house.grid_enabled").check().run()
-    grid_base = app.number_input(key="house.grid_base")
+    assert not [box for box in app.sidebar.selectbox if box.key == "house.grid_choice"]
+    assert any("No catalog grid area matches AT" in item.value for item in app.info)  # no catalog: own values only
+    app.selectbox(key="house.grid_choice").select("user_house").run()
+    grid_base = app.number_input(key=f"grid{app.session_state['ui.grid_ver']}.base.unmetered_power")
     assert grid_base.format == "%.3f"
     grid_base.set_value(4.963).run()
+    app.button(key=f"grid{app.session_state['ui.grid_ver']}.fixed.add").click().run()
+    fixed = [box for box in app.number_input if box.key.endswith(".value.unmetered_power") and ".fixed." in box.key]
+    fixed[0].set_value(54.0).run()
     app.button(key="grid.save").click().run()
     assert not app.exception
     house = json.loads((data_dir / "house.json").read_text(encoding="utf-8"))
-    assert (house["grid_enabled"], house["grid_base_cent"]) == (True, 4.963)
+    assert house["grid_area_id"] == "user_house"
+    assert "grid_enabled" not in house
+    grids = json.loads((data_dir / "user_grid_fees.json").read_text(encoding="utf-8"))
+    (area,) = grids["areas"]
+    assert area["base_cent_kwh"] == {"unmetered_power": 4.963, "metered_power": 4.963}
+    assert area["fixed_eur_year"][0]["eur_year"] == {"unmetered_power": 54.0, "metered_power": 54.0}
 
 
 def test_cent_amounts_keep_three_decimals(data_dir):
@@ -216,3 +225,48 @@ def test_package_import_is_offered_in_the_standalone_sidebar(data_dir, tmp_path,
     with_catalog = start()
     captions = [item.value for item in with_catalog.sidebar.caption]
     assert "A signed package replaces the catalog files. Your own tariffs stay unchanged." in captions
+
+
+def test_catalog_grid_area_is_offered_by_region_and_copied_as_own_values(data_dir, tmp_path, monkeypatch):
+    from test_grid_areas import DOC
+
+    catalog = tmp_path / "catalog" / "tariffs.json"
+    catalog.parent.mkdir()
+    catalog.write_text(json.dumps({"tariff_format": 1, "import_tariffs": [], "export_tariffs": []}), encoding="utf-8")
+    (catalog.parent / "grid_fees.json").write_text(json.dumps(DOC), encoding="utf-8")
+    monkeypatch.setenv(ENV_CATALOG, str(catalog))
+    data_dir.mkdir(parents=True, exist_ok=True)
+    (data_dir / "house.json").write_text(json.dumps({"land": "AT", "region": "8"}), encoding="utf-8")
+    app = start("en")
+    choice = app.selectbox(key="house.grid_choice")
+    assert choice.options[1:] == ["Q-Land (AT-Q)", "Own values"]
+    choice.select("AT-Q").run()
+    assert any("Fixed amounts in total: 70" in block.value for block in app.code)
+    app.button(key="grid.save").click().run()
+    assert json.loads((data_dir / "house.json").read_text(encoding="utf-8"))["grid_area_id"] == "AT-Q"
+    app.button(key="grid.copy.AT-Q").click().run()
+    assert app.selectbox(key="house.grid_choice").value == "user_house"
+    assert any("Same values as database entry AT/grid/AT-Q" in item.value for item in app.caption)
+    app.button(key="grid.save").click().run()
+    assert not app.exception
+    grids = json.loads((data_dir / "user_grid_fees.json").read_text(encoding="utf-8"))
+    assert grids["areas"][0]["db_ref"]["id"] == "AT/grid/AT-Q"
+    assert grids["levy_sets"]["user_house_levies"]["fixed_eur_year"][0]["eur_year"] == 20.0
+
+
+def test_old_house_grid_fee_goes_through_the_migration_gate(data_dir):
+    data_dir.mkdir(parents=True, exist_ok=True)
+    (data_dir / "house.json").write_text(json.dumps({"land": "AT", "grid_enabled": True, "grid_base_cent": 5.0, "grid_rules": []}), encoding="utf-8")
+    tariff = {"id": "user_a", "type": "fixed_cent", "supplier_id": "user_x", "land": "AT", "fix_cent_kwh": 20, "vat_percent": 20,
+              "grid_monthly_fee_eur": 6.0}  # fmt: skip
+    (data_dir / "user_tariffs.json").write_text(json.dumps({"tariff_format": 1, "import_tariffs": [tariff], "export_tariffs": []}), encoding="utf-8")
+    app = start("en")
+    assert any("old form" in item.value for item in app.error)
+    app.button(key="migrate.run").click().run()
+    assert not app.exception
+    house = json.loads((data_dir / "house.json").read_text(encoding="utf-8"))
+    assert house["grid_area_id"] == "user_house" and "grid_enabled" not in house
+    grids = json.loads((data_dir / "user_grid_fees.json").read_text(encoding="utf-8"))
+    assert grids["areas"][0]["fixed_eur_year"][0]["eur_year"] == 60.0
+    saved = json.loads((data_dir / "user_tariffs.json").read_text(encoding="utf-8"))
+    assert "grid_monthly_fee_eur" not in saved["import_tariffs"][0]

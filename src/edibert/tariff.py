@@ -45,7 +45,9 @@ EXPORT_TYPES = ("fixed", "spot_hourly", "monthly_table")
 SPOT_IMPORT_TYPES = ("spot_hourly",)
 SPOT_EXPORT_TYPES = ("spot_hourly",)
 
-FEE_FIELDS = ("monthly_fee_eur", "grid_monthly_fee_eur", "metering_monthly_fee_eur", "other_monthly_fee_eur")
+FEE_FIELDS = ("monthly_fee_eur", "metering_monthly_fee_eur", "other_monthly_fee_eur")
+# The grid base fee belongs to the grid area (``fixed_eur_year``, 0.1.d2); a tariff with it is migrated explicitly.
+LEGACY_GRID_FEE_FIELD = "grid_monthly_fee_eur"
 TARIFF_FIELDS = (
     "id", "label", "type", "land", "regions", "currency", "supplier_id", "notes",
     "settlement_fee_cent_kwh", "markup_percent", "prices_include_vat", "vat_percent", "settlement_mtu",
@@ -161,9 +163,10 @@ class PriceResult:
     after_rule_cent: float
     after_limits_cent: float  # supplier part after rules and floor/cap, before grid fee and VAT
     cent: float  # final, rounded to 4 decimals: (supplier part + grid fee) incl. VAT
-    grid_cent: float = 0.0
+    grid_cent: float = 0.0  # net: work price after the grid rules plus the area's components
     grid_rule_id: str | None = None
     warnings: tuple[EdibertWarning, ...] = field(default=())  # e.g. MONTH_RATE_FALLBACK
+    grid_breakdown: tuple[tuple[str, float], ...] = ()  # ("work", cent) then (component id, cent); net
 
 
 def _parse_monthly_rates(raw: object, path: str) -> dict[tuple[int, int], float]:
@@ -220,6 +223,13 @@ def parse_tariff(raw: object, direction: str) -> Tariff:
     tariff_id = get_str(probe, "id", direction, required=True)
     assert tariff_id is not None
     _reject_unsupported(probe, tariff_id)
+    if LEGACY_GRID_FEE_FIELD in probe:
+        raise EdibertError(
+            ErrorCode.GRID_MONTHLY_FEE_LEGACY,
+            f"Tariff '{tariff_id}' still has '{LEGACY_GRID_FEE_FIELD}'; the grid base fee belongs to the grid area, "
+            "run the migration to move it.",
+            tariff_id=tariff_id,
+        )
     check_known(probe, TARIFF_FIELDS, tariff_id)
     tariff_type = get_str(probe, "type", tariff_id, required=True)
     if tariff_type not in (IMPORT_TYPES if direction == IMPORT else EXPORT_TYPES):
@@ -473,16 +483,17 @@ def evaluate(
     )
     after_rule = apply_effect(base, rule.effect, rule.id) if rule else base
     limited = _clamp(after_rule, tariff)
-    grid_cent, grid_rule = (0.0, None)
+    grid_cent, grid_rule, breakdown = 0.0, None, ()
     if grid_fee is not None and tariff.direction == IMPORT:
-        grid_cent, grid_rule = grid_fee.work_cent(local, ctx)
+        grid = grid_fee.slot(local, ctx)
+        grid_cent, grid_rule, breakdown = grid.total_cent, grid.rule_id, grid.breakdown
     vat = 1.0 + tariff.vat_percent / 100.0
     if tariff.prices_include_vat:  # supplier part is gross already; the grid fee is net and gets the VAT here
         gross = limited + grid_cent * vat
     else:
         gross = (limited + grid_cent) * vat
     return PriceResult(
-        base, rule.id if rule else None, after_rule, limited, round(gross, 4), grid_cent, grid_rule, notes
+        base, rule.id if rule else None, after_rule, limited, round(gross, 4), grid_cent, grid_rule, notes, breakdown
     )
 
 

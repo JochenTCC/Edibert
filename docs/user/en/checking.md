@@ -27,4 +27,4 @@ Pick a date and time. Edibert shows the base price, the rule that applied, the g
 2. Enter the kWh of that month for each price band (the base price and each time window), and the invoice total including VAT. For market-price tariffs also enter the month's average market price.
 3. Edibert recalculates the total with your tariff, adds the fixed monthly costs, and shows the difference.
 
-A difference up to 2 % is normal (rounding). A larger one usually means net/gross mixed up, a forgotten time window, a missing fee or the grid fee.
+A difference up to 2 % is normal (rounding). A larger one usually means net/gross mixed up, a forgotten time window, a missing fee or the grid fee. The check includes one twelfth of the grid area's fixed yearly amounts (with the tariff's VAT) and says so below the result.

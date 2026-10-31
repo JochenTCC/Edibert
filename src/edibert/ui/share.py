@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import streamlit as st
 
 from edibert.contribution import (
@@ -10,12 +12,16 @@ from edibert.contribution import (
     SendStatus,
     ShareDefault,
     contribution_items,
+    grid_contribution_item,
     initially_selected,
     payload_text,
     send_selected,
 )
+from edibert.editor.house import HOUSE_GRID_AREA
 from edibert.editor.userstore import SECTIONS, read_document, save_user_tariff
 from edibert.errors import EdibertError, EdibertWarning, WarningCode
+from edibert.fileformat import USER_GRID_FILE, write_json_atomic
+from edibert.gridfee import GRID_FILE_SHARE, put_user_grid_area
 from edibert.i18n import Translator
 from edibert.ui import state
 from edibert.ui.config import UiConfig
@@ -78,8 +84,23 @@ def _take_db_refs(config: UiConfig, chosen: list[ContributionItem], results: lis
     for item, result in zip(chosen, results, strict=True):
         if result.db_ref is None:
             continue
+        if item.direction == GRID_FILE_SHARE:
+            path = config.data_dir / USER_GRID_FILE
+            grids = json.loads(path.read_text(encoding="utf-8"))
+            area = next(area for area in grids["areas"] if area.get("id") == item.tariff_id)
+            write_json_atomic(path, put_user_grid_area(grids, {**area, "db_ref": result.db_ref.to_dict()}))
+            continue
         raw = next(raw for raw in document[SECTIONS[item.direction]] if raw.get("id") == item.tariff_id)
         save_user_tariff(config.user_file, {**raw, "db_ref": result.db_ref.to_dict()}, item.direction)
+
+
+def _grid_items(t: Translator, config: UiConfig) -> list[ContributionItem]:
+    """The house's own grid area, next to the tariffs (stand-alone editor only; a host shares its own way)."""
+    if config.host_house is None and state.house().legacy_grid is None and state.house().grid_area_id == HOUSE_GRID_AREA:
+        path = config.data_dir / USER_GRID_FILE
+        document = json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+        return [grid_contribution_item(document, HOUSE_GRID_AREA, t.t("ui.share_grid_label"))]
+    return []
 
 
 def render(t: Translator, config: UiConfig, share_default: ShareDefault) -> None:
@@ -95,7 +116,7 @@ def render(t: Translator, config: UiConfig, share_default: ShareDefault) -> None
             off_note = t.warning(EdibertWarning(WarningCode.CONTRIBUTION_TRANSPORT_OFF, "No contribution transport configured."))
             st.caption(f":orange[{off_note}]")  # a caption: the host page shows the section on every run
         try:
-            items = contribution_items(read_document(config.user_file))
+            items = contribution_items(read_document(config.user_file)) + _grid_items(t, config)
         except EdibertError as err:
             st.error(t.error(err))
             return

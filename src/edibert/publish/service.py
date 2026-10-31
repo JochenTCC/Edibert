@@ -12,9 +12,10 @@ from datetime import time as day_time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from edibert.editor.house import HouseSettings, load_house
+from edibert.editor.house import HouseSettings, load_house, load_house_grids
 from edibert.errors import EdibertError, EdibertWarning, ErrorCode, WarningCode
 from edibert.exchange import ExchangeClient, exchange_config_from_env
+from edibert.gridfee import GridFeeCatalog
 from edibert.market.forecast import Forecaster
 from edibert.market.service import MarketData, MarketService, window_slots
 from edibert.market.sources import HttpGet, http_get, zone_for_land
@@ -35,7 +36,7 @@ from edibert.publish.forecasters import (
     load_forecaster,
 )
 from edibert.publish.mqtt import MqttLink, connect
-from edibert.series import PricePoint, tariff_price_series
+from edibert.series import PricePoint, grid_fixed_block, tariff_price_series
 from edibert.store import TariffSet, load_tariffs
 from edibert.tariff import IMPORT, Tariff
 
@@ -69,9 +70,12 @@ class Publisher:
         forecaster: Forecaster | None = None,
         exchange: CatalogExchange | None = None,
         reload: Callable[[], TariffSet] | None = None,
+        *,
+        grids: Callable[[], GridFeeCatalog],
     ) -> None:
         self.config = config
         self.house = house
+        self._grids = grids  # catalog and user grid areas; reloaded with the tariffs after a package import
         self.link = link
         self.market = market
         self.forecaster = forecaster
@@ -82,6 +86,7 @@ class Publisher:
         self._take(tariffs)
 
     def _take(self, tariffs: TariffSet) -> None:
+        self.grid_fee = self.house.grid_fee(self._grids())  # the house's area, resolved once per load
         self.items: list[tuple[TariffRef, Tariff]] = [(ref, tariffs.get(ref.direction, ref.id)) for ref in self.config.tariffs]
 
     # -- topics ---------------------------------------------------------------------------------
@@ -143,6 +148,7 @@ class Publisher:
             points=points, forecast=forecast, now=local, tomorrow_valid=tomorrow_valid, market=data,
             forecast_method=self._forecast_label() if forecast else None,
             catalog=self.exchange.status_block(ref, local.date()) if self.exchange else None,
+            grid_fixed=grid_fixed_block(self.grid_fee) if self.grid_fee is not None and tariff.direction == IMPORT else None,
         )  # fmt: skip
         self._put(ref, "state", payloads.state_payload(payloads.current_point(points, local)))
         self._put(ref, "attributes", payloads.encode(body))
@@ -171,7 +177,7 @@ class Publisher:
             tariff, self.ctx, day0, end,
             resolution_min=self.config.resolution_min,
             market=data.prices if data else None,
-            grid_fee=self.house.grid_fee() if tariff.direction == IMPORT else None,
+            grid_fee=self.grid_fee if tariff.direction == IMPORT else None,
             capabilities=set(self.house.capabilities),
         )  # fmt: skip
         return series.points, tomorrow_valid
@@ -193,7 +199,7 @@ class Publisher:
                 market={**data.prices, **extra},
                 forecast_from=start,
                 forecast_method=label,
-                grid_fee=self.house.grid_fee() if tariff.direction == IMPORT else None,
+                grid_fee=self.grid_fee if tariff.direction == IMPORT else None,
                 capabilities=set(self.house.capabilities),
             )  # fmt: skip
         except Exception as exc:  # noqa: BLE001 - a plug-in must never take the exact prices down with it
@@ -259,8 +265,9 @@ def build_publisher(
     if config.exchange is not None and config.exchange.any:
         make = exchange_factory or (lambda settings: _exchange_from_env(settings, data_dir, catalog, config, environment))
         exchange = make(config.exchange)
+    house.grid_fee(load_house_grids(catalog, data_dir))  # an unknown or unmigrated grid area stops before MQTT connects
     return Publisher(config, tariffs, house, link_factory(config.mqtt), market, forecaster, exchange,
-                     reload=lambda: load_tariffs(catalog, user_file))  # fmt: skip
+                     reload=lambda: load_tariffs(catalog, user_file), grids=lambda: load_house_grids(catalog, data_dir))  # fmt: skip
 
 
 def _exchange_from_env(settings: ExchangeSettings, data_dir: Path, catalog: Path | None, config: PublishConfig,
