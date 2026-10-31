@@ -39,7 +39,7 @@ class UiConfig:
     confirmation (e.g. the host's scenarios that use it), or ``None`` to delete right away.
     ``on_change(action, direction, tariff_id)``: called after the editor wrote ``user_tariffs.json``
     (``action`` is ``"save"`` or ``"delete"``), before the page reruns.
-    ``contribution_transport``: sends shared tariffs to the free catalog; ``None`` = no endpoint configured,
+    ``contribution_transport``: sends shared tariffs to the tariff database; ``None`` = no endpoint configured,
     sharing is off and the share section says so.
     ``exchange``: client of the tariff database server for the package download and the status of a copied
     tariff; ``None`` = both are off and the editor says so.

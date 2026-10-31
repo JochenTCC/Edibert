@@ -48,14 +48,17 @@ Ein Katalogpaket ist eine signierte Datei aus der Tarif-Datenbank, die die Katal
 ## Tarifdatenbank
 
 ```bash
-python -m edibert exchange fetch --database free --out package.json [--catalog tariffs.json]
+python -m edibert exchange fetch --out package.json [--catalog tariffs.json]
+python -m edibert exchange templates --land AT --direction import [--supplier NAME] [--format json]
 python -m edibert exchange status --data-dir edibert_data [--catalog tariffs.json]
 python -m edibert exchange report --data-dir edibert_data [--catalog tariffs.json] [--no-delay]
 ```
 
-`fetch` lädt das neueste Katalogpaket der freien oder der geprüften Datenbank herunter; beide sind kostenlos und brauchen keinen Schlüssel. Als Katalog nimmst du die geprüfte Datenbank; Einträge der freien Datenbank sind als Vorlage zum Kopieren gedacht. Mit `--catalog` wird nichts heruntergeladen, solange dein Katalog schon das neueste Paket enthält. Prüfe und importiere die Datei wie oben mit `package import`.
+`fetch` lädt das neueste Katalogpaket der Tarifdatenbank herunter; es ist kostenlos, braucht keinen Schlüssel und enthält nur geprüfte und vom Anbieter freigegebene Tarife. Mit `--catalog` wird nichts heruntergeladen, solange dein Katalog schon das neueste Paket enthält. Prüfe und importiere die Datei wie oben mit `package import`.
 
-`status` zeigt für die Tarife aus `publish.json`, ob die Datenbank eine neuere Version hat, ob die Version als verlässlich gilt und wie viele Installationen sie in den letzten zwölf Monaten genutzt haben. `report` meldet der Datenbank, welche dieser Tarifversionen du nutzt: eine Meldung pro Tarif, jede zu einem zufälligen Zeitpunkt in den nächsten 24 Stunden (`--no-delay` sendet sofort). Eine Meldung enthält nur die Datenbank-ID, die Version und einen Code, der für jeden Tarif anders ist; deine Tarife lassen sich so weder miteinander noch mit dir verknüpfen. Gemeldet werden nur Tarife, die du mit unveränderten Preisen aus der Datenbank übernommen hast, und Katalogtarife aus einem Paket.
+`templates` listet die ungeprüften Tarife, die andere Nutzer geteilt haben, für ein Land und eine Richtung (`import`, `export`; `grid` mit `--grid-area`, sobald Netzgebiete in der Datenbank sind). `--supplier` sucht in Anbieter und Bezeichnung (mindestens zwei Zeichen). Jede Zeile zeigt Datenbank-ID, Version, Bezeichnung, Anbieter, Vertrauensstufe und Installationen. Vorlagen werden nie als Katalog importiert: Kopiere eine im Editor (**Vorlage kopieren**) und gleiche sie mit dem Preisblatt ab.
+
+`status` zeigt für die Tarife aus `publish.json` die Vertrauensstufe (vom Anbieter freigegeben, geprüft, verlässlich, ungeprüft), ob die Datenbank eine neuere oder eine geprüfte Version hat, ob der Eintrag mit einem anderen zusammengeführt wurde, ob die Version als verlässlich gilt und wie viele Installationen sie in den letzten zwölf Monaten genutzt haben. `report` meldet der Datenbank, welche dieser Tarifversionen du nutzt: eine Meldung pro Tarif, jede zu einem zufälligen Zeitpunkt in den nächsten 24 Stunden (`--no-delay` sendet sofort). Eine Meldung enthält nur die Datenbank-ID, die Version und einen Code, der für jeden Tarif anders ist; deine Tarife lassen sich so weder miteinander noch mit dir verknüpfen. Gemeldet werden nur Tarife, die du mit unveränderten Preisen aus der Datenbank übernommen hast, und Katalogtarife aus einem Paket.
 
 Die Preise werden immer auf deinem Computer berechnet; der Server liefert nur Pakete und zählt die Nutzung. `EDIBERT_EXCHANGE_OFF=1` schaltet jeden Austausch ab, auch das Teilen im Editor.
 

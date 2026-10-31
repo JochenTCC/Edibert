@@ -21,7 +21,7 @@ from edibert.exchange import StatusEntry
 from edibert.i18n import Translator
 from edibert.identity import differs_from_db
 from edibert.publish.exchange_jobs import STATE_FILE, STATE_FORMAT
-from edibert.trust import check_overdue, trust_level
+from edibert.trust import CATALOG_CHECK_STATES, check_overdue, trust_level
 from edibert.ui import state
 from edibert.ui.config import UiConfig
 
@@ -68,9 +68,11 @@ def _show(t: Translator, found: dict[str, Any]) -> None:
         st.caption(t.t("ui.db_status_check_date", date=checked_at))
         if check_overdue(state_name, date.fromisoformat(checked_at), date.today()):
             st.warning(t.t("ui.db_status_overdue", date=checked_at))
-    version = found.get("version")
-    if found.get("latest_checked_version") and found["latest_checked_version"] != version:
-        st.info(t.t("ui.db_status_checked_available", version=str(found["latest_checked_version"])[:8]))
+    version, checked = found.get("version"), found.get("latest_checked_version")
+    if checked and checked != version:
+        st.info(t.t("ui.db_status_checked_available", version=str(checked)[:8]))
+    elif checked and state_name in CATALOG_CHECK_STATES:  # the copied version itself was promoted
+        st.info(t.t("ui.db_status_checked_same", version=str(checked)[:8]))
     if found.get("latest_version") and found["latest_version"] != found.get("version", found["latest_version"]):
         st.caption(t.t("ui.db_status_newer", valid_from=found.get("latest_valid_from") or "–"))
 

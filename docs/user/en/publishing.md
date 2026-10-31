@@ -99,11 +99,11 @@ The publisher can talk to the tariff database server (see [CLI](cli.md), section
 | Job | What it does |
 |---|---|
 | `report_use` | once a day, per tariff that comes from the database, one message at a random time with its database ID, version and a pseudonym computed on your computer (no installation ID, the pseudonym differs for every tariff) |
-| `status` | once a day asks for the newest version of these tariffs and whether they count as reliable |
+| `status` | once a day asks for the check state and the newest version of these tariffs and whether they count as reliable |
 | `packages` | once a week (or before the current package expires) loads the catalog package and imports it; needs `--catalog` |
 
-All three must be named, `true` or `false`. `EDIBERT_EXCHANGE_OFF=1` switches everything off. The catalog is always loaded from the verified database, which is free and needs no key.
+All three must be named, `true` or `false`. `EDIBERT_EXCHANGE_OFF=1` switches everything off. The catalog package of the tariff database is free, needs no key and holds only checked tariffs and tariffs released by their supplier.
 
 A package is imported automatically only when nothing is lost: if it would change monthly rates you entered yourself, or if it no longer contains a tariff you publish, it is not imported and a warning says why. Import it then in the editor (sidebar, *Import catalog package*) and decide there. A failure of the server never touches the prices; the job is tried again an hour later.
 
-Each tariff's attributes get a block `catalog` with its database ID and version and, with `status`, whether it is `reliable`, how many installations used it in the last 12 months and whether a newer version exists (`newer_version`, `newer_valid_from`). What the jobs remember is kept in `exchange_state.json` in the data folder.
+Each tariff's attributes get a block `catalog` with its database ID and version, its check state and date (`check_state`, `checked_at`), `reliable`, the `trust_level` (`released_by_supplier`, `checked`, `reliable`, `unchecked`) and `check_overdue` (the last check is older than a quarter plus 30 days). A catalog tariff from an imported package shows its check state even without `status`. With `status` the block also says how many installations used it in the last 12 months, whether a newer version exists (`newer_version`, `newer_valid_from`), whether a checked version other than yours exists (`checked_version_available`) and whether the entry was merged into another one (`merged_into`). What the jobs remember is kept in `exchange_state.json` in the data folder.

@@ -100,11 +100,11 @@ Der Publisher kann mit dem Server der Tarifdatenbank sprechen (siehe [CLI](cli.m
 | Aufgabe | Was passiert |
 |---|---|
 | `report_use` | einmal am Tag je Tarif aus der Datenbank eine Meldung zu einer zufälligen Zeit mit Datenbank-ID, Version und einem Pseudonym, das auf deinem Rechner berechnet wird (keine Installations-ID, das Pseudonym ist für jeden Tarif anders) |
-| `status` | fragt einmal am Tag nach der neuesten Version dieser Tarife und ob sie als verlässlich gelten |
+| `status` | fragt einmal am Tag nach Prüfstatus und neuester Version dieser Tarife und ob sie als verlässlich gelten |
 | `packages` | lädt einmal pro Woche (oder bevor das aktuelle Paket abläuft) das Katalogpaket und importiert es; braucht `--catalog` |
 
-Alle drei müssen genannt sein, `true` oder `false`. `EDIBERT_EXCHANGE_OFF=1` schaltet alles ab. Der Katalog wird immer aus der geprüften Datenbank geladen; sie ist kostenlos und braucht keinen Schlüssel.
+Alle drei müssen genannt sein, `true` oder `false`. `EDIBERT_EXCHANGE_OFF=1` schaltet alles ab. Das Katalogpaket der Tarifdatenbank ist kostenlos, braucht keinen Schlüssel und enthält nur geprüfte und vom Anbieter freigegebene Tarife.
 
 Ein Paket wird nur dann automatisch importiert, wenn dabei nichts verloren geht: Würde es selbst eingetragene Monatspreise ändern oder enthält es einen Tarif nicht mehr, den du veröffentlichst, wird es nicht importiert, und eine Warnung sagt warum. Importiere es dann im Editor (Seitenleiste, *Katalogpaket importieren*) und entscheide dort. Ein Ausfall des Servers berührt die Preise nie; die Aufgabe wird eine Stunde später erneut versucht.
 
-Die Attribute jedes Tarifs bekommen einen Block `catalog` mit Datenbank-ID und Version und, mit `status`, ob er `reliable` ist, wie viele Installationen ihn in den letzten 12 Monaten verwendet haben und ob es eine neuere Version gibt (`newer_version`, `newer_valid_from`). Was sich die Aufgaben merken, steht in `exchange_state.json` im Datenordner.
+Die Attribute jedes Tarifs bekommen einen Block `catalog` mit Datenbank-ID und Version, Prüfstatus und -datum (`check_state`, `checked_at`), `reliable`, der Vertrauensstufe `trust_level` (`released_by_supplier`, `checked`, `reliable`, `unchecked`) und `check_overdue` (die letzte Prüfung ist älter als ein Quartal plus 30 Tage). Ein Katalogtarif aus einem importierten Paket zeigt seinen Prüfstatus auch ohne `status`. Mit `status` sagt der Block außerdem, wie viele Installationen ihn in den letzten 12 Monaten verwendet haben, ob es eine neuere Version gibt (`newer_version`, `newer_valid_from`), ob es eine andere geprüfte Version gibt (`checked_version_available`) und ob der Eintrag mit einem anderen zusammengeführt wurde (`merged_into`). Was sich die Aufgaben merken, steht in `exchange_state.json` im Datenordner.

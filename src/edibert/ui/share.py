@@ -1,4 +1,4 @@
-"""The "share" section: which saved tariffs go to the free catalog, with the exact payload of each."""
+"""The "share" section: which saved tariffs go to the tariff database, with the exact payload of each."""
 
 from __future__ import annotations
 

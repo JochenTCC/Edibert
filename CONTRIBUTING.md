@@ -4,7 +4,7 @@ Edibert is still in draft. This document describes how contributions will work l
 
 ## Sharing tariffs
 
-Tariffs reach the **free database** only through the share section of the editor; there is no route through GitHub issues. A shared tariff is unchecked at first and earns the status `reliable` by use: a tariff version used by at least two installations within 12 months (you count as one). The **verified database** is kept separately by us and is not filled by shared tariffs directly. Sharing earns no catalog access and no reward; it helps others with the same tariff.
+Tariffs reach the **tariff database** only through the share section of the editor; there is no route through GitHub issues. There is one database; every version carries a check state. A shared tariff is `unchecked` at first: other users see it as a **template** (after an opt-in, copy only). It earns the status `reliable` by use: a tariff version used by at least two installations within 12 months (you count as one). When we check it against its source, the same entry and version become `checked` and go into the signed **catalog**; a supplier can also release a version itself (`released_by_supplier`). Sharing earns no access and no reward; it helps others with the same tariff.
 
 Share a tariff only if it is **not tailored to you** (no special conditions, no customer code). Tariffs you mark as `individual` are never shared, and a tariff without a country cannot be shared.
 
@@ -25,8 +25,9 @@ Before sending, the share section shows the **exact content** of every selected 
 ### What happens afterwards
 
 1. The server checks the tariff and answers with its database ID: accepted, already known (duplicate), or rejected with a reason the editor shows.
-2. A changed version of a tariff you shared before becomes a new version of the same entry.
-3. Accepted tariffs reach other users with the next free catalog package; use reports of installations decide when a version counts as `reliable`.
+2. A changed version of a tariff you copied from the database (a template or a catalog tariff) becomes a new version of the same entry, unchecked until we check it. So a price change you notice arrives at the right entry.
+3. Accepted tariffs reach other users as templates once moderation admitted them; use reports of installations decide when a version counts as `reliable`. A version reaches the catalog package only after our check or a release by the supplier.
+4. If two users shared the same tariff independently, moderation merges the two entries. A copy of the merged one keeps working; the editor offers to re-link it and does so only after you confirm.
 
 Which terms apply: tariffs shared through Edibert fall under Edibert's own terms (see the README, section License; published after legal review). Tariffs shared from within Earnie are, until then, covered by the draft in Earnie's [`LICENSE.md`](https://github.com/JochenTCC/Earnie/blob/main/LICENSE.md) § 3 paragraphs 4–8; once Edibert's terms are published they take precedence there too.
 

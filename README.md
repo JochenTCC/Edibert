@@ -79,14 +79,14 @@ Edibert is a stand-alone tool that is also used by [Earnie](https://github.com/J
 
 ## Catalog and contributions
 
-You can always create your own tariffs; the software works without any catalog. In addition there are two tariff databases (DE/AT/CH):
+You can always create your own tariffs; the software works without any catalog. In addition there is **one tariff database** (DE/AT/CH), free for everyone and without a key. Every tariff version in it shows how far you can trust it, from strongest to weakest:
 
-- **Free database:** tariffs shared by users, unchecked. A tariff version earns the status `reliable` by use: at least two installations used it within 12 months (the one who shared it counts). It is free for everyone.
-- **Verified database:** only tariffs we checked against their source and keep current. It is free as well. "Verified" means checked against the source with a check date, not a guarantee.
+- **Released by the supplier:** the supplier or network operator confirmed exactly this version.
+- **Checked:** we compared it with its source, with a check date. "Checked" is not a guarantee; the supplier's price sheet decides.
+- **Reliable:** not checked, but used by at least two installations within 12 months (the one who shared it counts). That says "used by several", not "correct".
+- **Unchecked:** shared by a user, nothing more is known.
 
-You use the free database as a **template only**: you switch it on, then copy a tariff into your own tariffs and check it against your supplier's price sheet. The verified database can be used directly as a catalog.
-
-Both reach you as **signed catalog packages** that Edibert checks offline before the import. An import never overwrites monthly prices you entered yourself without asking you. Sharing a tariff is a help to others with the same tariff; it earns no access and no reward, and there is no contribution route through GitHub issues.
+The database reaches you in two views. The **catalog** holds the checked and supplier-released versions as a **signed catalog package** that Edibert checks offline before the import; you use it directly. All other versions are **templates**: you switch them on, copy one into your own tariffs and check it against your supplier's price sheet. A checked version whose check is older than a quarter plus 30 days shows "check overdue". When we check a tariff you copied, its status says "checked version available". An import never overwrites monthly prices you entered yourself without asking you. Sharing a tariff is a help to others with the same tariff; it earns no access and no reward, and there is no contribution route through GitHub issues.
 
 Only tariffs that are **not tailored to one person** are shared, and only **without personal data** (no postal code, name, meter number, free text or consumption data). Sharing is voluntary, with a preview of the exact content, and every tariff can be left out. This describes the planned behavior, not a binding offer. Details: [CONTRIBUTING.md](CONTRIBUTING.md) and [catalog/README.md](catalog/README.md).
 
@@ -104,7 +104,7 @@ The code is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE): 
 | T2 | Grid-fee rules and `tariff_price_series` (the single interface to the price series) |
 | T3 | Editor and import (template, JSON file) |
 | T3b | MQTT publisher, market price chain, forecast (mirror, hold, key-gated plug-in) |
-| T4 | Tariff databases: sharing, free and verified database, signed catalog packages |
+| T4 | Tariff database: sharing, check states, catalog and templates, signed catalog packages |
 | later | Price-sheet assistant, output for evcc/EMHASS/Predbat, prices per meter |
 
 The format is described in [docs/spec/tariff-format.md](docs/spec/tariff-format.md) and [docs/spec/publishing.md](docs/spec/publishing.md); examples are in [examples/](examples/). User manuals: [docs/user/en/](docs/user/en/).

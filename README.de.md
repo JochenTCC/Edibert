@@ -79,14 +79,14 @@ Edibert ist ein eigenständiges Werkzeug und wird auch von [Earnie](https://gith
 
 ## Katalog und Beiträge
 
-Du kannst jederzeit eigene Tarife anlegen; die Software funktioniert auch ganz ohne Katalog. Dazu gibt es zwei Tarifdatenbanken (DE/AT/CH):
+Du kannst jederzeit eigene Tarife anlegen; die Software funktioniert auch ganz ohne Katalog. Dazu gibt es **eine Tarifdatenbank** (DE/AT/CH), für alle kostenlos und ohne Schlüssel. Jede Tarifversion darin zeigt, wie weit du ihr vertrauen kannst, von der stärksten zur schwächsten Stufe:
 
-- **Freie Datenbank:** von Nutzern geteilte Tarife, ungeprüft. Eine Tarifversion wird durch Nutzung `reliable` (verlässlich): mindestens zwei Installationen haben sie innerhalb von 12 Monaten verwendet (wer sie geteilt hat, zählt mit). Sie ist für alle kostenlos.
-- **Geprüfte Datenbank:** nur Tarife, die wir mit ihrer Quelle abgeglichen haben und aktuell halten. Sie ist ebenfalls kostenlos. „Geprüft“ heißt: mit der Quelle abgeglichen, mit Prüfdatum, ohne Garantie.
+- **Vom Anbieter freigegeben:** der Energieanbieter oder Netzbetreiber hat genau diese Version bestätigt.
+- **Geprüft:** wir haben sie mit ihrer Quelle abgeglichen, mit Prüfdatum. „Geprüft“ ist keine Garantie; maßgeblich ist das Preisblatt des Anbieters.
+- **Verlässlich** (`reliable`): nicht geprüft, aber von mindestens zwei Installationen innerhalb von 12 Monaten verwendet (wer sie geteilt hat, zählt mit). Das heißt „wird von mehreren eingesetzt“, nicht „ist richtig“.
+- **Ungeprüft:** von einem Nutzer geteilt, mehr ist nicht bekannt.
 
-Die freie Datenbank nutzt du **nur als Vorlage**: Du schaltest sie ein, kopierst einen Tarif in deine eigenen Tarife und gleichst ihn mit dem Preisblatt deines Anbieters ab. Die geprüfte Datenbank kannst du direkt als Katalog verwenden.
-
-Beide kommen als **signierte Katalogpakete**, die Edibert vor dem Import ohne Internet prüft. Ein Import überschreibt Monatspreise, die du selbst eingetragen hast, nie ohne Rückfrage. Einen Tarif zu teilen hilft anderen mit demselben Tarif; es bringt keinen Zugang und keine Belohnung, und einen Beitragsweg über GitHub-Issues gibt es nicht.
+Die Datenbank kommt in zwei Sichten zu dir. Der **Katalog** enthält die geprüften und vom Anbieter freigegebenen Versionen als **signiertes Katalogpaket**, das Edibert vor dem Import ohne Internet prüft; du nutzt ihn direkt. Alle anderen Versionen sind **Vorlagen**: Du schaltest sie ein, kopierst eine in deine eigenen Tarife und gleichst sie mit dem Preisblatt deines Anbieters ab. Ist die Prüfung einer geprüften Version älter als ein Quartal plus 30 Tage, steht dort „Prüfung überfällig“. Prüfen wir einen Tarif, den du kopiert hast, sagt sein Status „geprüfte Version verfügbar“. Ein Import überschreibt Monatspreise, die du selbst eingetragen hast, nie ohne Rückfrage. Einen Tarif zu teilen hilft anderen mit demselben Tarif; es bringt keinen Zugang und keine Belohnung, und einen Beitragsweg über GitHub-Issues gibt es nicht.
 
 Geteilt werden nur Tarife, die **nicht auf eine Person zugeschnitten** sind, und nur **ohne Personenbezug** (keine Postleitzahl, kein Name, keine Zählernummer, keine Freitexte, keine Verbrauchsdaten). Das Teilen ist freiwillig, mit Vorschau des genauen Inhalts, und jeder Tarif lässt sich weglassen. Das ist die geplante Funktionsweise, noch kein verbindliches Angebot. Details: [CONTRIBUTING.md](CONTRIBUTING.md) (englisch) und [catalog/README.md](catalog/README.md) (englisch).
 
@@ -104,7 +104,7 @@ Der Code steht unter der [PolyForm Noncommercial License 1.0.0](LICENSE): Quellc
 | T2 | Netzentgelt-Regeln und `tariff_price_series` (die eine Schnittstelle zur Preisreihe) |
 | T3 | Editor und Import (Vorlage, JSON-Datei) |
 | T3b | MQTT-Ausgabe, Börsenpreis-Kette, Prognose (Spiegeln, Halten, Plug-in mit Schlüssel) |
-| T4 | Tarifdatenbanken: Teilen, freie und geprüfte Datenbank, signierte Katalogpakete |
+| T4 | Tarifdatenbank: Teilen, Prüfstatus, Katalog und Vorlagen, signierte Katalogpakete |
 | später | Preisblatt-Assistent, Ausgabe für evcc/EMHASS/Predbat, Preise je Zähler |
 
 Das Format ist in [docs/spec/tariff-format.md](docs/spec/tariff-format.md) (englisch) beschrieben, Beispiele liegen unter [examples/](examples/). Bedienungsanleitungen: [docs/user/de/](docs/user/de/).

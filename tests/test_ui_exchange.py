@@ -152,6 +152,7 @@ def test_status_from_the_publisher_is_shown_without_asking(data_dir, catalog):
     app = start()
     app.button(key="open.import.user_copy").click().run()
     assert "Tariff database (2026-10-30): checked, used by 1 installations in the last 12 months." in captions(app)
+    assert any("your copy is version" in item.value for item in app.info)
     assert any("Check overdue: the last check was on 2026-01-10" in item.value for item in app.warning)
 
 

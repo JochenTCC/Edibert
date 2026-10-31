@@ -64,7 +64,7 @@ class ErrorCode(StrEnum):
     FORECAST_KEY_MISSING = "FORECAST_KEY_MISSING"  # params: env
     MQTT_LIBRARY_MISSING = "MQTT_LIBRARY_MISSING"  # params: none
     MQTT_CONNECTION_FAILED = "MQTT_CONNECTION_FAILED"  # params: host, port
-    # Sharing with the free catalog (Catalog P6)
+    # Sharing with the tariff database (Catalog P6)
     CONTRIBUTION_INDIVIDUAL = "CONTRIBUTION_INDIVIDUAL"  # params: tariff_id
     CONTRIBUTION_LAND_MISSING = "CONTRIBUTION_LAND_MISSING"  # params: tariff_id
     CONTRIBUTION_TRANSPORT_OFF = "CONTRIBUTION_TRANSPORT_OFF"  # params: none
@@ -115,7 +115,7 @@ class WarningCode(StrEnum):
     EXCHANGE_JOB_FAILED = "EXCHANGE_JOB_FAILED"  # params: job, code
     PACKAGE_HELD_CONFLICTS = "PACKAGE_HELD_CONFLICTS"  # params: package_id, count
     PACKAGE_HELD_REMOVES_USED = "PACKAGE_HELD_REMOVES_USED"  # params: package_id, entries
-    # Sharing with the free catalog (Catalog P6)
+    # Sharing with the tariff database (Catalog P6)
     CONTRIBUTION_TRANSPORT_OFF = "CONTRIBUTION_TRANSPORT_OFF"  # params: none
 
 

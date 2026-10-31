@@ -1,4 +1,4 @@
-"""Sharing user tariffs with the free catalog (backlog ``0.1.d`` Catalog P6): payload, selection, transport.
+"""Sharing user tariffs with the tariff database (backlog ``0.1.d`` Catalog P6): payload, selection, transport.
 
 The payload is built from a **whitelist**: prices, type, rules, fees, VAT, land, supplier and product, the
 origin of the price sheet and the validity. Everything else (the local ID, notes, ``behavior_notes``,
