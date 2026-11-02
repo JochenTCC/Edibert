@@ -95,7 +95,7 @@ Geteilt werden nur Tarife, die **nicht auf eine Person zugeschnitten** sind, und
 
 Der Code steht unter der [PolyForm Noncommercial License 1.0.0](LICENSE): Quellcode einsehbar, Nutzung für private, wissenschaftliche, gemeinnützige und andere **nicht-kommerzielle** Zwecke erlaubt, gewerbliche Nutzung nur mit gesonderter Lizenz. Das ist keine Open-Source-Lizenz im Sinne der OSI („Source-Available“).
 
-[LICENSE](LICENSE) und [NOTICE](NOTICE) gelten für den Code. Für den Tarifkatalog und für Tarifbeiträge gelten **gesonderte Bedingungen** sowie eine Datenschutzerklärung. Diese rechtlichen Texte werden **je Land in der Landessprache** verfasst (Deutschland und Österreich: Deutsch, Schweiz: Deutsch) und **erst nach rechtlicher Prüfung** hier veröffentlicht; bis dahin gibt es weder Katalogzugang noch Upload.
+[LICENSE](LICENSE) und [NOTICE](NOTICE) gelten für den Code. Für den Tarifkatalog und für Tarifbeiträge gelten **gesonderte Bedingungen** sowie eine Datenschutzerklärung. Diese rechtlichen Texte werden **je Land in der Landessprache** verfasst (Deutschland und Österreich: Deutsch, Schweiz: Deutsch) und **erst nach rechtlicher Prüfung** hier veröffentlicht. Bis dahin ist die Tarifdatenbank eine **Vorschau**: Sie bietet Katalog und Vorlagen an, das Teilen von Tarifen bleibt aber geschlossen (der Server nimmt keine Beiträge an). Die Vorschau dient dem Testen, ist ohne jede Gewähr (maßgeblich ist das Preisblatt des Anbieters) und kann sich jederzeit ändern oder wegfallen.
 
 ## Roadmap
 

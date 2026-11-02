@@ -95,7 +95,7 @@ Only tariffs that are **not tailored to one person** are shared, and only **with
 
 The code is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE): source available; use for private, scientific, charitable and other **non-commercial** purposes is allowed; commercial use requires a separate license. This is not an open-source license in the OSI sense ("source-available").
 
-[LICENSE](LICENSE) and [NOTICE](NOTICE) apply to the code. The tariff catalog and tariff contributions are covered by **separate terms** and a privacy notice. These legal texts are written **per country in the national language** (Germany and Austria: German; Switzerland: German) and are published here **only after legal review**; until then there is neither catalog access nor upload.
+[LICENSE](LICENSE) and [NOTICE](NOTICE) apply to the code. The tariff catalog and tariff contributions are covered by **separate terms** and a privacy notice. These legal texts are written **per country in the national language** (Germany and Austria: German; Switzerland: German) and are published here **only after legal review**. Until then the tariff database is a **preview**: it offers the catalog and templates, but sharing tariffs stays closed (the server accepts no contributions). The preview is meant for testing, comes without any warranty (the supplier's price sheet decides) and may change or disappear at any time.
 
 ## Roadmap
 
