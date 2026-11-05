@@ -141,6 +141,15 @@ New in `0.1.d` Catalog P7, contract v2 since `0.1.d` D3; contract [catalog-excha
 
 Errors: `EXCHANGE_OFF` (`env`), `EXCHANGE_UNREACHABLE` (`route`), `EXCHANGE_ACCESS_DENIED` / `EXCHANGE_REJECTED` (`route`, `server_code`), `EXCHANGE_RATE_LIMITED` (`route`, `retry_after`), `EXCHANGE_ANSWER_INVALID` (`route`).
 
+## Number text per language (`edibert.i18n.numbers`)
+
+Decimal separator and number text for the UI languages, shared with hosts (new in `0.1.13`; Earnie writes its euro and cent amounts with it). Not part of `edibert.api` and not counted in `API_VERSION`; no Streamlit, no global state, the caller passes the language. Units stay with the caller: Edibert's own texts carry them in the catalogs.
+
+* `decimal_separator(language)`: `.` for `en`, `,` for `de`; `ValueError` for any other language. `Translator.number` uses it.
+* `format_fixed(value, decimals, language, *, signed=False)`: exactly `decimals` decimals with the separator of `language`; `signed=True` writes `+` before positive values (`+0,20`). No thousands grouping.
+* `plotly_separators(language)`: the value for Plotly `layout.separators` (`",."` for `de`, `".,"` for `en`).
+* `language_from_accept_language(header)`: the supported language the browser prefers most, ranked by `q` (ties keep the header order, `q=0` and an unreadable `q` drop the entry); `de-AT` counts as `de`. `None` when the header names no supported language or is missing; the host decides what then applies.
+
 ## Types and constants
 
 `TariffSet`, `Tariff`, `PriceResult`, `PricePoint`, `PriceSeries`, `PricingContext`, `GridArea`, `GridFee`, `GridFeeCatalog`, `GridFeeConfig`, `CapacityBand`, `CapacityCharge`, `CapacityState`, `CapacityLadder`, `LadderRung`, `HoldLastForecaster`, `MirrorForecaster`, `MarketArchive`, `MarketData`, `MarketRange`, `MarketSourceError`, `MigrationPlan`, `MigrationQuestion`, `MigrationBlocker`, `MigrationResult`, `DbRef` (`id`, `version`), `CatalogCheck` (`state`, `checked_at`, `source`, `released_by`), `CatalogPackage`, `PackageManifest`, `ImportPlan`, `EntryChange`, `MonthConflict`; `KEEP_LOCAL`, `TAKE_PACKAGE`, `IMPORT`, `EXPORT`, `RESOLUTIONS`, `USER_PREFIX`, `TARIFF_FORMAT` (current version, `1`), `TARIFF_TRACK_FILES`, `STANDARD_VAT_PERCENT` (`{"AT": 20.0, "DE": 19.0, "CH": 8.1}`, prefill only), `METHOD_EXACT`, `METHOD_MIRROR`, `METHOD_HOLD`, `FALLBACK_PRIOR_YEAR` (`prior_year`), `FALLBACK_PRIOR_MONTH` (`prior_month`), `CHECK_STATES` (`unchecked`, `checked`, `released_by_supplier`, `rejected`), `TRUST_LEVELS` (strongest first).
