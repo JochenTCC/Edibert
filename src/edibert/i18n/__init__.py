@@ -16,6 +16,7 @@ from functools import cache
 from importlib import resources
 
 from edibert.errors import EdibertError, EdibertWarning
+from edibert.i18n.numbers import decimal_separator
 
 SOURCE_LANGUAGE = "en"
 SUPPORTED_LANGUAGES = ("en", "de")
@@ -82,11 +83,12 @@ class Translator:
             ) from exc
 
     def number(self, value: float, decimals: int = 4) -> str:
-        """Number with at least two and at most ``decimals`` decimals, decimal comma in German."""
+        """Number with at least two and at most ``decimals`` decimals and the language's decimal separator."""
         text = f"{value:.{decimals}f}".rstrip("0")
         whole, _, frac = text.partition(".")
         text = f"{whole}.{frac.ljust(2, '0')}"
-        return text.replace(".", ",") if self.language == "de" else text
+        separator = decimal_separator(self.language)
+        return text if separator == "." else text.replace(".", separator)
 
     def field_name(self, path: str) -> str:
         """Readable name of a field path: ``user_x.rules[night].time.from`` -> "Von". Unknown names stay as they are."""

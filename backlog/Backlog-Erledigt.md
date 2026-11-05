@@ -2,6 +2,10 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Number text per language shared with hosts (0.1.13, 2026-11-05)
+
+- [x] **Number text per language for hosts** *(asked by the maintainer 2026-11-05, from Earnie's backlog item "Decimal separator in the UI")*: `edibert.i18n.numbers` with `decimal_separator`, `format_fixed`, `plotly_separators` and `language_from_accept_language`; `Translator.number` takes its separator from there. Earnie maps the browser language to `en`/`de` with it and keeps its own units (`€`, `ct/kWh`). Spec `docs/spec/api.md` § Number text per language; tests `tests/test_i18n_numbers.py`. Released as `0.1.13`.
+
 ### Editor: persistence and logic tests for the embedded editor (0.1.h, 2026-10-31)
 
 - [x] **0.1.h — Editor: persistence and logic tests for the embedded editor** *(split decided 2026-10-27, Earnie `docs/dev/edibert-integration.md` § P7 D1; test concept "Earnie UI-Persistenztests")*
