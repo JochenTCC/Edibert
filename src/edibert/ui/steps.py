@@ -17,6 +17,7 @@ from edibert.identity import differs_from_db
 from edibert.rules import HOLIDAY_MODES, REQUIRES
 from edibert.tariff import EXPORT, IMPORT
 from edibert.ui import state, widgets
+from edibert.ui.number_columns import localized_number_column
 from edibert.ui.sidebar import region_label
 
 
@@ -59,7 +60,9 @@ def _monthly_fields(t: Translator, draft: TariffDraft) -> None:
     frame = pd.DataFrame(
         draft.monthly_rates or [(today.year, today.month, 0.0)], columns=["year", "month", "cent"]
     ).astype({"year": "int64", "month": "int64", "cent": "float64"})
-    edited = st.data_editor(frame, num_rows="dynamic", hide_index=True, key=state.key("rates"))
+    edited = st.data_editor(
+        frame, num_rows="dynamic", hide_index=True, column_config={"cent": localized_number_column()}, key=state.key("rates")
+    )
     draft.monthly_rates = [
         (int(row.year), int(row.month), float(row.cent)) for row in edited.dropna().itertuples() if 1 <= int(row.month) <= 12
     ]

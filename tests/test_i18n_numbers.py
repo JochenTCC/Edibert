@@ -5,6 +5,7 @@ from edibert.i18n.numbers import (
     DECIMAL_SEPARATORS,
     decimal_separator,
     format_fixed,
+    format_general,
     language_from_accept_language,
     plotly_separators,
 )
@@ -34,6 +35,25 @@ def test_unknown_language_fails_loudly():
 )
 def test_format_fixed(value, decimals, language, signed, expected):
     assert format_fixed(value, decimals, language, signed=signed) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "language", "expected"),
+    [
+        (2.5, "de", "2,5"),
+        (2.5, "en", "2.5"),
+        (3.0, "de", "3"),
+        (0.125, "de", "0,125"),
+        (-1.5, "en", "-1.5"),
+    ],
+)
+def test_format_general(value, language, expected):
+    assert format_general(value, language) == expected
+
+
+def test_format_general_unknown_language_fails_loudly():
+    with pytest.raises(ValueError):
+        format_general(1.5, "fr")
 
 
 def test_plotly_separators():

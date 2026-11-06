@@ -28,6 +28,13 @@ def format_fixed(value: float, decimals: int, language: str, *, signed: bool = F
     return text if separator == "." else text.replace(".", separator)
 
 
+def format_general(value: float, language: str) -> str:
+    """``value`` as ``:g`` writes it (no trailing zeros), with the separator of ``language``."""
+    separator = decimal_separator(language)
+    text = f"{value:g}"
+    return text if separator == "." else text.replace(".", separator)
+
+
 def plotly_separators(language: str) -> str:
     """Plotly ``layout.separators``: the decimal mark, then the thousands mark."""
     return decimal_separator(language) + _THOUSANDS_SEPARATORS[language]

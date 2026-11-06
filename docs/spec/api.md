@@ -147,8 +147,11 @@ Decimal separator and number text for the UI languages, shared with hosts (new i
 
 * `decimal_separator(language)`: `.` for `en`, `,` for `de`; `ValueError` for any other language. `Translator.number` uses it.
 * `format_fixed(value, decimals, language, *, signed=False)`: exactly `decimals` decimals with the separator of `language`; `signed=True` writes `+` before positive values (`+0,20`). No thousands grouping.
+* `format_general(value, language)`: as `:g` writes it (`2,5`, `3`), with the separator of `language` (new in `0.1.14`).
 * `plotly_separators(language)`: the value for Plotly `layout.separators` (`",."` for `de`, `".,"` for `en`).
 * `language_from_accept_language(header)`: the supported language the browser prefers most, ranked by `q` (ties keep the header order, `q=0` and an unreadable `q` drop the entry); `de-AT` counts as `de`. `None` when the header names no supported language or is missing; the host decides what then applies.
+
+`edibert.ui.number_columns.localized_number_column(label=None, *, decimals=None, **options)` (new in `0.1.14`, needs the `ui` extra): a Streamlit `NumberColumn` with the `localized` format, so a table's numbers follow the browser's locale and still sort as numbers. `decimals` fixes the digits shown and sets `step`, which also limits input in `st.data_editor`; `ValueError` when `step` is passed as well.
 
 ## Types and constants
 

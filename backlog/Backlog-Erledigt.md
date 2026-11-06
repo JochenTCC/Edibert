@@ -2,6 +2,10 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Numbers in tables and without fixed digits for hosts (0.1.14, 2026-11-06)
+
+- [x] **Numbers in tables and without fixed digits for hosts** *(asked by the maintainer 2026-11-06, from Earnie's backlog item "Decimal separator for non-currency numbers")*: `edibert.i18n.numbers.format_general` writes a number as `:g` does, with the separator of the language. `edibert.ui.number_columns.localized_number_column` is a `NumberColumn` in the browser's locale whose values stay numeric. The monthly-rate table's `cent` column uses it, so it shows a comma in a German browser. Checked in the browser: comma in view and editor, numeric sorting, comma input read as a decimal, the stored value keeps its digits. Spec `docs/spec/api.md` § Number text per language; tests `tests/test_i18n_numbers.py`, `tests/test_ui_number_columns.py`.
+
 ### Number text per language shared with hosts (0.1.13, 2026-11-05)
 
 - [x] **Number text per language for hosts** *(asked by the maintainer 2026-11-05, from Earnie's backlog item "Decimal separator in the UI")*: `edibert.i18n.numbers` with `decimal_separator`, `format_fixed`, `plotly_separators` and `language_from_accept_language`; `Translator.number` takes its separator from there. Earnie maps the browser language to `en`/`de` with it and keeps its own units (`€`, `ct/kWh`). Spec `docs/spec/api.md` § Number text per language; tests `tests/test_i18n_numbers.py`. Released as `0.1.13`.
