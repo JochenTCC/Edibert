@@ -7,7 +7,15 @@ from pathlib import Path
 import pytest
 
 pytest.importorskip("streamlit")
-from overview_helpers import action, labels, run_action, select, show_view, table
+from overview_helpers import (
+    action,
+    comparison,
+    labels,
+    run_action,
+    select,
+    show_view,
+    table,
+)
 from streamlit.testing.v1 import AppTest
 
 import edibert.ui as ui_package
@@ -363,11 +371,11 @@ def test_actions_that_do_not_fit_are_disabled_and_say_why(data_dir, tmp_path, mo
     assert all(action(app, "import", name).disabled for name in ("open", "copy", "delete", "compare"))
     assert action(app, "import", "compare").help == "Compare: select one to five tariffs."
     select(app, "import", ["Alpha Fix"])
-    assert action(app, "import", "open").help == "Open: select exactly one own tariff."
-    assert action(app, "import", "delete").help == "Delete: select one or more own tariffs and no catalog tariff."
+    assert action(app, "import", "open").help.startswith("Open: select exactly one own tariff")
+    assert action(app, "import", "delete").help.startswith("Delete: select one or more own tariffs")
     assert not action(app, "import", "copy").disabled and not action(app, "import", "compare").disabled
     run_action(app, "import", "compare")
-    assert any(item.value.startswith("Chosen for the comparison: Alpha Fix.") for item in app.caption)
+    assert "#### Comparison (1)" in [item.value for item in app.markdown]
     assert all(action(app, "export", name).disabled for name in ("open", "copy", "delete", "compare"))  # per table
 
 
@@ -432,3 +440,52 @@ def test_filters_survive_a_visit_to_the_edit_view(data_dir, tmp_path, monkeypatc
     assert labels(app, "import") == ["Beta Net"]
     assert "Selected (1): Beta Net." in [item.value for item in app.caption]
     assert not app.warning and not app.exception
+
+
+def _comparison_catalog(tmp_path: Path, count: int = 3) -> Path:
+    """Placeholder import tariffs: two fixed prices and a market-price tariff, plus extra fixed ones up to ``count``."""
+
+    def entry(tariff_id: str, label: str, tariff_type: str = "fixed_cent", **extra) -> dict:
+        return {"id": tariff_id, "label": label, "type": tariff_type, "land": "AT", "supplier_id": f"s_{tariff_id}", "vat_percent": 20, **extra}
+
+    imports = [entry("at_one", "One", fix_cent_kwh=24.0), entry("at_two", "Two", fix_cent_kwh=24.0, monthly_fee_eur=3.0),
+               entry("at_spot", "Spot", "spot_hourly", markup_percent=1.0)]  # fmt: skip
+    imports += [entry(f"at_more{n}", f"More {n}", fix_cent_kwh=20.0 + n) for n in range(count - 3)]
+    path = tmp_path / "tariffs.json"
+    path.write_text(json.dumps({"tariff_format": 1, "import_tariffs": imports, "export_tariffs": []}), encoding="utf-8")
+    return path
+
+
+def test_comparison_shows_parameters_and_day_curves(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv(ENV_CATALOG, str(_comparison_catalog(tmp_path)))
+    app = start()
+    select(app, "import", ["One", "Two", "Spot"])
+    run_action(app, "import", "compare")
+    assert "#### Comparison (3)" in [item.value for item in app.markdown]
+    table = comparison(app, "import")
+    assert list(table.columns) == ["diff", "parameter", "One", "Two", "Spot"]
+    fee = table[table["parameter"] == "Monthly fee EUR/month"].iloc[0]
+    assert (fee["diff"], fee["One"], fee["Two"]) == ("≠", "", "3.00")
+    app.toggle(key="ov.import.cmp.diff").set_value(True).run()
+    table = comparison(app, "import")
+    assert set(table["diff"]) == {"≠"}
+    assert "Supplier" in list(table["parameter"]) and "Country" not in list(table["parameter"])
+    assert app.get("vega_lite_chart") or app.get("arrow_vega_lite_chart")  # one chart with all curves
+    assert "Market tariff: shown with an example market curve, not a forecast." in [item.value for item in app.caption]
+    app.selectbox(key="ov.import.cmp.day").select("holiday").run()
+    assert any("no holiday curve" in item.value for item in app.warning)  # the house has no region: said, not skipped
+    app.button(key="ov.import.cmp.close").click().run()
+    assert "#### Comparison (3)" not in [item.value for item in app.markdown]
+    assert not app.exception
+
+
+def test_comparison_with_more_than_five_draws_nothing_and_says_so(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv(ENV_CATALOG, str(_comparison_catalog(tmp_path, count=6)))
+    app = start()
+    select(app, "import", ["One", "Two"])
+    run_action(app, "import", "compare")
+    select(app, "import", labels(app, "import"))  # all six: the comparison follows the selection
+    assert action(app, "import", "compare").disabled
+    assert any(item.value.startswith("6 tariffs are selected; the comparison shows at most five.") for item in app.warning)
+    assert comparison(app, "import") is None
+    assert not (app.get("vega_lite_chart") or app.get("arrow_vega_lite_chart"))

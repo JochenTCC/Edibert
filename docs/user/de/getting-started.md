@@ -1,4 +1,4 @@
-<!-- source: docs/user/en/getting-started.md @ 0.1.d2 -->
+<!-- source: docs/user/en/getting-started.md @ 0.1.c2 -->
 # Erste Schritte
 
 ## Installation
@@ -17,7 +17,7 @@ pip install -e ".[ui]"
 python -m edibert ui --data-dir edibert_data
 ```
 
-Danach `http://localhost:8501` im Browser öffnen. Mit `--lang de` vor `ui` startet er auf Deutsch, mit `--port 8601` auf einem anderen Port, und mit `--catalog tariffs.json` kannst du Tarife aus einer Katalogdatei kopieren.
+Danach `http://localhost:8501` im Browser öffnen. Mit `--lang de` vor `ui` startet er auf Deutsch, mit `--port 8601` auf einem anderen Port, und mit `--catalog tariffs.json` stehen die Tarife einer Katalogdatei in der Übersicht, wo du sie vergleichen und kopieren kannst.
 
 ```bash
 python -m edibert --lang de ui --data-dir edibert_data --catalog tariffs.json

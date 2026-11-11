@@ -1,13 +1,13 @@
-<!-- source: docs/user/en/import.md @ 0.1.c -->
+<!-- source: docs/user/en/import.md @ 0.1.c2 -->
 # Import und Kopieren
 
-## Einen Katalogtarif kopieren
+## Einen Katalogtarif oder eine Vorlage kopieren
 
-Wenn du den Editor mit `--catalog tariffs.json` gestartet hast, öffne in der Seitenleiste **Katalogtarif kopieren**, wähle einen Tarif und klicke auf **Als Vorlage kopieren**. Du erhältst einen eigenen, änderbaren Tarif mit neuer ID (`user_...`) und dem Namen um „(Kopie)“ ergänzt. Der Katalog selbst bleibt unverändert. Typisch: einen Tarif nehmen, der fast deiner ist, und den Preis ändern.
+Wenn du den Editor mit `--catalog tariffs.json` gestartet hast, stehen die Katalogtarife in der Übersicht (siehe [Der Tarif-Editor](editor.md)). Wähle einen aus und klicke auf **Als Vorlage kopieren**: Du erhältst einen eigenen, änderbaren Tarif mit neuer ID (`user_...`) und dem Namen um „(Kopie)“ ergänzt, geöffnet in der Ansicht Bearbeiten und noch nicht gespeichert. Wählst du mehrere aus und klickst **Als Vorlage kopieren**, werden alle Kopien sofort gespeichert, ohne sie zu öffnen. Vorlagen der Tarifdatenbank kopierst du genauso, sobald sie geladen sind. Der Katalog selbst bleibt unverändert. Typisch: einen Tarif nehmen, der fast deiner ist, und den Preis ändern.
 
 ## JSON importieren
 
-Öffne in der Seitenleiste **JSON importieren** und füge das Tarif-JSON ein oder lade eine `.json`-Datei hoch. Edibert prüft jeden Tarif und sagt dir, was es gefunden hat:
+Öffne unter den Tabellen der Übersicht **JSON importieren** und füge das Tarif-JSON ein oder lade eine `.json`-Datei hoch. Edibert prüft jeden Tarif und sagt dir, was es gefunden hat:
 
 - *gültig:* bereit zum Hinzufügen.
 - *umbenannt:* eigene Tarif-IDs müssen mit `user_` beginnen, eine andere ID wird deshalb umbenannt.

@@ -16,7 +16,7 @@ pip install -e ".[ui]"
 python -m edibert ui --data-dir edibert_data
 ```
 
-Then open `http://localhost:8501` in your browser. Add `--lang de` before `ui` to start in German, `--port 8601` to use another port, and `--catalog tariffs.json` if you want to copy tariffs from a catalog file.
+Then open `http://localhost:8501` in your browser. Add `--lang de` before `ui` to start in German, `--port 8601` to use another port, and `--catalog tariffs.json` to list the tariffs of a catalog file in the overview, where you can compare and copy them.
 
 ```bash
 python -m edibert --lang de ui --data-dir edibert_data --catalog tariffs.json

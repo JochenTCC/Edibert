@@ -16,7 +16,9 @@ from typing import Any
 
 from edibert.editor.catalog import CatalogEntry, applies_to_region, type_key
 from edibert.editor.userstore import SECTIONS, copy_as_template
-from edibert.tariff import EXPORT, IMPORT, Tariff, parse_tariff
+from edibert.exchange import Template
+from edibert.tariff import EXPORT, IMPORT, DbRef, Tariff, parse_tariff
+from edibert.trust import trust_level
 
 
 class Origin(StrEnum):
@@ -83,7 +85,7 @@ _TAIL = (
     Column("valid_from", Unit.DATE, False),
     Column("valid_to", Unit.DATE, False),
     Column("last_verified", Unit.DATE, False),
-    Column("check", Unit.CODE, False),
+    Column("check", Unit.CODE, True),  # check state of a catalog entry, trust level of a template
 )
 
 
@@ -96,11 +98,18 @@ def columns(direction: str) -> tuple[Column, ...]:
 
 @dataclass(frozen=True)
 class OverviewRow:
-    """One tariff in the table: where it comes from, the stored entry and the parsed tariff."""
+    """One tariff in the table: where it comes from, the stored entry and the parsed tariff.
+
+    Template rows also carry their database reference (the copy keeps it), their trust level and whether the
+    database knows a checked version of the same tariff.
+    """
 
     origin: Origin
     raw: Mapping[str, Any]
     tariff: Tariff
+    db_ref: DbRef | None = None
+    trust: str | None = None
+    checked_version_exists: bool = False
 
     @property
     def key(self) -> str:
@@ -117,14 +126,39 @@ def _row(origin: Origin, raw: Mapping[str, Any], direction: str) -> OverviewRow:
     return OverviewRow(origin, raw, parse_tariff(raw, direction))
 
 
-def build_rows(direction: str, user_document: Mapping[str, Any], catalog: Iterable[CatalogEntry] = ()) -> list[OverviewRow]:
-    """Own tariffs (file order), then the catalog entries of ``direction`` (as ``read_catalog`` returns them).
+def template_row(template: Template) -> OverviewRow:
+    """A loaded template as a row: the payload tariff under the local part of its database ID (as the copy names
+    it), parsed strictly; an invalid template raises."""
+    parts = template.db_id.split("/", 2)
+    if len(parts) != 3 or not parts[2]:
+        raise ValueError(f"Template database ID '{template.db_id}' is not '<land>/<direction>/<id>'.")
+    raw = {**template.tariff, "id": parts[2]}
+    return OverviewRow(
+        Origin.TEMPLATE, raw, parse_tariff(raw, template.direction), db_ref=template.db_ref,
+        trust=trust_level(template.check_state, template.reliable),
+        checked_version_exists=template.latest_checked_version is not None,
+    )  # fmt: skip
+
+
+def build_rows(
+    direction: str,
+    user_document: Mapping[str, Any],
+    catalog: Iterable[CatalogEntry] = (),
+    templates: Iterable[OverviewRow] = (),
+) -> list[OverviewRow]:
+    """Own tariffs (file order), the catalog entries of ``direction`` (as ``read_catalog`` returns them), then the
+    template rows of ``direction`` (see :func:`template_row`).
 
     Every entry is parsed; an invalid or unsupported one raises (no row is dropped silently).
     """
     columns(direction)  # checks the direction
     rows = [_row(Origin.OWN, raw, direction) for raw in user_document.get(SECTIONS[direction], [])]
     rows.extend(_row(Origin.CATALOG, entry.raw, direction) for entry in catalog if entry.direction == direction)
+    for row in templates:
+        if row.origin != Origin.TEMPLATE:
+            raise ValueError(f"Row '{row.key}' passed as template.")
+        if row.tariff.direction == direction:
+            rows.append(row)
     return rows
 
 
@@ -237,7 +271,7 @@ def row_values(row: OverviewRow, basis: Basis, today: date) -> RowValues:
         "valid_from": tariff.valid_from,
         "valid_to": tariff.valid_to,
         "last_verified": tariff.last_verified,
-        "check": tariff.check.state if tariff.check is not None else None,
+        "check": row.trust if row.trust is not None else (tariff.check.state if tariff.check is not None else None),
     }
     if tariff.direction == IMPORT:
         values["base_price"] = on_basis(price, tariff, basis)

@@ -15,7 +15,7 @@ pip install -e ".[ui]"
 python -m edibert ui --data-dir edibert_data
 ```
 
-Open `http://localhost:8501`. Four steps (base price, time windows, further costs, advanced), live price curve, price at a given time, check against a real invoice, copy a catalog tariff, import JSON. English and German. See the [user manual](docs/user/en/index.md).
+Open `http://localhost:8501`. Four steps (base price, time windows, further costs, advanced), live price curve, price at a given time, check against a real invoice, a tariff overview with your own tariffs, the catalog and templates side by side (filter, gross/net, compare up to five with their day curves, copy, delete), import JSON. English and German. See the [user manual](docs/user/en/index.md).
 
 ## Publish over MQTT
 
@@ -69,7 +69,7 @@ Edibert models this with a few building blocks, **without hand-written JSON**, a
 | Rule engine | Base price + time rules (months, weekdays, time of day, holidays), floor/cap, VAT, grid fee |
 | Price series | Calculated prices for a selectable horizon (15, 30 or 60 minutes), for import **and** feed-in |
 | Output | Home Assistant sensors (`raw_today`, `raw_tomorrow`, `forecast`) and MQTT (retained, with HA discovery) |
-| Import | Catalog tariff as template, JSON file, price series (CSV), later a price-sheet assistant |
+| Import | Catalog tariff or template as template (one or several from the overview), JSON file, price series (CSV), later a price-sheet assistant |
 | Holidays | From the [`holidays`](https://github.com/vacanza/holidays) library (DE/AT/CH by federal state or canton), offline |
 
 Non-goals: comparing or brokering tariffs, creating invoices, controlling devices. Edibert only delivers prices.

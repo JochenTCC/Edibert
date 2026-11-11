@@ -9,11 +9,14 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from datetime import date
+from typing import Any
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
 from edibert.editor.catalog import catalog_package, read_catalog
+from edibert.editor.comparison import TooManyToCompare, day_curves, parameter_lines
 from edibert.editor.overview import (
     DIRECTIONS,
     Action,
@@ -38,16 +41,19 @@ from edibert.editor.overview import (
     rows_of,
     selected_positions,
     selection_stamp,
+    template_row,
 )
+from edibert.editor.preview import DAY_KEYS
 from edibert.editor.userstore import (
     delete_user_tariff,
     read_document,
     save_user_tariff,
     user_tariff_ids,
 )
+from edibert.errors import EdibertError
 from edibert.i18n import Translator
 from edibert.identity import db_ref_for
-from edibert.ui import state
+from edibert.ui import preview, state
 from edibert.ui.config import UiConfig
 from edibert.ui.number_columns import localized_number_column
 
@@ -90,7 +96,7 @@ def _filters(t: Translator, direction: str, rows: list[OverviewRow], house_land:
                    lambda c: _all_or(t, c, str))  # fmt: skip
     kind = _choice(kind_col, t.t("ui.ov.filter_kind"), [ALL, *kinds_of(rows)], f"ov.{direction}.kind", ALL,
                    lambda k: _all_or(t, k, lambda v: kind_label(t, v)))  # fmt: skip
-    origins = [ALL, *(str(origin) for origin in (Origin.OWN, Origin.CATALOG))]
+    origins = [ALL, *(str(origin) for origin in Origin if origin != Origin.TEMPLATE or any(r.origin == origin for r in rows))]
     origin = _choice(origin_col, t.t("ui.ov.filter_origin"), origins, f"ov.{direction}.origin", ALL,
                      lambda o: _all_or(t, o, lambda v: t.t(f"ui.ov.origin.{v}")))  # fmt: skip
     name = f"ov.{direction}.text"
@@ -168,9 +174,13 @@ def _table(t: Translator, direction: str, shown: list[OverviewRow], basis: Basis
 
 
 def _db_ref(config: UiConfig, row: OverviewRow) -> Mapping[str, str] | None:
-    """The database reference a copy carries: catalog entries of a package catalog only."""
+    """The database reference a copy carries: a template's own, a catalog entry's for a package catalog only."""
+    if row.origin == Origin.TEMPLATE:
+        if row.db_ref is None:
+            raise ValueError(f"Template row '{row.key}' without a database reference.")
+        return row.db_ref.to_dict()
     if row.origin != Origin.CATALOG:
-        raise ValueError(f"Row '{row.key}' cannot be copied here (templates join the table in P4c).")
+        raise ValueError(f"Row '{row.key}' is no catalog entry or template.")
     if config.catalog is None:
         raise ValueError(f"Catalog row '{row.key}' without a catalog file.")
     return db_ref_for(row.raw, row.tariff.direction) if catalog_package(config.catalog) is not None else None
@@ -224,7 +234,125 @@ def _open(direction: str, chosen: list[OverviewRow], leave: Leave) -> None:
 
 def _compare(direction: str, chosen: list[OverviewRow]) -> None:
     require(Action.COMPARE, chosen)
-    state.set_compared(direction, tuple(row.key for row in chosen))
+    state.set_comparing(direction, True)
+
+
+def _text(t: Translator, column: Column, value: Any) -> str:
+    """A parameter value as text (the comparison table mixes kinds of values in one column)."""
+    value = _cell(t, column, value)
+    if value is None:
+        return ""
+    if isinstance(value, float):
+        return t.number(value) if column.unit != Unit.PERCENT else f"{t.number(value)} %"
+    if isinstance(value, date):
+        return value.isoformat()
+    return str(value)
+
+
+def _headers(chosen: list[OverviewRow]) -> list[str]:
+    """Column titles: the labels, made unique (the same label can be own tariff and catalog entry)."""
+    titles: list[str] = []
+    for row in chosen:
+        title, number = row.tariff.label, 2
+        while title in titles:
+            title, number = f"{row.tariff.label} ({number})", number + 1
+        titles.append(title)
+    return titles
+
+
+def _parameters(t: Translator, direction: str, chosen: list[OverviewRow], basis: Basis, today: date) -> None:
+    name = f"ov.{direction}.cmp.diff"
+    only = st.toggle(t.t("ui.ov.cmp_diff_only"), value=state.kept(name, False), key=state.k(name))
+    state.keep(name, only)
+    titles = _headers(chosen)
+    lines = [line for line in parameter_lines(chosen, basis, today) if line.differs or not only]
+    if not lines:
+        st.caption(t.t("ui.ov.cmp_no_diff"))
+        return
+    frame = pd.DataFrame(
+        [
+            {"diff": "≠" if line.differs else "", "parameter": _header(t, line.column, None),
+             **{title: _text(t, line.column, value) for title, value in zip(titles, line.values, strict=True)}}
+            for line in lines
+        ],
+        columns=["diff", "parameter", *titles],
+    )  # fmt: skip
+    st.dataframe(
+        frame, hide_index=True, key=state.k(f"ov.{direction}.cmp.table"),
+        column_config={"diff": st.column_config.TextColumn("≠", help=t.t("ui.ov.cmp_diff_help"), width="small"),
+                       "parameter": st.column_config.TextColumn(t.t("ui.ov.cmp_parameter"))},
+    )  # fmt: skip
+
+
+def _gap_text(t: Translator, label: str, gap, month: int) -> str:
+    if gap.reason == "error":
+        return t.t("ui.ov.cmp_gap.error", label=label, message=t.error(gap.error))
+    return t.t(f"ui.ov.cmp_gap.{gap.reason}", label=label, month=t.t(f"month.{month}"))
+
+
+def _chart(t: Translator, config: UiConfig, direction: str, chosen: list[OverviewRow], basis: Basis, today: date) -> None:
+    st.markdown(f"**{t.t('ui.ov.cmp_chart')}**")
+    month_col, day_col = st.columns(2)
+    name = f"ov.{direction}.cmp.month"
+    months = list(range(1, 13))
+    month = month_col.selectbox(
+        t.t("ui.preview_month"), months, index=months.index(state.kept(name, today.month)),
+        format_func=lambda m: t.t(f"month.{m}"), key=state.k(name),
+    )  # fmt: skip
+    state.keep(name, month)
+    name = f"ov.{direction}.cmp.day"
+    day_key = day_col.selectbox(
+        t.t("ui.ov.cmp_day"), list(DAY_KEYS), index=DAY_KEYS.index(state.kept(name, "weekday")),
+        format_func=lambda d: t.t(f"ui.day.{d}"), key=state.k(name),
+    )  # fmt: skip
+    state.keep(name, day_key)
+    ctx, grid_fee, _capabilities = preview._house_facts(config)
+    curves = day_curves(chosen, ctx, grid_fee, today.year, month, day_key, basis)
+    titles = dict(zip((row.key for row in chosen), _headers(chosen), strict=True))
+    if any(row.tariff.uses_market_price for row in chosen):
+        st.caption(t.t("ui.preview_spot_note"))
+    for gap in curves.gaps:
+        st.warning(_gap_text(t, titles[gap.row_key], gap, month))
+    for row_key, note in curves.notes:
+        st.warning(f"{titles[row_key]}: {t.warning(note)}")
+    if not curves.points:
+        return
+    frame = pd.DataFrame([{"hour": p.hour, "cent": p.cent, "tariff": titles[p.row_key]} for p in curves.points])
+    chart = (
+        alt.Chart(frame)
+        .mark_line(interpolate="step-after")
+        .encode(
+            x=alt.X("hour:Q", title=t.t("ui.chart_x"), scale=alt.Scale(domain=[0, 24])),
+            y=alt.Y("cent:Q", title=t.t("ui.ov.cmp_chart_y", basis=t.t(f"ui.ov.basis.{basis}"))),
+            # a categorical palette: one clearly different colour per tariff (the theme default is shades of blue)
+            color=alt.Color("tariff:N", title=None, sort=list(titles.values()), scale=alt.Scale(scheme="tableau10")),
+            tooltip=["tariff", "hour", "cent"],
+        )
+    )
+    st.altair_chart(chart, width="stretch")
+
+
+def _comparison(t: Translator, config: UiConfig, direction: str, chosen: list[OverviewRow], basis: Basis, today: date) -> None:
+    """The comparison of the selected rows, below the table; it follows the selection until it is closed."""
+    if not state.comparing(direction):
+        return
+    with st.container(border=True):
+        head, close = st.columns([4, 1], vertical_alignment="center")
+        head.markdown(f"#### {t.t('ui.ov.cmp_title', count=len(chosen))}")
+        close.button(t.t("ui.ov.cmp_close"), key=state.k(f"ov.{direction}.cmp.close"),
+                     on_click=state.bound(state.set_comparing), args=(direction, False), width="stretch")  # fmt: skip
+        if not chosen:
+            st.caption(t.t("ui.ov.why.compare_none"))
+            return
+        try:
+            _parameters(t, direction, chosen, basis, today)
+        except TooManyToCompare:
+            st.warning(t.t("ui.ov.cmp_limit", count=len(chosen)))  # no chart, never the first five
+            return
+        try:
+            _chart(t, config, direction, chosen, basis, today)
+        except EdibertError as err:
+            st.error(t.error(err))
 
 
 def _delete_prompt(t: Translator, config: UiConfig, direction: str) -> None:
@@ -267,9 +395,6 @@ def _actions(t: Translator, config: UiConfig, direction: str, rows: list[Overvie
             help=t.t(f"ui.ov.why.{reason}") if reason else None, on_click=state.bound(handler), args=args, width="stretch",
         )  # fmt: skip
     _delete_prompt(t, config, direction)
-    compared = rows_of(rows, state.compared(direction))
-    if compared:
-        st.caption(t.t("ui.ov.compare_pending", labels=", ".join(row.tariff.label for row in compared)))
 
 
 def _tab(t: Translator, config: UiConfig, direction: str, rows: list[OverviewRow], basis: Basis, today: date,
@@ -288,13 +413,36 @@ def _tab(t: Translator, config: UiConfig, direction: str, rows: list[OverviewRow
     else:
         st.caption(t.t("ui.ov.none"))
     state.set_selection(direction, selected)
+    checked = [row.tariff.label for row in shown if row.checked_version_exists]
+    if checked:
+        st.info(t.t("ui.ov.checked_exists", labels=", ".join(checked)))
     visible = {row.key for row in shown}
-    _actions(t, config, direction, rows, rows_of(rows, selected), len(selected - visible), leave)
+    chosen_rows = rows_of(rows, selected)
+    _actions(t, config, direction, rows, chosen_rows, len(selected - visible), leave)
+    _comparison(t, config, direction, chosen_rows, basis, today)
 
 
 def _tab_title(t: Translator, direction: str, rows: list[OverviewRow]) -> str:
     per_origin = counts(rows)
-    return t.t("ui.ov.tab", direction=t.t(f"ui.direction.{direction}"), own=per_origin[Origin.OWN], catalog=per_origin[Origin.CATALOG])
+    title = t.t("ui.ov.tab", direction=t.t(f"ui.direction.{direction}"), own=per_origin[Origin.OWN], catalog=per_origin[Origin.CATALOG])
+    templates = per_origin[Origin.TEMPLATE]
+    return f"{title} {t.t('ui.ov.tab_templates', count=templates)}" if templates else title
+
+
+def _template_rows(t: Translator) -> list[OverviewRow]:
+    """Rows of the templates loaded from the tariff database, while the opt-in is on. A template that does not
+    parse is named, not shown."""
+    loaded = state.templates()
+    if loaded is None or not state.kept("templates.opt_in", False):
+        return []
+    rows = []
+    for template in loaded[1].templates:  # type: ignore[attr-defined]
+        try:
+            rows.append(template_row(template))
+        except (EdibertError, ValueError) as err:
+            message = t.error(err) if isinstance(err, EdibertError) else str(err)
+            st.warning(t.t("ui.ov.template_invalid", db_id=template.db_id, message=message))
+    return rows
 
 
 def render(t: Translator, config: UiConfig, house_land: str | None, house_region: str | None, leave: Leave,
@@ -304,7 +452,6 @@ def render(t: Translator, config: UiConfig, house_land: str | None, house_region
     day = today or date.today()
     document = read_document(config.user_file)
     catalog = read_catalog(config.catalog, day) if config.catalog is not None else []
-    rows = {direction: build_rows(direction, document, catalog) for direction in DIRECTIONS}
     head, switch = st.columns([3, 2])
     head.subheader(t.t("ui.ov.title"))
     chosen = switch.segmented_control(
@@ -315,6 +462,8 @@ def render(t: Translator, config: UiConfig, house_land: str | None, house_region
     basis = Basis(chosen)
     if config.catalog is None:
         st.caption(t.t("ui.no_catalog"))
+    templates = _template_rows(t)
+    rows = {direction: build_rows(direction, document, catalog, templates) for direction in DIRECTIONS}
     tabs = st.tabs([_tab_title(t, direction, rows[direction]) for direction in DIRECTIONS])
     for tab, direction in zip(tabs, DIRECTIONS, strict=True):
         with tab:

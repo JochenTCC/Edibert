@@ -15,8 +15,15 @@ def show_view(app: AppTest, view: str, prefix: str = "") -> None:
 
 def table(app: AppTest, direction: str):
     """The table of the overview tab ``direction`` as a DataFrame (the overview's tabs come first on the page)."""
-    (frame,) = app.tabs[DIRECTIONS.index(direction)].dataframe
+    frames = app.tabs[DIRECTIONS.index(direction)].dataframe
+    (frame,) = [frame for frame in frames if "parameter" not in frame.value.columns]  # not the comparison table
     return frame.value
+
+
+def comparison(app: AppTest, direction: str):
+    """The parameter table of the comparison in tab ``direction``, or ``None`` when none is drawn."""
+    frames = [frame.value for frame in app.tabs[DIRECTIONS.index(direction)].dataframe if "parameter" in frame.value.columns]
+    return frames[0] if frames else None
 
 
 def labels(app: AppTest, direction: str) -> list[str]:

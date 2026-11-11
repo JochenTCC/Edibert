@@ -15,7 +15,7 @@ pip install -e ".[ui]"
 python -m edibert ui --data-dir edibert_data
 ```
 
-`http://localhost:8501` öffnen. Vier Schritte (Basispreis, Zeitfenster, weitere Kosten, erweitert), Preisverlauf live, Preis zu einem Zeitpunkt, Prüfung gegen eine echte Rechnung, Katalogtarif kopieren, JSON importieren. Deutsch und Englisch. Siehe die [Bedienungsanleitung](docs/user/de/index.md).
+`http://localhost:8501` öffnen. Vier Schritte (Basispreis, Zeitfenster, weitere Kosten, erweitert), Preisverlauf live, Preis zu einem Zeitpunkt, Prüfung gegen eine echte Rechnung, eine Tarifübersicht mit eigenen Tarifen, Katalog und Vorlagen nebeneinander (filtern, brutto/netto, bis zu fünf mit ihren Tageskurven vergleichen, kopieren, löschen), JSON importieren. Deutsch und Englisch. Siehe die [Bedienungsanleitung](docs/user/de/index.md).
 
 ## Über MQTT veröffentlichen
 
@@ -69,7 +69,7 @@ Edibert bildet das mit wenigen Bausteinen ab, **ohne dass du JSON von Hand schre
 | Regel-Engine | Basispreis + Zeitregeln (Monate, Wochentage, Uhrzeit, Feiertage), Deckel/Boden, USt, Netzentgelt |
 | Preisreihe | Berechnete Preise für einen wählbaren Zeithorizont (15, 30 oder 60 Minuten), für Bezug **und** Einspeisung |
 | Ausgabe | Home-Assistant-Sensoren (`raw_today`, `raw_tomorrow`, `forecast`) und MQTT (retained, mit HA-Discovery) |
-| Import | Katalogtarif als Vorlage, JSON-Datei, Preisreihe (CSV), später Assistent für Preisblätter |
+| Import | Katalogtarif oder Vorlage als Vorlage (einzeln oder mehrere aus der Übersicht), JSON-Datei, Preisreihe (CSV), später Assistent für Preisblätter |
 | Feiertage | Aus der Bibliothek [`holidays`](https://github.com/vacanza/holidays) (DE/AT/CH nach Bundesland bzw. Kanton), ohne Internet |
 
 Nicht Ziel: Tarife vergleichen oder vermitteln, Rechnungen erstellen, Geräte steuern. Edibert liefert nur Preise.

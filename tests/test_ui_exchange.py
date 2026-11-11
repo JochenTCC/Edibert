@@ -9,7 +9,7 @@ import pytest
 
 pytest.importorskip("streamlit")
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from overview_helpers import open_own
+from overview_helpers import action, labels, open_own, run_action, select, table
 from test_ui_app import start
 
 import edibert.package as package_module
@@ -199,8 +199,41 @@ def test_templates_are_behind_an_opt_in_and_copied_as_own_tariff(data_dir, catal
     app.button(key="templates.load").click().run()
     assert ("GET", "/edibert/v1/templates?land=AT&direction=import", None) in server.seen
     assert any("Templates are not checked" in item.value for item in app.warning)
-    app.button(key="templates.copy").click().run()
+    assert "1 templates loaded; they are listed in the Purchase table with the origin \"Template\"." in captions(app)
+    assert labels(app, "import") == ["X Fix", "Shared Fix"]
+    assert list(table(app, "import")["origin"]) == ["Catalog", "Template"]
+    assert list(table(app, "import")["check"]) == ["", "reliable (used by several, not checked)"] or \
+        list(table(app, "import")["check"])[1] == "reliable (used by several, not checked)"
+    select(app, "import", ["Shared Fix"])
+    assert action(app, "import", "open").disabled and action(app, "import", "delete").disabled
+    run_action(app, "import", "copy")
     assert not app.exception
+    assert app.text_input(key=f"{app.session_state['ui.ver']}.label").value == "Shared Fix (copy)"
+    assert app.session_state["ui.draft"].to_raw()["db_ref"] == {"id": "AT/import/shared_abc", "version": server.templates[0]["version"]}
+
+
+def test_several_templates_are_saved_at_once_and_a_checked_version_is_named(data_dir, catalog, server):
+    from edibert.exchange import payload_version
+
+    def template(local_id: str, label: str, checked: str | None = None) -> dict:
+        tariff = {**SHARED, "label": label}
+        return {"db_id": f"AT/import/{local_id}", "version": payload_version({"direction": "import", "tariff": tariff}),
+                "direction": "import", "tariff": tariff, "valid_from": None, "check_state": "unchecked", "reliable": False,
+                "installations_12m": 1, "latest_version": None, "latest_checked_version": checked}  # fmt: skip
+
+    server.templates = [template("shared_a", "Shared A"), template("shared_b", "Shared B", "c" * 64)]
+    app = start()
+    app.checkbox(key="templates.opt_in").check().run()
+    app.text_input(key="templates.land").input("AT").run()
+    app.button(key="templates.load").click().run()
+    assert app.tabs[0].label == "Purchase (1 catalog + 0 own) + 2 templates"
+    assert any(item.value.startswith("A checked version exists in the catalog for: Shared B.") for item in app.info)
+    select(app, "import", ["Shared A", "Shared B"])
+    run_action(app, "import", "copy")
+    saved = json.loads((data_dir / "user_tariffs.json").read_text(encoding="utf-8"))["import_tariffs"]
+    assert [(raw["id"], raw["db_ref"]["id"]) for raw in saved] == [("user_shared_a", "AT/import/shared_a"), ("user_shared_b", "AT/import/shared_b")]
+    app.checkbox(key="templates.opt_in").uncheck().run()  # opt-in off: the templates leave the table
+    assert "Template" not in list(table(app, "import")["origin"])
 
 
 def test_old_db_ref_opens_the_migration_gate(data_dir, catalog):

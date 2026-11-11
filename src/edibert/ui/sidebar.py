@@ -275,7 +275,7 @@ def render_tools(t: Translator, config: UiConfig) -> None:
         st.error(t.error(err))
     templates_col, imports = st.columns([5, 3])
     with templates_col:
-        templates.render(t, config, land, _leave)
+        templates.render(t, config, land)
     with imports:
         _import(t, config)
 
