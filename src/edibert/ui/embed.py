@@ -19,7 +19,10 @@ from edibert.i18n import Translator
 from edibert.tariff import EXPORT, IMPORT, Tariff
 from edibert.ui import db_status, preview, share, sidebar, state
 from edibert.ui.config import HostHouse, UiConfig, check_language
+from edibert.ui.sidebar import show_notice
 from edibert.ui.steps import render_steps
+
+__all__ = ["render_body", "render_editor", "render_preview", "show_notice"]
 
 DIRECTIONS = (IMPORT, EXPORT)
 
@@ -27,13 +30,6 @@ DIRECTIONS = (IMPORT, EXPORT)
 def _check_prefix(prefix: str) -> None:
     if not prefix:
         raise ValueError("An embedded editor needs a non-empty key_prefix, e.g. 'host.tariffs.'.")
-
-
-def show_notice() -> None:
-    notice = state.take_notice()
-    if notice:
-        kind, message = notice
-        {"success": st.success, "warning": st.warning}.get(kind, st.error)(message)
 
 
 def _find_user_tariff(config: UiConfig, direction: str, tariff_id: str) -> Mapping[str, Any]:
@@ -59,11 +55,14 @@ def _open_requested(t: Translator, config: UiConfig, request: tuple[str, str] | 
         st.error(t.error(err))
         return
     state.adopt(TariffDraft.from_raw(dict(raw), direction))
+    state.set_view(state.EDIT)
 
 
 def render_body(t: Translator, config: UiConfig) -> None:
-    """Notice, form and preview of the open tariff (shared by the standalone page and the embed)."""
-    show_notice()
+    """Form and preview of the open tariff in the edit view (shared by the standalone page and the embed); the
+    overview view draws nothing here. Notices are shown by ``sidebar.render_tools``."""
+    if state.view() != state.EDIT:
+        return
     draft = state.draft()
     if draft is None:
         st.info(t.t("ui.start_hint"))

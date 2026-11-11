@@ -7,14 +7,15 @@ the parsed :class:`~edibert.tariff.Tariff`, so a tariff the engine rejects is re
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+import hashlib
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 from typing import Any
 
 from edibert.editor.catalog import CatalogEntry, applies_to_region, type_key
-from edibert.editor.userstore import SECTIONS
+from edibert.editor.userstore import SECTIONS, copy_as_template
 from edibert.tariff import EXPORT, IMPORT, Tariff, parse_tariff
 
 
@@ -262,3 +263,102 @@ def counts(rows: Iterable[OverviewRow]) -> dict[Origin, int]:
 
 
 DIRECTIONS = (IMPORT, EXPORT)
+COMPARE_LIMIT = 5  # at most this many tariffs in the comparison; more is refused, never cut silently
+
+
+# --- Selection (kept by row key, not by table position: a filter changes the positions) ---
+
+
+def selection_stamp(shown: Sequence[OverviewRow]) -> str:
+    """Short hash of the shown row keys in order: part of the table's widget key, so every other set of
+    rows (filter, new or deleted tariff) starts a fresh table widget instead of reusing old positions."""
+    return hashlib.sha1("|".join(row.key for row in shown).encode("utf-8")).hexdigest()[:10]
+
+
+def selected_positions(shown: Sequence[OverviewRow], selected: Iterable[str]) -> list[int]:
+    """Positions of the selected keys among the shown rows (the table's default selection)."""
+    keys = set(selected)
+    return [index for index, row in enumerate(shown) if row.key in keys]
+
+
+def merge_selection(selected: Iterable[str], shown: Sequence[OverviewRow], picked: Iterable[int]) -> set[str]:
+    """The selection after a run: the shown rows count as the table says, selected rows the filters hide stay.
+
+    A position outside ``shown`` is an error: it would select a row the user never saw.
+    """
+    visible = {row.key for row in shown}
+    chosen: set[str] = set()
+    for index in picked:
+        if not 0 <= index < len(shown):
+            raise ValueError(f"Selected row {index} is not among the {len(shown)} shown rows.")
+        chosen.add(shown[index].key)
+    return {key for key in selected if key not in visible} | chosen
+
+
+def prune_selection(selected: Iterable[str], rows: Iterable[OverviewRow]) -> set[str]:
+    """Drop keys of rows that no longer exist (a deleted tariff, a catalog entry gone after a package import)."""
+    existing = {row.key for row in rows}
+    return {key for key in selected if key in existing}
+
+
+def rows_of(rows: Iterable[OverviewRow], selected: Iterable[str]) -> list[OverviewRow]:
+    """The selected rows in table order."""
+    keys = set(selected)
+    return [row for row in rows if row.key in keys]
+
+
+# --- Actions on the selection ---
+
+
+class Action(StrEnum):
+    OPEN = "open"
+    COPY = "copy"
+    DELETE = "delete"
+    COMPARE = "compare"
+
+
+def refusal(action: Action, chosen: Sequence[OverviewRow]) -> str | None:
+    """Why ``action`` does not fit the selection (a code the UI translates), or ``None`` when it does.
+
+    open: exactly one own tariff. copy: one or more tariffs that are not own (catalog, template).
+    delete: one or more own tariffs. compare: one to ``COMPARE_LIMIT`` tariffs of any origin.
+    """
+    own = [row for row in chosen if row.origin == Origin.OWN]
+    if action == Action.OPEN:
+        return None if len(chosen) == 1 and len(own) == 1 else "open_one_own"
+    if action == Action.COPY:
+        return None if chosen and not own else "copy_not_own"
+    if action == Action.DELETE:
+        return None if chosen and len(own) == len(chosen) else "delete_own_only"
+    if action == Action.COMPARE:
+        if not chosen:
+            return "compare_none"
+        return None if len(chosen) <= COMPARE_LIMIT else "compare_limit"
+    raise ValueError(f"Unknown overview action '{action}'.")
+
+
+def require(action: Action, chosen: Sequence[OverviewRow]) -> None:
+    """Fail loud when an action is run on a selection it does not fit (the UI disables it first)."""
+    reason = refusal(action, chosen)
+    if reason is not None:
+        raise ValueError(f"Action '{action}' does not fit the selection ({reason}).")
+
+
+def copies(
+    chosen: Sequence[OverviewRow],
+    taken: Iterable[str],
+    label_suffix: str,
+    db_ref: Callable[[OverviewRow], Mapping[str, str] | None],
+) -> list[dict[str, Any]]:
+    """Own copies of the selected catalog tariffs (or templates), with IDs unique among ``taken`` and each other.
+
+    ``db_ref(row)``: the database reference the copy carries (``None`` for a catalog that is no package).
+    """
+    require(Action.COPY, chosen)
+    used = set(taken)
+    result = []
+    for row in chosen:
+        copy = copy_as_template(row.raw, used, label_suffix, db_ref(row))
+        used.add(copy["id"])
+        result.append(copy)
+    return result

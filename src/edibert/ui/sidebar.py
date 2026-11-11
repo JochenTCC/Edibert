@@ -2,27 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
-
 import streamlit as st
 
 from edibert.context import region_codes
-from edibert.editor.catalog import (
-    CatalogEntry,
-    catalog_package,
-    filter_entries,
-    lands_of,
-    read_catalog,
-    settlement_interval,
-    type_keys_of,
-)
 from edibert.editor.house import COMMON_TIMEZONES, LANDS, save_house
 from edibert.editor.model import TariffDraft, validate
 from edibert.editor.userstore import (
-    SECTIONS,
-    copy_as_template,
-    delete_user_tariff,
     parse_import_text,
     read_document,
     save_user_tariff,
@@ -31,7 +16,6 @@ from edibert.editor.userstore import (
 from edibert.errors import EdibertError, ErrorCode
 from edibert.gridfee import METERING
 from edibert.i18n import SUPPORTED_LANGUAGES, Translator
-from edibert.identity import db_ref_for
 from edibert.rules import REQUIRES
 from edibert.store import parse_tariff_documents
 from edibert.tariff import EXPORT, IMPORT
@@ -54,7 +38,6 @@ AT_STATES = {
     "1": "Burgenland", "2": "Kärnten", "3": "Niederösterreich", "4": "Oberösterreich", "5": "Salzburg",
     "6": "Steiermark", "7": "Tirol", "8": "Vorarlberg", "9": "Wien",
 }  # fmt: skip
-ALL = ""  # the "all" option of the catalog filters
 
 
 def region_label(land: str, code: str) -> str:
@@ -127,6 +110,7 @@ def _perform(action: tuple) -> None:
         state.adopt(TariffDraft.from_raw(first, second), saved=False)
     else:
         raise ValueError(f"Unknown editor action '{name}'.")
+    state.set_view(state.EDIT)
 
 
 def _leave(action: tuple) -> None:
@@ -167,115 +151,28 @@ def _leave_prompt(t: Translator, config: UiConfig) -> None:
             st.caption(t.t("ui.leave_invalid", message=t.error(validation.error)))  # type: ignore[arg-type]
 
 
-def _delete(config: UiConfig, tariff_id: str, direction: str) -> None:
-    delete_user_tariff(config.user_file, tariff_id, direction)
-    state.adopt(None)
-    if config.on_change is not None:
-        config.on_change("delete", direction, tariff_id)
+def show_notice() -> None:
+    """The pending notice of the last save, copy, delete or import (shown once, in both views)."""
+    notice = state.take_notice()
+    if notice:
+        kind, message = notice
+        {"success": st.success, "warning": st.warning}.get(kind, st.error)(message)
 
 
-def _ask_delete(config: UiConfig, tariff_id: str, direction: str) -> None:
-    """Delete, or hold the delete for confirmation when the host's guard returns a warning."""
-    warning = config.delete_guard(direction, tariff_id) if config.delete_guard is not None else None
-    if warning is None:
-        _delete(config, tariff_id, direction)
-    else:
-        state.set_pending_delete((direction, tariff_id, warning))
+def _view_switched(widget_key: str) -> None:
+    state.set_view(st.session_state[widget_key])
 
 
-def _cancel_delete() -> None:
-    state.set_pending_delete(None)
-
-
-def _delete_buttons(t: Translator, config: UiConfig, draft: TariffDraft) -> None:
-    args = (config, draft.id, draft.direction)
-    pending = state.pending_delete()
-    if pending is None or pending[:2] != (draft.direction, draft.id):
-        st.button(t.t("ui.delete"), key=state.k("delete"), on_click=state.bound(_ask_delete), args=args)
-        return
-    st.warning(pending[2])
-    st.button(t.t("ui.delete_anyway"), key=state.k("delete.confirm"), type="primary", on_click=state.bound(_delete), args=args)
-    st.button(t.t("ui.delete_cancel"), key=state.k("delete.cancel"), on_click=state.bound(_cancel_delete))
-
-
-def tariff_title(t: Translator, raw: Mapping[str, Any], direction: str) -> str:
-    """List entry: direction, label and, for market prices, the settlement interval."""
-    title = f"{t.t(f'ui.direction.{direction}')}: {raw.get('label') or raw['id']}"
-    mtu = settlement_interval(raw, direction)
-    return f"{title} · {t.t(f'ui.mtu_short.{mtu}')}" if mtu else title
-
-
-def _tariffs(t: Translator, config: UiConfig) -> None:
-    st.subheader(t.t("ui.tariffs"))
-    document = read_document(config.user_file)
-    shown = False
-    for direction in (IMPORT, EXPORT):
-        for raw in document.get(SECTIONS[direction], []):
-            shown = True
-            st.button(
-                tariff_title(t, raw, direction), key=state.k(f"open.{direction}.{raw['id']}"), on_click=state.bound(_leave),
-                args=(("open", raw, direction),), width="stretch",
-            )  # fmt: skip
-    if not shown:
-        st.caption(t.t("ui.no_tariffs"))
-    land = _house_land(config)
-    st.button(t.t("ui.new_import"), key=state.k("new.import"), on_click=state.bound(_leave), args=(("new", IMPORT, land),), width="stretch")
-    st.button(t.t("ui.new_export"), key=state.k("new.export"), on_click=state.bound(_leave), args=(("new", EXPORT, land),), width="stretch")
-    draft = state.draft()
-    stored = {raw.get("id") for raw in document.get(SECTIONS[draft.direction], [])} if draft is not None else set()
-    if draft is not None and draft.id in stored:  # an unsaved catalog copy has an ID but nothing to delete
-        _delete_buttons(t, config, draft)
-
-
-def _all_or(t: Translator, value: str, label) -> str:
-    return t.t("ui.filter_all") if value == ALL else label(value)
-
-
-def _catalog_filters(t: Translator, config: UiConfig, entries: list[CatalogEntry]) -> tuple[str | None, str | None, str | None]:
-    """Land (preset: the house land), direction and type; ``None`` = any."""
-    lands = [ALL, *lands_of(entries)]
-    house_land = _house_land(config)
-    land = st.selectbox(
-        t.t("ui.filter_land"), lands, index=_index(lands, house_land), format_func=lambda c: _all_or(t, c, str),
-        key=state.k(f"copy.land.{house_land}"),
+def _view_switch(t: Translator) -> None:
+    """Overview / edit. The view lives in the state (actions change it), the switch shows and changes it."""
+    widget_key = state.k("view.switch")
+    st.session_state[widget_key] = state.view()  # before the switch is drawn: follows open / new / copy
+    unsaved = " :orange[●]" if state.unsaved() else ""
+    st.segmented_control(
+        t.t("ui.view"), [state.OVERVIEW, state.EDIT], required=True, key=widget_key, label_visibility="collapsed",
+        format_func=lambda v: t.t(f"ui.view.{v}") + (unsaved if v == state.EDIT else ""),
+        on_change=state.bound(_view_switched), args=(widget_key,),
     )  # fmt: skip
-    direction = st.selectbox(
-        t.t("ui.filter_direction"), [ALL, IMPORT, EXPORT], format_func=lambda d: _all_or(t, d, lambda v: t.t(f"ui.direction.{v}")),
-        key=state.k("copy.direction"),
-    )  # fmt: skip
-    land_value, direction_value = land or None, direction or None
-    narrowed = [e for e in entries if land_value in (None, e.land) and direction_value in (None, e.direction)]
-    kinds = [ALL, *type_keys_of(narrowed)]
-    kind = st.selectbox(
-        t.t("ui.filter_type"), kinds, format_func=lambda k: _all_or(t, k, lambda v: overview.kind_label(t, v)),
-        key=state.k(f"copy.type.{land}.{direction}"),
-    )  # fmt: skip
-    return land_value, direction_value, kind or None
-
-
-def _copy_catalog(t: Translator, config: UiConfig) -> None:
-    with st.expander(t.t("ui.copy_catalog")):
-        if config.catalog is None:
-            st.caption(t.t("ui.no_catalog"))
-            return
-        entries = read_catalog(config.catalog)
-        land, direction, kind = _catalog_filters(t, config, entries)
-        region = _house_region(config)
-        shown = filter_entries(entries, land=land, direction=direction, kind=kind, house_land=_house_land(config), house_region=region)
-        if not region:
-            st.caption(t.t("ui.copy_no_region"))
-        if not shown:
-            st.caption(t.t("ui.copy_none"))
-            return
-        choice = st.selectbox(
-            t.t("ui.copy_pick"), range(len(shown)), format_func=lambda i: tariff_title(t, shown[i].raw, shown[i].direction),
-            key=state.k(f"copy.pick.{land}.{direction}.{kind}"),
-        )  # fmt: skip
-        entry = shown[choice]
-        taken = user_tariff_ids(config.user_file)[entry.direction]
-        db_ref = db_ref_for(entry.raw, entry.direction) if catalog_package(config.catalog) is not None else None
-        copy = copy_as_template(entry.raw, taken, t.t("ui.copy_suffix"), db_ref)
-        st.button(t.t("ui.copy_button"), key=state.k("copy.go"), on_click=state.bound(_leave), args=(("copy", copy, entry.direction),))
 
 
 def _import(t: Translator, config: UiConfig) -> None:
@@ -350,7 +247,8 @@ def render_grid(t: Translator, config: UiConfig) -> None:
 
 
 def render_tools(t: Translator, config: UiConfig) -> None:
-    """Above form and preview: the tariff overview, then my tariffs with new/delete, copy from catalog, import."""
+    """Above form and preview: the unsaved-changes prompt, notices, the overview / edit switch with "new", and in
+    the overview view the tariff tables with their actions, the templates and the JSON import."""
     _leave_prompt(t, config)
     try:
         if config.host_house is None:
@@ -362,16 +260,22 @@ def render_tools(t: Translator, config: UiConfig) -> None:
             return
         st.error(t.error(err))
         return
+    show_notice()
+    switch, new_import, new_export = st.columns([4, 2, 2], vertical_alignment="bottom")
+    with switch:
+        _view_switch(t)
+    land = _house_land(config)
+    new_import.button(t.t("ui.new_import"), key=state.k("new.import"), on_click=state.bound(_leave), args=(("new", IMPORT, land),), width="stretch")
+    new_export.button(t.t("ui.new_export"), key=state.k("new.export"), on_click=state.bound(_leave), args=(("new", EXPORT, land),), width="stretch")
+    if state.view() != state.OVERVIEW:
+        return
     try:
-        overview.render(t, config, _house_land(config), _house_region(config))
+        overview.render(t, config, land, _house_region(config), _leave)
     except EdibertError as err:  # e.g. an invalid catalog entry: shown, and the tools below stay usable
         st.error(t.error(err))
-    mine, catalog, imports = st.columns([3, 5, 3])
-    with mine:
-        _tariffs(t, config)
-    with catalog:
-        _copy_catalog(t, config)
-        templates.render(t, config, _house_land(config), _leave)
+    templates_col, imports = st.columns([5, 3])
+    with templates_col:
+        templates.render(t, config, land, _leave)
     with imports:
         _import(t, config)
 

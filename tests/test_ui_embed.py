@@ -6,6 +6,16 @@ from pathlib import Path
 import pytest
 
 pytest.importorskip("streamlit")
+from overview_helpers import (
+    action,
+    labels,
+    open_own,
+    run_action,
+    select,
+    select_keys,
+    show_view,
+    table,
+)
 from streamlit.testing.v1 import AppTest
 
 from edibert.contribution import ShareDefault
@@ -155,11 +165,15 @@ def _saved_tariff(data_dir: Path, label: str = "Gespeichert", price: float = 25.
 def test_open_tariff_opens_it_once_and_keeps_the_edits(tmp_path):
     tariff_id = _saved_tariff(tmp_path)
     app = start(tmp_path, open_tariff=[IMPORT, tariff_id])
+    assert app.segmented_control(key=f"{PREFIX}view.switch").value == "edit"  # the host's request lands in the form
     label = app.text_input(key=widget_key(app, "label"))
     assert label.value == "Gespeichert"
     label.set_value("Geändert").run()
     app.run()  # the same request on a later rerun does not reopen the saved version
     assert app.text_input(key=widget_key(app, "label")).value == "Geändert"
+    show_view(app, "overview", PREFIX)
+    app.run()  # nor does it switch back to the form
+    assert app.segmented_control(key=f"{PREFIX}view.switch").value == "overview"
 
 
 def test_unknown_open_tariff_is_shown_as_an_error(tmp_path):
@@ -246,25 +260,30 @@ def test_save_reports_the_change_to_the_host(tmp_path):
 def test_without_a_guard_warning_delete_is_immediate_and_reported(tmp_path):
     tariff_id = _saved_tariff(tmp_path)
     app = start(tmp_path, open_tariff=[IMPORT, tariff_id])
-    app.button(key=f"{PREFIX}delete").click().run()
+    show_view(app, "overview", PREFIX)
+    select_keys(app, IMPORT, [f"own:{tariff_id}"], PREFIX)
+    run_action(app, IMPORT, "delete", PREFIX)
     assert _user_ids(tmp_path) == []
     assert app.session_state["host.changes"] == [("delete", IMPORT, tariff_id)]
+    assert app.session_state[PREFIX + "ui.draft"] is None  # the open tariff was the deleted one
+    assert "1 eigene(r) Tarif(e) gelöscht." in [item.value for item in app.success]
 
 
 def test_guard_warning_asks_before_deleting(tmp_path):
-    tariff_id = _saved_tariff(tmp_path)
-    app = start(tmp_path, open_tariff=[IMPORT, tariff_id], guard="Wird verwendet")
-    app.button(key=f"{PREFIX}delete").click().run()
-    assert _user_ids(tmp_path) == [tariff_id]
-    assert [w.value for w in app.warning] == [f"Wird verwendet: {IMPORT}/{tariff_id}"]
+    first = _saved_tariff(tmp_path)
+    second = _saved_tariff(tmp_path, "Zweiter", 26.0)
+    app = start(tmp_path, guard="Wird verwendet")
+    select_keys(app, IMPORT, [f"own:{first}", f"own:{second}"], PREFIX)
+    run_action(app, IMPORT, "delete", PREFIX)
+    assert _user_ids(tmp_path) == [first, second]
+    assert [w.value for w in app.warning] == [f"Wird verwendet: {IMPORT}/{first}", f"Wird verwendet: {IMPORT}/{second}"]
     app.button(key=f"{PREFIX}delete.cancel").click().run()
-    assert _user_ids(tmp_path) == [tariff_id]
+    assert _user_ids(tmp_path) == [first, second]
     assert not app.warning
-    app.button(key=f"{PREFIX}delete").click().run()
+    run_action(app, IMPORT, "delete", PREFIX)
     app.button(key=f"{PREFIX}delete.confirm").click().run()
     assert _user_ids(tmp_path) == []
-    assert app.session_state["host.changes"] == [("delete", IMPORT, tariff_id)]
-    assert app.session_state[PREFIX + "ui.draft"] is None
+    assert app.session_state["host.changes"] == [("delete", IMPORT, first), ("delete", IMPORT, second)]
 
 
 def _catalog(tmp_path: Path) -> Path:
@@ -294,27 +313,23 @@ def leave_prompt_shown(app: AppTest) -> bool:
     return any(b.key == f"{PREFIX}leave.discard" for b in app.button)
 
 
-def test_copy_list_starts_with_the_house_land_and_region_imports_first(tmp_path):
+def test_overview_filters_start_with_the_house_land_and_narrow_per_tab(tmp_path):
     app = start(tmp_path / "data", catalog=_catalog(tmp_path))
-    assert app.selectbox(key=f"{PREFIX}copy.land.AT").value == "AT"
-    pick = app.selectbox(key=f"{PREFIX}copy.pick.AT.None.None")
-    # "Nur Wien" is offered in another federal state than the house (8), "Delta" in another land
-    assert pick.options == ["Bezug: Beta · stündlich", "Bezug: Zeta", "Einspeisung: Alpha · viertelstündlich"]
+    assert app.selectbox(key=f"{PREFIX}ov.import.land.AT").value == "AT"
+    assert app.selectbox(key=f"{PREFIX}ov.export.kind").options == ["Alle", "Börsenpreis + Aufschlag · viertelstündlich"]
+    app.selectbox(key=f"{PREFIX}ov.import.land.AT").select("").run()
+    app.selectbox(key=f"{PREFIX}ov.import.kind").select("fixed").run()
+    assert labels(app, IMPORT) == ["Zeta", "Delta"]  # "Nur Wien" is offered in another federal state than the house (8)
+    assert labels(app, EXPORT) == ["Alpha"]
 
 
-def test_direction_filter_narrows_the_type_options(tmp_path):
-    app = start(tmp_path / "data", catalog=_catalog(tmp_path))
-    app.selectbox(key=f"{PREFIX}copy.direction").select(EXPORT).run()
-    assert app.selectbox(key=f"{PREFIX}copy.type.AT.export").options == ["Alle", "Börsenpreis + Aufschlag · viertelstündlich"]
-    app.selectbox(key=f"{PREFIX}copy.land.AT").select("").run()
-    app.selectbox(key=f"{PREFIX}copy.direction").select(IMPORT).run()
-    app.selectbox(key=f"{PREFIX}copy.type..import").select("fixed").run()
-    assert app.selectbox(key=f"{PREFIX}copy.pick.None.import.fixed").options == ["Bezug: Delta", "Bezug: Zeta"]
+
 
 
 def test_catalog_copy_is_unsaved_and_asks_before_it_is_left(tmp_path):
     app = start(tmp_path / "data", catalog=_catalog(tmp_path))
-    app.button(key=f"{PREFIX}copy.go").click().run()
+    select(app, IMPORT, ["Beta"], PREFIX)
+    run_action(app, IMPORT, "copy", PREFIX)
     assert app.text_input(key=widget_key(app, "label")).value == "Beta (Kopie)"
     assert unsaved_marked(app)
     app.button(key=f"{PREFIX}new.import").click().run()
@@ -358,7 +373,7 @@ def test_saved_or_opened_tariff_is_left_without_asking(tmp_path):
     assert not leave_prompt_shown(app)
     save(app)
     assert not unsaved_marked(app)
-    app.button(key=f"{PREFIX}open.import.{tariff_id}").click().run()
+    open_own(app, IMPORT, tariff_id, PREFIX)
     assert not leave_prompt_shown(app)
     assert app.text_input(key=widget_key(app, "label")).value == "Gespeichert"
 
@@ -376,16 +391,23 @@ def test_market_tariff_shows_its_settlement_interval(tmp_path):
     raw = {"id": "user_spot", "label": "Spot", "type": "spot_hourly", "supplier_id": "user_s", "settlement_mtu": "60min", "vat_percent": 20}
     save_user_tariff(tmp_path / "user_tariffs.json", raw, IMPORT)
     app = start(tmp_path, open_tariff=[IMPORT, "user_spot"])
-    assert app.button(key=f"{PREFIX}open.import.user_spot").label == "Bezug: Spot · stündlich"
     assert any(caption.value == "Abrechnung: stündlich" for caption in app.caption)
+    show_view(app, "overview", PREFIX)
+    assert list(table(app, IMPORT)["kind"]) == ["Börsenpreis + Aufschlag · stündlich"]
 
 
-def test_an_unsaved_catalog_copy_offers_no_delete(tmp_path):
+def test_an_unsaved_catalog_copy_is_not_in_the_table_until_saved(tmp_path):
     app = start(tmp_path / "data", catalog=_catalog(tmp_path))
-    app.button(key=f"{PREFIX}copy.go").click().run()
-    assert not [b for b in app.button if b.key == f"{PREFIX}delete"]
+    select(app, IMPORT, ["Zeta"], PREFIX)
+    run_action(app, IMPORT, "copy", PREFIX)
+    show_view(app, "overview", PREFIX)
+    assert labels(app, IMPORT) == ["Zeta", "Beta"]  # nothing to delete or open yet
+    show_view(app, "edit", PREFIX)
     save(app)
-    assert [b for b in app.button if b.key == f"{PREFIX}delete"]
+    show_view(app, "overview", PREFIX)
+    assert labels(app, IMPORT) == ["Zeta (Kopie)", "Zeta", "Beta"]
+    select(app, IMPORT, ["Zeta (Kopie)"], PREFIX)
+    assert not action(app, IMPORT, "delete", PREFIX).disabled
 
 
 def test_overview_renders_both_tabs_in_the_embedded_editor(tmp_path):

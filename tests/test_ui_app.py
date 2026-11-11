@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 pytest.importorskip("streamlit")
+from overview_helpers import action, labels, run_action, select, show_view, table
 from streamlit.testing.v1 import AppTest
 
 import edibert.ui as ui_package
@@ -44,8 +45,12 @@ def create_fixed_tariff(app: AppTest, label: str = "Mein Tarif", price: float = 
 
 def test_start_page_in_both_languages(data_dir):
     english = start("en")
+    assert english.segmented_control(key="view.switch").value == "overview"  # the page starts with the overview
+    assert english.subheader[0].value == "Tariff overview"
+    show_view(english, "edit")
     assert any(item.value.startswith("Create a new tariff") for item in english.info)
     german = start("de")
+    show_view(german, "edit")
     assert any(item.value.startswith("Lege oben einen neuen Tarif an") for item in german.info)
     assert german.title[0].value == "Edibert Tarif-Editor"
 
@@ -60,8 +65,9 @@ def test_create_and_save_a_fixed_tariff(data_dir):
     (tariff,) = saved["import_tariffs"]
     assert (tariff["id"], tariff["type"], tariff["fix_cent_kwh"]) == ("user_mein_tarif", "fixed_cent", 30.0)
     assert any("user_mein_tarif" in message.value for message in app.success)
-    listed = app.button(key="open.import.user_mein_tarif")  # listed under "My tariffs"
-    assert listed.label == "Purchase: Mein Tarif"
+    show_view(app, "overview")
+    assert labels(app, "import") == ["Mein Tarif"]  # listed in the overview as an own tariff
+    assert list(table(app, "import")["origin"]) == ["Own"]
 
 
 def test_invalid_input_shows_a_translated_error_and_no_save_button(data_dir):
@@ -175,8 +181,10 @@ def test_copy_a_catalog_tariff(data_dir, tmp_path, monkeypatch):
     )
     monkeypatch.setenv(ENV_CATALOG, str(catalog))
     app = start("en")
-    app.button(key="copy.go").click().run()
+    select(app, "import", ["Demo"])
+    run_action(app, "import", "copy")
     assert not app.exception
+    assert app.segmented_control(key="view.switch").value == "edit"
     assert app.text_input(key=widget_key(app, "label")).value == "Demo (copy)"
 
 
@@ -201,7 +209,8 @@ def test_monthly_table_preview_shows_the_month_rate_fallback(data_dir, tmp_path,
     catalog.write_text(json.dumps({"tariff_format": 1, "import_tariffs": [tariff]}), encoding="utf-8")
     monkeypatch.setenv(ENV_CATALOG, str(catalog))
     app = start("en")
-    app.button(key="copy.go").click().run()
+    select(app, "import", ["Table"])
+    run_action(app, "import", "copy")
     assert not app.exception
     month = f"{today.year}-{today.month:02d}"
     assert any(month in warning.value and "prior_year" in warning.value for warning in app.warning)
@@ -316,20 +325,110 @@ def test_overview_shows_both_tabs_with_filters_and_price_basis(data_dir, tmp_pat
     assert not app.exception
 
 
-def test_overview_lists_own_tariffs_and_keeps_the_old_controls(data_dir, tmp_path, monkeypatch):
+def test_overview_lists_own_tariffs_and_replaces_the_old_controls(data_dir, tmp_path, monkeypatch):
     monkeypatch.setenv(ENV_CATALOG, str(_overview_catalog(tmp_path)))
     app = start("de")
     create_fixed_tariff(app, "Eigener Tarif", 25.0)
     app.button(key="ui.save").click().run()
+    show_view(app, "overview")
     assert app.tabs[0].label == "Bezug (2 Katalog + 1 eigene)"
     imports = overview_table(app, "import")
     assert list(imports["origin"]) == ["Eigener", "Katalog", "Katalog"]
-    assert app.button(key="new.export") is not None  # the tariff list and the copy expander stay until P4b
-    assert app.button(key="copy.go") is not None
+    keys = [button.key for button in app.button]
+    assert "new.import" in keys and "new.export" in keys
+    assert not [key for key in keys if key.startswith(("open.", "copy.")) or key == "delete"]  # list and copy expander are gone
     assert not app.exception
+
+
+def test_several_catalog_tariffs_are_copied_and_saved_at_once(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv(ENV_CATALOG, str(_overview_catalog(tmp_path)))
+    app = start()
+    select(app, "import", ["Alpha Fix", "Beta Net"])
+    assert "Selected (2): Alpha Fix, Beta Net." in [item.value for item in app.caption]
+    run_action(app, "import", "copy")
+    saved = json.loads((data_dir / "user_tariffs.json").read_text(encoding="utf-8"))
+    assert [(raw["id"], raw["label"]) for raw in saved["import_tariffs"]] == [
+        ("user_at_alpha", "Alpha Fix (copy)"), ("user_at_beta", "Beta Net (copy)"),
+    ]  # fmt: skip
+    assert app.segmented_control(key="view.switch").value == "overview"  # none is opened
+    assert app.session_state["ui.draft"] is None
+    assert "2 copies saved as own tariffs." in [item.value for item in app.success]
+    assert labels(app, "import") == ["Alpha Fix (copy)", "Beta Net (copy)", "Alpha Fix", "Beta Net"]
+    assert "Select rows in the table to open, copy, delete or compare tariffs." in [item.value for item in app.caption]
+
+
+def test_actions_that_do_not_fit_are_disabled_and_say_why(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv(ENV_CATALOG, str(_overview_catalog(tmp_path)))
+    app = start()
+    assert all(action(app, "import", name).disabled for name in ("open", "copy", "delete", "compare"))
+    assert action(app, "import", "compare").help == "Compare: select one to five tariffs."
+    select(app, "import", ["Alpha Fix"])
+    assert action(app, "import", "open").help == "Open: select exactly one own tariff."
+    assert action(app, "import", "delete").help == "Delete: select one or more own tariffs and no catalog tariff."
+    assert not action(app, "import", "copy").disabled and not action(app, "import", "compare").disabled
+    run_action(app, "import", "compare")
+    assert any(item.value.startswith("Chosen for the comparison: Alpha Fix.") for item in app.caption)
+    assert all(action(app, "export", name).disabled for name in ("open", "copy", "delete", "compare"))  # per table
+
+
+def test_selection_is_kept_by_tariff_across_a_filter_change(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv(ENV_CATALOG, str(_overview_catalog(tmp_path)))
+    app = start()
+    select(app, "import", ["Beta Net"])
+    app.text_input(key="ov.import.text").set_value("alpha").run()  # Beta is hidden, Alpha now sits in row 0
+    assert labels(app, "import") == ["Alpha Fix"]
+    assert "Selected (1): Beta Net. 1 of them hidden by the filters." in [item.value for item in app.caption]
+    app.text_input(key="ov.import.text").set_value("").run()
+    assert app.session_state["ui.ov.selection"]["import"] == {"catalog:at_beta"}
+    run_action(app, "import", "copy")
+    assert app.text_input(key=widget_key(app, "label")).value == "Beta Net (copy)"
+
+
+def test_view_switch_keeps_an_unsaved_draft_and_opening_another_asks_first(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv(ENV_CATALOG, str(_overview_catalog(tmp_path)))
+    app = start()
+    create_fixed_tariff(app, "Saved one", 20.0)
+    app.button(key="ui.save").click().run()
+    app.text_input(key=widget_key(app, "label")).set_value("Saved one, changed").run()
+    show_view(app, "overview")  # nothing is lost by looking at the overview
+    assert not [b for b in app.button if b.key == "leave.discard"]
+    show_view(app, "edit")
+    assert app.text_input(key=widget_key(app, "label")).value == "Saved one, changed"
+    show_view(app, "overview")
+    select(app, "import", ["Alpha Fix"])
+    run_action(app, "import", "copy")
+    assert [b for b in app.button if b.key == "leave.discard"]  # the unsaved draft asks before it is left
+    app.button(key="leave.discard").click().run()
+    assert app.segmented_control(key="view.switch").value == "edit"
+    assert app.text_input(key=widget_key(app, "label")).value == "Alpha Fix (copy)"
+    show_view(app, "overview")
+    select(app, "import", ["Saved one"])
+    run_action(app, "import", "open")
+    assert [b for b in app.button if b.key == "leave.discard"]  # the catalog copy is not saved either
+    app.button(key="leave.discard").click().run()
+    assert app.text_input(key=widget_key(app, "label")).value == "Saved one"
 
 
 def test_overview_without_catalog_says_so(data_dir):
     app = start()
     assert any(item.value.startswith("No catalog configured") for item in app.caption)
     assert not app.tabs[0].dataframe and not app.tabs[1].dataframe
+
+
+def test_filters_survive_a_visit_to_the_edit_view(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv(ENV_CATALOG, str(_overview_catalog(tmp_path)))
+    app = start()
+    app.text_input(key="ov.import.text").set_value("beta").run()
+    app.segmented_control(key="ov.basis").set_value("net").run()
+    app.checkbox(key="ov.import.region").uncheck().run()
+    app.selectbox(key="ov.import.land.AT").select("").run()
+    select(app, "import", ["Beta Net"])
+    show_view(app, "edit")
+    show_view(app, "overview")
+    assert app.text_input(key="ov.import.text").value == "beta"
+    assert app.segmented_control(key="ov.basis").value == "net"
+    assert app.checkbox(key="ov.import.region").value is False
+    assert app.selectbox(key="ov.import.land.AT").value == ""
+    assert labels(app, "import") == ["Beta Net"]
+    assert "Selected (1): Beta Net." in [item.value for item in app.caption]
+    assert not app.warning and not app.exception

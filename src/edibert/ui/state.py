@@ -43,6 +43,11 @@ TEMPLATES = "ui.templates"
 GRID_DRAFT = "ui.grid_draft"
 GRID_VER = "ui.grid_ver"
 GRID_TEMPLATES = "ui.grid_templates"
+VIEW = "ui.view"  # the view switch's widget key: "overview" or "edit"
+SELECTION = "ui.ov.selection"  # {direction: set of row keys}
+FILTERS = "ui.ov.filters"  # {widget name: value} of the overview filters, kept while the edit view is shown
+COMPARE = "ui.ov.compare"  # {direction: tuple of row keys} chosen for the comparison (shown in P4c)
+OVERVIEW, EDIT = "overview", "edit"
 
 # The prefix of the render that is running. Not session data: it is set for the duration of one
 # render call (``scope``) and reset afterwards, so sessions and embeds never see each other's prefix.
@@ -98,6 +103,10 @@ def init(config: UiConfig) -> None:
     ss[k(TEMPLATES)] = None
     ss[k(GRID_VER)] = 0
     ss[k(GRID_TEMPLATES)] = None
+    ss[k(VIEW)] = OVERVIEW
+    ss[k(SELECTION)] = {}
+    ss[k(COMPARE)] = {}
+    ss[k(FILTERS)] = {}
     if config.host_house is None:
         ss[k(HOUSE)] = load_house(config.house_file)
         reload_grid_draft(config)
@@ -207,13 +216,50 @@ def set_opened(request: tuple[str, str] | None) -> None:
     st.session_state[k(OPENED)] = request
 
 
-def pending_delete() -> tuple[str, str, str] | None:
-    """``(direction, tariff_id, warning)`` of a delete that waits for the user's confirmation."""
+def pending_delete() -> tuple[str, tuple[str, ...], tuple[str, ...]] | None:
+    """``(direction, tariff_ids, warnings)`` of a delete that waits for the user's confirmation."""
     return st.session_state[k(PENDING_DELETE)]
 
 
-def set_pending_delete(pending: tuple[str, str, str] | None) -> None:
+def set_pending_delete(pending: tuple[str, tuple[str, ...], tuple[str, ...]] | None) -> None:
     st.session_state[k(PENDING_DELETE)] = pending
+
+
+def view() -> str:
+    return st.session_state[k(VIEW)]
+
+
+def set_view(name: str) -> None:
+    """Switch the view; only from a callback or before the switch is drawn in this run."""
+    if name not in (OVERVIEW, EDIT):
+        raise ValueError(f"Unknown view '{name}'.")
+    st.session_state[k(VIEW)] = name
+
+
+def selection(direction: str) -> set[str]:
+    """Row keys (``origin:id``) selected in the ``direction`` table, including rows its filters hide."""
+    return set(st.session_state[k(SELECTION)].get(direction, set()))
+
+
+def set_selection(direction: str, keys: set[str]) -> None:
+    st.session_state[k(SELECTION)][direction] = set(keys)
+
+
+def kept(name: str, default):
+    """The last value of the overview widget ``name`` (``default`` before its first use)."""
+    return st.session_state[k(FILTERS)].get(name, default)
+
+
+def keep(name: str, value) -> None:
+    st.session_state[k(FILTERS)][name] = value
+
+
+def compared(direction: str) -> tuple[str, ...]:
+    return st.session_state[k(COMPARE)].get(direction, ())
+
+
+def set_compared(direction: str, keys: tuple[str, ...]) -> None:
+    st.session_state[k(COMPARE)][direction] = keys
 
 
 def pending_leave() -> tuple | None:

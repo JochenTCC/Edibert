@@ -9,6 +9,7 @@ import pytest
 
 pytest.importorskip("streamlit")
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from overview_helpers import open_own
 from test_ui_app import start
 
 import edibert.package as package_module
@@ -133,7 +134,7 @@ def test_status_of_a_copied_tariff_is_asked_on_request(data_dir, catalog, server
                       "latest_version": "b" * 64, "latest_valid_from": "2027-01-01", "check_state": "unchecked",
                       "checked_at": None, "latest_checked_version": "b" * 64, "merged_into": None}]  # fmt: skip
     app = start()
-    app.button(key="open.import.user_copy").click().run()
+    open_own(app, "import", "user_copy")
     assert not any(text.startswith("Tariff database (") for text in captions(app))
     app.button(key=f"db_status.ask.{DB_ID}").click().run()
     assert server.seen[-1] == ("POST", "/edibert/v1/status", {"entries": [{"db_id": DB_ID, "version": version}]})
@@ -151,7 +152,7 @@ def test_status_from_the_publisher_is_shown_without_asking(data_dir, catalog):
          "latest_version": version, "latest_valid_from": None, "check_state": "checked", "checked_at": "2026-01-10",
          "latest_checked_version": version, "merged_into": None}]}), encoding="utf-8")  # fmt: skip
     app = start()
-    app.button(key="open.import.user_copy").click().run()
+    open_own(app, "import", "user_copy")
     assert "Tariff database (2026-10-30): checked, used by 1 installations in the last 12 months." in captions(app)
     assert any("your copy is version" in item.value for item in app.info)
     assert any("Check overdue: the last check was on 2026-01-10" in item.value for item in app.warning)
@@ -160,7 +161,7 @@ def test_status_from_the_publisher_is_shown_without_asking(data_dir, catalog):
 def test_changed_copy_has_no_status(data_dir, catalog, server):
     save_user_tariff(data_dir / "user_tariffs.json", {**COPY, "fix_cent_kwh": 25}, IMPORT)
     app = start()
-    app.button(key="open.import.user_copy").click().run()
+    open_own(app, "import", "user_copy")
     assert not [button for button in app.button if button.key == f"db_status.ask.{DB_ID}"]
 
 
@@ -172,7 +173,7 @@ def test_merged_entry_relinks_the_copy_only_after_confirmation(data_dir, catalog
                       "latest_version": version, "latest_valid_from": None, "check_state": "unchecked", "checked_at": None,
                       "latest_checked_version": None, "merged_into": target}]  # fmt: skip
     app = start()
-    app.button(key="open.import.user_copy").click().run()
+    open_own(app, "import", "user_copy")
     app.button(key=f"db_status.ask.{DB_ID}").click().run()
     assert any("merged this entry into AT/import/shared_other" in item.value for item in app.info)
     app.button(key=f"db_status.relink_ask.{DB_ID}").click().run()
