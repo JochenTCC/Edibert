@@ -33,11 +33,11 @@ An action that does not fit the selection is greyed out; hover over it to see wh
 
 ### Compare
 
-The comparison appears below the table whenever one to three tariffs are selected and follows the selection. With one tariff it shows that tariff's parameters and its price curve.
+The comparison appears below the table whenever one to five tariffs are selected and follows the selection. With one tariff it shows that tariff's parameters and its price curve.
 
 - **Parameters:** the selected tariffs as columns, the parameters as rows, on the same gross or net basis as the table. A row marked **≠** differs between the tariffs; **Differences only** hides the others.
 - **Price curve of one day:** one curve per tariff in one chart, for the chosen **month** and **day type** (weekday, Saturday, Sunday, holiday). It is computed like the preview of the form: with the house's country, region and grid fee, and market-price tariffs on an example market curve (a note says so; it is not a forecast). If a tariff has no curve for the chosen day, a message says why: the house has no federal state / canton for the holiday calendar, the month has no holiday, or the tariff has no price that day (for example no monthly rate).
-- At most three tariffs are compared. With more selected (for example to copy or delete them), nothing is drawn and a note says so; Edibert never picks three for you.
+- At most five tariffs are compared. With more selected (for example to copy or delete them), nothing is drawn and a note says so; Edibert never picks five for you.
 
 The comparison shows prices, not costs. A comparison of yearly costs from your meter data is planned separately.
 

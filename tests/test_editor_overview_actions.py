@@ -92,8 +92,8 @@ def test_which_action_fits_the_selection(rows, labels, expected):
     assert {str(action): refusal(action, chosen) for action in Action} == expected
 
 
-def test_compare_is_no_action_and_takes_at_most_three():
-    assert COMPARE_LIMIT == 3
+def test_compare_is_no_action_and_takes_at_most_five():
+    assert COMPARE_LIMIT == 5
     assert "compare" not in {str(action) for action in Action}  # shown with the selection, no button
 
 

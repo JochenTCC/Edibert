@@ -297,7 +297,7 @@ def counts(rows: Iterable[OverviewRow]) -> dict[Origin, int]:
 
 
 DIRECTIONS = (IMPORT, EXPORT)
-COMPARE_LIMIT = 3  # at most this many tariffs in the comparison; more is refused, never cut silently
+COMPARE_LIMIT = 5  # at most this many tariffs in the comparison; more is refused, never cut silently
 
 
 # --- Selection (kept by row key, not by table position: a filter changes the positions) ---

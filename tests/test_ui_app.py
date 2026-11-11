@@ -489,11 +489,11 @@ def test_one_selected_tariff_shows_its_parameters_and_day_curve(data_dir, tmp_pa
     assert not app.exception
 
 
-def test_comparison_with_more_than_three_draws_nothing_and_says_so(data_dir, tmp_path, monkeypatch):
-    monkeypatch.setenv(ENV_CATALOG, str(_comparison_catalog(tmp_path, count=4)))
+def test_comparison_with_more_than_five_draws_nothing_and_says_so(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv(ENV_CATALOG, str(_comparison_catalog(tmp_path, count=6)))
     app = start()
-    select(app, "import", labels(app, "import"))  # all four: the comparison follows the selection
-    assert any(item.value.startswith("4 tariffs are selected; the comparison below the table shows at most 3.") for item in app.info)
+    select(app, "import", labels(app, "import"))  # all six: the comparison follows the selection
+    assert any(item.value.startswith("6 tariffs are selected; the comparison below the table shows at most 5.") for item in app.info)
     assert not action(app, "import", "copy").disabled  # a larger selection is fine for the actions
     assert comparison(app, "import") is None
     assert not (app.get("vega_lite_chart") or app.get("arrow_vega_lite_chart"))

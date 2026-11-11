@@ -34,11 +34,11 @@ Eine Aktion, die nicht zur Auswahl passt, ist ausgegraut; fährst du mit der Mau
 
 ### Vergleichen
 
-Der Vergleich erscheint unter der Tabelle, sobald ein bis drei Tarife ausgewählt sind, und folgt der Auswahl. Bei einem Tarif zeigt er dessen Parameter und seine Preiskurve.
+Der Vergleich erscheint unter der Tabelle, sobald ein bis fünf Tarife ausgewählt sind, und folgt der Auswahl. Bei einem Tarif zeigt er dessen Parameter und seine Preiskurve.
 
 - **Parameter:** die ausgewählten Tarife als Spalten, die Parameter als Zeilen, auf derselben Brutto- oder Netto-Basis wie die Tabelle. Eine mit **≠** markierte Zeile unterscheidet sich zwischen den Tarifen; **Nur Unterschiede** blendet die anderen aus.
 - **Preiskurve eines Tages:** eine Kurve je Tarif in einem Diagramm, für den gewählten **Monat** und die **Tagesart** (Werktag, Samstag, Sonntag, Feiertag). Gerechnet wird wie in der Vorschau des Formulars: mit Land, Region und Netzentgelt des Hauses, Börsentarife mit einer Beispiel-Börsenkurve (ein Hinweis sagt das; es ist keine Prognose). Hat ein Tarif für den gewählten Tag keine Kurve, sagt eine Meldung warum: beim Haus fehlt das Bundesland / der Kanton für den Feiertagskalender, im Monat gibt es keinen Feiertag oder der Tarif hat an dem Tag keinen Preis (zum Beispiel keinen Monatswert).
-- Verglichen werden höchstens drei Tarife. Sind mehr ausgewählt (etwa zum Kopieren oder Löschen), wird nichts gezeichnet und ein Hinweis sagt das; Edibert wählt nie selbst drei aus.
+- Verglichen werden höchstens fünf Tarife. Sind mehr ausgewählt (etwa zum Kopieren oder Löschen), wird nichts gezeichnet und ein Hinweis sagt das; Edibert wählt nie selbst fünf aus.
 
 Der Vergleich zeigt Preise, keine Kosten. Ein Vergleich der Jahreskosten aus deinen Zählerdaten ist getrennt geplant.
 

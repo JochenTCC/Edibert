@@ -65,7 +65,7 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
   - **Privacy:** the meter file stays local; never part of a sharing payload or a use report
 
 - [ ] **Graphical comparison of multiple tariffs without consumption** *(scope extended by the dogfooding findings of 2026-10-28)*
-  - **Note:** selecting several tariffs and one chart of their day curves (month and day type selectable) came with `0.1.c2` (tariff overview, comparison of up to three, shown with the selection); what stays open here is the time span, import and export together and the line styles below
+  - **Note:** selecting several tariffs and one chart of their day curves (month and day type selectable) came with `0.1.c2` (tariff overview, comparison of up to five, shown with the selection); what stays open here is the time span, import and export together and the line styles below
   - Time span: tariffs that differ by weekday switch the preview to a time axis over the days instead of 0–24 h; when only workday, Saturday and Sunday differ, Friday to Sunday is enough, otherwise a whole week. A market-price tariff needs one day. With several tariffs the widest span of all wins. A tariff with a holiday rule gets a fictitious holiday appended after Sunday
   - Colours and lines: colours tell the tariffs apart, no longer the days; import prices solid, export prices dashed (as in the Earnie monitor)
 - [ ] Tiers and free allowances (class B)
