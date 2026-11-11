@@ -65,13 +65,14 @@ def test_the_values_are_those_of_the_table(rows):
         assert all(item.values[index] == cells[item.column.id] for item in lines)
 
 
-def test_more_than_five_or_none_is_refused():
-    six = own_rows(*(entry(f"user_{n}", f"T{n}", fix_cent_kwh=20.0 + n) for n in range(6)))
+def test_more_than_three_or_none_is_refused():
+    four = own_rows(*(entry(f"user_{n}", f"T{n}", fix_cent_kwh=20.0 + n) for n in range(4)))
     with pytest.raises(TooManyToCompare):
-        parameter_lines(six, Basis.GROSS, TODAY)
+        parameter_lines(four, Basis.GROSS, TODAY)
     with pytest.raises(TooManyToCompare):
-        day_curves(six, HOUSE, None, 2026, 11, "weekday", Basis.GROSS)
-    assert len(parameter_lines(six[:5], Basis.GROSS, TODAY)) > 0  # five is fine
+        day_curves(four, HOUSE, None, 2026, 11, "weekday", Basis.GROSS)
+    assert len(parameter_lines(four[:3], Basis.GROSS, TODAY)) > 0  # three is fine
+    assert day_curves(four[:1], HOUSE, None, 2026, 11, "weekday", Basis.GROSS).points  # one alone is fine
     with pytest.raises(ValueError, match="Nothing"):
         parameter_lines([], Basis.GROSS, TODAY)
 

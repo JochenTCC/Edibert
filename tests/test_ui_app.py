@@ -368,15 +368,13 @@ def test_several_catalog_tariffs_are_copied_and_saved_at_once(data_dir, tmp_path
 def test_actions_that_do_not_fit_are_disabled_and_say_why(data_dir, tmp_path, monkeypatch):
     monkeypatch.setenv(ENV_CATALOG, str(_overview_catalog(tmp_path)))
     app = start()
-    assert all(action(app, "import", name).disabled for name in ("open", "copy", "delete", "compare"))
-    assert action(app, "import", "compare").help == "Compare: select one to five tariffs."
+    assert all(action(app, "import", name).disabled for name in ("open", "copy", "delete"))
+    assert not [button for button in app.button if button.key == "ov.import.compare"]  # the comparison needs no button
     select(app, "import", ["Alpha Fix"])
     assert action(app, "import", "open").help.startswith("Open: select exactly one own tariff")
     assert action(app, "import", "delete").help.startswith("Delete: select one or more own tariffs")
-    assert not action(app, "import", "copy").disabled and not action(app, "import", "compare").disabled
-    run_action(app, "import", "compare")
-    assert "#### Comparison (1)" in [item.value for item in app.markdown]
-    assert all(action(app, "export", name).disabled for name in ("open", "copy", "delete", "compare"))  # per table
+    assert not action(app, "import", "copy").disabled
+    assert all(action(app, "export", name).disabled for name in ("open", "copy", "delete"))  # per table
 
 
 def test_selection_is_kept_by_tariff_across_a_filter_change(data_dir, tmp_path, monkeypatch):
@@ -459,8 +457,7 @@ def _comparison_catalog(tmp_path: Path, count: int = 3) -> Path:
 def test_comparison_shows_parameters_and_day_curves(data_dir, tmp_path, monkeypatch):
     monkeypatch.setenv(ENV_CATALOG, str(_comparison_catalog(tmp_path)))
     app = start()
-    select(app, "import", ["One", "Two", "Spot"])
-    run_action(app, "import", "compare")
+    select(app, "import", ["One", "Two", "Spot"])  # the comparison shows with the selection, no button
     assert "#### Comparison (3)" in [item.value for item in app.markdown]
     table = comparison(app, "import")
     assert list(table.columns) == ["diff", "parameter", "One", "Two", "Spot"]
@@ -474,18 +471,29 @@ def test_comparison_shows_parameters_and_day_curves(data_dir, tmp_path, monkeypa
     assert "Market tariff: shown with an example market curve, not a forecast." in [item.value for item in app.caption]
     app.selectbox(key="ov.import.cmp.day").select("holiday").run()
     assert any("no holiday curve" in item.value for item in app.warning)  # the house has no region: said, not skipped
-    app.button(key="ov.import.cmp.close").click().run()
-    assert "#### Comparison (3)" not in [item.value for item in app.markdown]
+    select(app, "import", [])
+    assert not [item for item in app.markdown if item.value.startswith("#### ")]  # nothing selected: no comparison
+    assert comparison(app, "import") is None
     assert not app.exception
 
 
-def test_comparison_with_more_than_five_draws_nothing_and_says_so(data_dir, tmp_path, monkeypatch):
-    monkeypatch.setenv(ENV_CATALOG, str(_comparison_catalog(tmp_path, count=6)))
+def test_one_selected_tariff_shows_its_parameters_and_day_curve(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv(ENV_CATALOG, str(_comparison_catalog(tmp_path)))
     app = start()
-    select(app, "import", ["One", "Two"])
-    run_action(app, "import", "compare")
-    select(app, "import", labels(app, "import"))  # all six: the comparison follows the selection
-    assert action(app, "import", "compare").disabled
-    assert any(item.value.startswith("6 tariffs are selected; the comparison shows at most five.") for item in app.warning)
+    select(app, "import", ["Spot"])
+    assert "#### Spot" in [item.value for item in app.markdown]
+    table = comparison(app, "import")
+    assert list(table.columns) == ["diff", "parameter", "Spot"] and set(table["diff"]) == {""}
+    assert not [toggle for toggle in app.toggle if toggle.key == "ov.import.cmp.diff"]  # nothing to differ from
+    assert app.get("vega_lite_chart") or app.get("arrow_vega_lite_chart")
+    assert not app.exception
+
+
+def test_comparison_with_more_than_three_draws_nothing_and_says_so(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv(ENV_CATALOG, str(_comparison_catalog(tmp_path, count=4)))
+    app = start()
+    select(app, "import", labels(app, "import"))  # all four: the comparison follows the selection
+    assert any(item.value.startswith("4 tariffs are selected; the comparison below the table shows at most 3.") for item in app.info)
+    assert not action(app, "import", "copy").disabled  # a larger selection is fine for the actions
     assert comparison(app, "import") is None
     assert not (app.get("vega_lite_chart") or app.get("arrow_vega_lite_chart"))

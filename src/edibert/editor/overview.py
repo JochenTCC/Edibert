@@ -297,7 +297,7 @@ def counts(rows: Iterable[OverviewRow]) -> dict[Origin, int]:
 
 
 DIRECTIONS = (IMPORT, EXPORT)
-COMPARE_LIMIT = 5  # at most this many tariffs in the comparison; more is refused, never cut silently
+COMPARE_LIMIT = 3  # at most this many tariffs in the comparison; more is refused, never cut silently
 
 
 # --- Selection (kept by row key, not by table position: a filter changes the positions) ---
@@ -348,14 +348,14 @@ class Action(StrEnum):
     OPEN = "open"
     COPY = "copy"
     DELETE = "delete"
-    COMPARE = "compare"
 
 
 def refusal(action: Action, chosen: Sequence[OverviewRow]) -> str | None:
     """Why ``action`` does not fit the selection (a code the UI translates), or ``None`` when it does.
 
     open: exactly one own tariff. copy: one or more tariffs that are not own (catalog, template).
-    delete: one or more own tariffs. compare: one to ``COMPARE_LIMIT`` tariffs of any origin.
+    delete: one or more own tariffs. The comparison is no action: it shows whenever one to ``COMPARE_LIMIT`` rows
+    are selected.
     """
     own = [row for row in chosen if row.origin == Origin.OWN]
     if action == Action.OPEN:
@@ -364,10 +364,6 @@ def refusal(action: Action, chosen: Sequence[OverviewRow]) -> str | None:
         return None if chosen and not own else "copy_not_own"
     if action == Action.DELETE:
         return None if chosen and len(own) == len(chosen) else "delete_own_only"
-    if action == Action.COMPARE:
-        if not chosen:
-            return "compare_none"
-        return None if len(chosen) <= COMPARE_LIMIT else "compare_limit"
     raise ValueError(f"Unknown overview action '{action}'.")
 
 

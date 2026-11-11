@@ -15,7 +15,7 @@ pip install -e ".[ui]"
 python -m edibert ui --data-dir edibert_data
 ```
 
-`http://localhost:8501` öffnen. Vier Schritte (Basispreis, Zeitfenster, weitere Kosten, erweitert), Preisverlauf live, Preis zu einem Zeitpunkt, Prüfung gegen eine echte Rechnung, eine Tarifübersicht mit eigenen Tarifen, Katalog und Vorlagen nebeneinander (filtern, brutto/netto, bis zu fünf mit ihren Tageskurven vergleichen, kopieren, löschen), JSON importieren. Deutsch und Englisch. Siehe die [Bedienungsanleitung](docs/user/de/index.md).
+`http://localhost:8501` öffnen. Vier Schritte (Basispreis, Zeitfenster, weitere Kosten, erweitert), Preisverlauf live, Preis zu einem Zeitpunkt, Prüfung gegen eine echte Rechnung, eine Tarifübersicht mit eigenen Tarifen, Katalog und Vorlagen nebeneinander (filtern, brutto/netto, bis zu drei mit ihren Tageskurven vergleichen, sofort bei der Auswahl, kopieren, löschen), JSON importieren. Deutsch und Englisch. Siehe die [Bedienungsanleitung](docs/user/de/index.md).
 
 ## Über MQTT veröffentlichen
 

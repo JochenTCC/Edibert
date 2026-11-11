@@ -1,5 +1,5 @@
-"""Tariff overview (Editor P4a/P4b): one table per direction with filters, a gross/net switch, row selection and
-the actions open, copy as template, delete and compare.
+"""Tariff overview (Editor P4a/P4b): one table per direction with filters, a gross/net switch, row selection,
+the actions open, copy as template and delete, and the comparison of the selection below the table.
 
 The rows, columns, filters, the selection rules and which action fits come from :mod:`edibert.editor.overview`;
 this module translates and draws them. The selection is kept by row key (``origin:id``), never by table position.
@@ -16,8 +16,9 @@ import pandas as pd
 import streamlit as st
 
 from edibert.editor.catalog import catalog_package, read_catalog
-from edibert.editor.comparison import TooManyToCompare, day_curves, parameter_lines
+from edibert.editor.comparison import day_curves, parameter_lines
 from edibert.editor.overview import (
+    COMPARE_LIMIT,
     DIRECTIONS,
     Action,
     Basis,
@@ -232,11 +233,6 @@ def _open(direction: str, chosen: list[OverviewRow], leave: Leave) -> None:
     leave(("open", dict(chosen[0].raw), direction))
 
 
-def _compare(direction: str, chosen: list[OverviewRow]) -> None:
-    require(Action.COMPARE, chosen)
-    state.set_comparing(direction, True)
-
-
 def _text(t: Translator, column: Column, value: Any) -> str:
     """A parameter value as text (the comparison table mixes kinds of values in one column)."""
     value = _cell(t, column, value)
@@ -261,9 +257,11 @@ def _headers(chosen: list[OverviewRow]) -> list[str]:
 
 
 def _parameters(t: Translator, direction: str, chosen: list[OverviewRow], basis: Basis, today: date) -> None:
-    name = f"ov.{direction}.cmp.diff"
-    only = st.toggle(t.t("ui.ov.cmp_diff_only"), value=state.kept(name, False), key=state.k(name))
-    state.keep(name, only)
+    only = False
+    if len(chosen) > 1:  # one tariff has no differences to filter by
+        name = f"ov.{direction}.cmp.diff"
+        only = st.toggle(t.t("ui.ov.cmp_diff_only"), value=state.kept(name, False), key=state.k(name))
+        state.keep(name, only)
     titles = _headers(chosen)
     lines = [line for line in parameter_lines(chosen, basis, today) if line.differs or not only]
     if not lines:
@@ -277,8 +275,9 @@ def _parameters(t: Translator, direction: str, chosen: list[OverviewRow], basis:
         ],
         columns=["diff", "parameter", *titles],
     )  # fmt: skip
+    shown = ["diff", "parameter", *titles] if len(chosen) > 1 else ["parameter", *titles]  # one tariff: nothing differs
     st.dataframe(
-        frame, hide_index=True, key=state.k(f"ov.{direction}.cmp.table"),
+        frame, hide_index=True, key=state.k(f"ov.{direction}.cmp.table"), column_order=shown,
         column_config={"diff": st.column_config.TextColumn("≠", help=t.t("ui.ov.cmp_diff_help"), width="small"),
                        "parameter": st.column_config.TextColumn(t.t("ui.ov.cmp_parameter"))},
     )  # fmt: skip
@@ -333,22 +332,18 @@ def _chart(t: Translator, config: UiConfig, direction: str, chosen: list[Overvie
 
 
 def _comparison(t: Translator, config: UiConfig, direction: str, chosen: list[OverviewRow], basis: Basis, today: date) -> None:
-    """The comparison of the selected rows, below the table; it follows the selection until it is closed."""
-    if not state.comparing(direction):
+    """The comparison of the selected rows, below the table: always shown while one to ``COMPARE_LIMIT`` rows are
+    selected (one row shows that tariff's parameters and day curve). More: a note and nothing drawn, never the
+    first few, since a larger selection is fine for copy and delete."""
+    if not chosen:
+        return
+    if len(chosen) > COMPARE_LIMIT:
+        st.info(t.t("ui.ov.cmp_limit", count=len(chosen), limit=COMPARE_LIMIT))
         return
     with st.container(border=True):
-        head, close = st.columns([4, 1], vertical_alignment="center")
-        head.markdown(f"#### {t.t('ui.ov.cmp_title', count=len(chosen))}")
-        close.button(t.t("ui.ov.cmp_close"), key=state.k(f"ov.{direction}.cmp.close"),
-                     on_click=state.bound(state.set_comparing), args=(direction, False), width="stretch")  # fmt: skip
-        if not chosen:
-            st.caption(t.t("ui.ov.why.compare_none"))
-            return
-        try:
-            _parameters(t, direction, chosen, basis, today)
-        except TooManyToCompare:
-            st.warning(t.t("ui.ov.cmp_limit", count=len(chosen)))  # no chart, never the first five
-            return
+        title = chosen[0].tariff.label if len(chosen) == 1 else t.t("ui.ov.cmp_title", count=len(chosen))
+        st.markdown(f"#### {title}")
+        _parameters(t, direction, chosen, basis, today)
         try:
             _chart(t, config, direction, chosen, basis, today)
         except EdibertError as err:
@@ -375,7 +370,7 @@ def _delete_prompt(t: Translator, config: UiConfig, direction: str) -> None:
 
 def _actions(t: Translator, config: UiConfig, direction: str, rows: list[OverviewRow], chosen: list[OverviewRow],
              hidden: int, leave: Leave) -> None:  # fmt: skip
-    """What is selected, and the four actions; one that does not fit is disabled and its help says why."""
+    """What is selected, and the three actions; one that does not fit is disabled and its help says why."""
     if chosen:
         labels = ", ".join(row.tariff.label for row in chosen)
         note = f" {t.t('ui.ov.hidden', count=hidden)}" if hidden else ""
@@ -386,7 +381,6 @@ def _actions(t: Translator, config: UiConfig, direction: str, rows: list[Overvie
         Action.OPEN: (_open, (direction, chosen, leave)),
         Action.COPY: (_copy, (t, config, direction, chosen, leave)),
         Action.DELETE: (_ask_delete, (t, config, direction, chosen)),
-        Action.COMPARE: (_compare, (direction, chosen)),
     }
     for column, (action, (handler, args)) in zip(st.columns(len(handlers)), handlers.items(), strict=True):
         reason = refusal(action, chosen)

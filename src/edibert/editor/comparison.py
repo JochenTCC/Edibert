@@ -1,7 +1,7 @@
 """Comparison of overview rows (Editor P4c): parameters side by side and day curves in one chart (no UI).
 
 At most ``COMPARE_LIMIT`` tariffs; more is an error the UI turns into a message, never a silent cut to the first
-five. Day curves are computed like the editor's preview (representative days of a month, house context and grid
+few. Day curves are computed like the editor's preview (representative days of a month, house context and grid
 fee, market-price tariffs on the example market curve) and put on the table's gross/net basis.
 """
 

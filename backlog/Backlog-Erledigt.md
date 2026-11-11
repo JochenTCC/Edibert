@@ -2,6 +2,11 @@
 
 Archive of completed work. Open todos → [Backlog.md](Backlog.md) · Bugfixes → [Backlog-Bugfixes.md](Backlog-Bugfixes.md).
 
+### Editor: comparison always shown, at most three (0.1.c2 follow-up, 2026-11-11)
+
+- [x] **Comparison without a button** `[feat]` *(decided 2026-11-11 by the maintainer: a single tariff had no chart in the overview, because the chart only came with "Compare")*: the comparison below the overview table shows whenever one to `COMPARE_LIMIT` rows are selected and follows the selection; the "Compare" action and "Close comparison" are gone (`Action.COMPARE`, session key `ui.ov.compare` and its i18n keys removed). One selected tariff shows its parameters and day curve under its label, without the `≠` filter. `COMPARE_LIMIT` lowered from five to three; more selected (fine for copy and delete) draws nothing and shows a note, never the first three. User manual EN + DE and both READMEs updated. Tests `tests/test_editor_comparison.py`, `tests/test_editor_overview_actions.py`, `tests/test_ui_app.py` (incl. `test_one_selected_tariff_shows_its_parameters_and_day_curve`)
+  - **Earnie impact at the pin bump** (Earnie not changed): the user manual of the *Tarife* page (`Benutzer-Handbuch-Earnie.md`, "Auswählen und handeln") still names the **Vergleichen** action and "ein bis fünf"; AppTests that click `ov.<direction>.compare` or `ov.<direction>.cmp.close` would fail
+
 ### Editor: tariff overview complete (0.1.c2, 2026-11-11)
 
 - [x] **0.1.c2 — Editor: tariff overview tables** `[feat]` *(decided 2026-11-11, concept "tariff overview" of that date)*: one overview with two tabs (import, export) listing all tariffs at hand (own, catalog, templates) with their parameters as columns; replaced the "my tariffs" button list and the two copy expanders. No cost calculation (that stays with the `0.+1` item "Simple tariff comparison", which can add its result as a column). Steps P4a and P4b are archived below

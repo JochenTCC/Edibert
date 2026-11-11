@@ -17,7 +17,6 @@ from edibert.editor.overview import (
     merge_selection,
     prune_selection,
     refusal,
-    require,
     rows_of,
     selected_positions,
     selection_stamp,
@@ -80,12 +79,12 @@ def test_prune_drops_rows_that_are_gone(rows):
 @pytest.mark.parametrize(
     ("labels", "expected"),
     [
-        ((), {"open": "open_one_own", "copy": "copy_not_own", "delete": "delete_own_only", "compare": "compare_none"}),
-        (("Own",), {"open": None, "copy": "copy_not_own", "delete": None, "compare": None}),
-        (("Own", "Two"), {"open": "open_one_own", "copy": "copy_not_own", "delete": None, "compare": None}),
-        (("Alpha",), {"open": "open_one_own", "copy": None, "delete": "delete_own_only", "compare": None}),
-        (("Alpha", "Beta"), {"open": "open_one_own", "copy": None, "delete": "delete_own_only", "compare": None}),
-        (("Own", "Alpha"), {"open": "open_one_own", "copy": "copy_not_own", "delete": "delete_own_only", "compare": None}),
+        ((), {"open": "open_one_own", "copy": "copy_not_own", "delete": "delete_own_only"}),
+        (("Own",), {"open": None, "copy": "copy_not_own", "delete": None}),
+        (("Own", "Two"), {"open": "open_one_own", "copy": "copy_not_own", "delete": None}),
+        (("Alpha",), {"open": "open_one_own", "copy": None, "delete": "delete_own_only"}),
+        (("Alpha", "Beta"), {"open": "open_one_own", "copy": None, "delete": "delete_own_only"}),
+        (("Own", "Alpha"), {"open": "open_one_own", "copy": "copy_not_own", "delete": "delete_own_only"}),
     ],
 )
 def test_which_action_fits_the_selection(rows, labels, expected):
@@ -93,12 +92,9 @@ def test_which_action_fits_the_selection(rows, labels, expected):
     assert {str(action): refusal(action, chosen) for action in Action} == expected
 
 
-def test_compare_takes_at_most_five(rows):
-    assert COMPARE_LIMIT == 5
-    assert refusal(Action.COMPARE, rows[:5]) is None
-    assert refusal(Action.COMPARE, rows[:6]) == "compare_limit"  # refused, never the first five
-    with pytest.raises(ValueError, match="compare_limit"):
-        require(Action.COMPARE, rows[:6])
+def test_compare_is_no_action_and_takes_at_most_three():
+    assert COMPARE_LIMIT == 3
+    assert "compare" not in {str(action) for action in Action}  # shown with the selection, no button
 
 
 def test_copies_get_ids_unique_among_own_tariffs_and_each_other(rows):

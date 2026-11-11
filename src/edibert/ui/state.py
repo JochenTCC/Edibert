@@ -46,7 +46,6 @@ GRID_TEMPLATES = "ui.grid_templates"
 VIEW = "ui.view"  # the view switch's widget key: "overview" or "edit"
 SELECTION = "ui.ov.selection"  # {direction: set of row keys}
 FILTERS = "ui.ov.filters"  # {widget name: value} of the overview filters, kept while the edit view is shown
-COMPARE = "ui.ov.compare"  # {direction: True} while the comparison of the selected rows is shown
 OVERVIEW, EDIT = "overview", "edit"
 
 # The prefix of the render that is running. Not session data: it is set for the duration of one
@@ -105,7 +104,6 @@ def init(config: UiConfig) -> None:
     ss[k(GRID_TEMPLATES)] = None
     ss[k(VIEW)] = OVERVIEW
     ss[k(SELECTION)] = {}
-    ss[k(COMPARE)] = {}
     ss[k(FILTERS)] = {}
     if config.host_house is None:
         ss[k(HOUSE)] = load_house(config.house_file)
@@ -252,15 +250,6 @@ def kept(name: str, default):
 
 def keep(name: str, value) -> None:
     st.session_state[k(FILTERS)][name] = value
-
-
-def comparing(direction: str) -> bool:
-    """True while the comparison of the ``direction`` table is shown (it follows the selection)."""
-    return bool(st.session_state[k(COMPARE)].get(direction, False))
-
-
-def set_comparing(direction: str, shown: bool) -> None:
-    st.session_state[k(COMPARE)][direction] = shown
 
 
 def pending_leave() -> tuple | None:

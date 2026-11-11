@@ -15,7 +15,7 @@ pip install -e ".[ui]"
 python -m edibert ui --data-dir edibert_data
 ```
 
-Open `http://localhost:8501`. Four steps (base price, time windows, further costs, advanced), live price curve, price at a given time, check against a real invoice, a tariff overview with your own tariffs, the catalog and templates side by side (filter, gross/net, compare up to five with their day curves, copy, delete), import JSON. English and German. See the [user manual](docs/user/en/index.md).
+Open `http://localhost:8501`. Four steps (base price, time windows, further costs, advanced), live price curve, price at a given time, check against a real invoice, a tariff overview with your own tariffs, the catalog and templates side by side (filter, gross/net, compare up to three with their day curves, shown as soon as they are selected, copy, delete), import JSON. English and German. See the [user manual](docs/user/en/index.md).
 
 ## Publish over MQTT
 

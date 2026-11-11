@@ -28,17 +28,16 @@ Tick rows in the table to select them. The line below the table names the select
 | **Copy as template** | one catalog tariff or template | opens an unsaved copy with a new ID (`user_...`) and the name extended by "(copy)" in the edit view |
 | **Copy as template** | several catalog tariffs or templates | saves the copies as your own tariffs at once; none is opened, a message gives the number |
 | **Delete** | one or more own tariffs | deletes them; see [Save](#save) for the question an embedding application can ask |
-| **Compare** | one to five tariffs | shows the comparison below the table |
 
-An action that does not fit the selection is greyed out; hover over it to see why.
+An action that does not fit the selection is greyed out; hover over it to see why. The comparison is no action: it appears below the table as soon as you select a tariff.
 
 ### Compare
 
-The comparison follows the selection until you click **Close comparison**.
+The comparison appears below the table whenever one to three tariffs are selected and follows the selection. With one tariff it shows that tariff's parameters and its price curve.
 
 - **Parameters:** the selected tariffs as columns, the parameters as rows, on the same gross or net basis as the table. A row marked **≠** differs between the tariffs; **Differences only** hides the others.
 - **Price curve of one day:** one curve per tariff in one chart, for the chosen **month** and **day type** (weekday, Saturday, Sunday, holiday). It is computed like the preview of the form: with the house's country, region and grid fee, and market-price tariffs on an example market curve (a note says so; it is not a forecast). If a tariff has no curve for the chosen day, a message says why: the house has no federal state / canton for the holiday calendar, the month has no holiday, or the tariff has no price that day (for example no monthly rate).
-- At most five tariffs are compared. With more selected, nothing is drawn and a message asks you to unselect some; Edibert never picks five for you.
+- At most three tariffs are compared. With more selected (for example to copy or delete them), nothing is drawn and a note says so; Edibert never picks three for you.
 
 The comparison shows prices, not costs. A comparison of yearly costs from your meter data is planned separately.
 
