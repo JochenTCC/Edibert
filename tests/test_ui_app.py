@@ -270,3 +270,66 @@ def test_old_house_grid_fee_goes_through_the_migration_gate(data_dir):
     assert grids["areas"][0]["fixed_eur_year"][0]["eur_year"] == 60.0
     saved = json.loads((data_dir / "user_tariffs.json").read_text(encoding="utf-8"))
     assert "grid_monthly_fee_eur" not in saved["import_tariffs"][0]
+
+
+def _overview_catalog(tmp_path: Path) -> Path:
+    """Placeholder catalog for the overview: two import tariffs (one gross, one net) and one export tariff."""
+
+    def entry(tariff_id: str, label: str, tariff_type: str, **extra) -> dict:
+        return {"id": tariff_id, "label": label, "type": tariff_type, "land": "AT", "supplier_id": f"s_{tariff_id}", "vat_percent": 20, **extra}
+
+    document = {
+        "tariff_format": 1,
+        "import_tariffs": [
+            entry("at_alpha", "Alpha Fix", "fixed_cent", fix_cent_kwh=24.0),
+            entry("at_beta", "Beta Net", "fixed_cent", fix_cent_kwh=10.0, prices_include_vat=False),
+        ],
+        "export_tariffs": [entry("at_gamma", "Gamma Feed", "fixed", k_push_cent=6.0)],
+    }
+    path = tmp_path / "tariffs.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    return path
+
+
+def overview_table(app: AppTest, direction: str):
+    """The table of the overview tab ``direction`` (the overview's tabs come first on the page)."""
+    (table,) = app.tabs[["import", "export"].index(direction)].dataframe
+    return table.value
+
+
+def test_overview_shows_both_tabs_with_filters_and_price_basis(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv(ENV_CATALOG, str(_overview_catalog(tmp_path)))
+    app = start()
+    assert [tab.label for tab in app.tabs[:2]] == ["Purchase (2 catalog + 0 own)", "Feed-in (1 catalog + 0 own)"]
+    imports = overview_table(app, "import")
+    assert list(imports["label"]) == ["Alpha Fix", "Beta Net"]
+    assert list(imports["base_price"]) == pytest.approx([24.0, 12.0])  # gross by default
+    assert list(overview_table(app, "export")["label"]) == ["Gamma Feed"]
+    app.segmented_control(key="ov.basis").set_value("net").run()
+    assert list(overview_table(app, "import")["base_price"]) == pytest.approx([20.0, 10.0])
+    app.text_input(key="ov.import.text").set_value("beta").run()
+    assert list(overview_table(app, "import")["label"]) == ["Beta Net"]
+    assert list(overview_table(app, "export")["label"]) == ["Gamma Feed"]  # filters are per table
+    app.selectbox(key="ov.import.origin").select("own").run()
+    assert not app.tabs[0].dataframe
+    assert any(item.value == "No tariff matches these filters." for item in app.caption)
+    assert not app.exception
+
+
+def test_overview_lists_own_tariffs_and_keeps_the_old_controls(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setenv(ENV_CATALOG, str(_overview_catalog(tmp_path)))
+    app = start("de")
+    create_fixed_tariff(app, "Eigener Tarif", 25.0)
+    app.button(key="ui.save").click().run()
+    assert app.tabs[0].label == "Bezug (2 Katalog + 1 eigene)"
+    imports = overview_table(app, "import")
+    assert list(imports["origin"]) == ["Eigener", "Katalog", "Katalog"]
+    assert app.button(key="new.export") is not None  # the tariff list and the copy expander stay until P4b
+    assert app.button(key="copy.go") is not None
+    assert not app.exception
+
+
+def test_overview_without_catalog_says_so(data_dir):
+    app = start()
+    assert any(item.value.startswith("No catalog configured") for item in app.caption)
+    assert not app.tabs[0].dataframe and not app.tabs[1].dataframe

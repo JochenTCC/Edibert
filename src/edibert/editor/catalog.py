@@ -108,8 +108,12 @@ def applies_to_house(entry: CatalogEntry, land: str | None, region: str | None) 
 
     ``region`` is the house's; without one (or for a tariff of another land) the regions are not checked.
     """
-    regions = entry.raw.get("regions")
-    if not regions or not region or entry.land != land:
+    return applies_to_region(entry.raw.get("regions"), entry.land, land, region)
+
+
+def applies_to_region(regions: Iterable[str] | None, tariff_land: str | None, land: str | None, region: str | None) -> bool:
+    """``applies_to_house`` for any tariff: its ``regions`` and ``land`` against the house's land and region."""
+    if not regions or not region or tariff_land != land:
         return True
     return region in regions
 

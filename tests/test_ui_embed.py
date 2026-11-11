@@ -386,3 +386,20 @@ def test_an_unsaved_catalog_copy_offers_no_delete(tmp_path):
     assert not [b for b in app.button if b.key == f"{PREFIX}delete"]
     save(app)
     assert [b for b in app.button if b.key == f"{PREFIX}delete"]
+
+
+def test_overview_renders_both_tabs_in_the_embedded_editor(tmp_path):
+    app = start(tmp_path / "data", catalog=_catalog(tmp_path))
+    assert [tab.label for tab in app.tabs[:2]] == ["Bezug (4 Katalog + 0 eigene)", "Einspeisung (1 Katalog + 0 eigene)"]
+    # house AT / 8: "Nur Wien" is hidden by "my region only", "Delta" by the land filter
+    assert list(overview_table_labels(app, "import")) == ["Zeta", "Beta"]
+    assert list(overview_table_labels(app, "export")) == ["Alpha"]
+    assert app.segmented_control(key=f"{PREFIX}ov.basis").value == "gross"
+    app.checkbox(key=f"{PREFIX}ov.import.region").uncheck().run()
+    assert list(overview_table_labels(app, "import")) == ["Zeta", "Nur Wien", "Beta"]
+    assert not app.exception
+
+
+def overview_table_labels(app: AppTest, direction: str):
+    (table,) = app.tabs[[IMPORT, EXPORT].index(direction)].dataframe
+    return table.value["label"]

@@ -38,6 +38,7 @@ from edibert.tariff import EXPORT, IMPORT
 from edibert.ui import (
     grid,
     migrate_gate,
+    overview,
     package_import,
     preview,
     state,
@@ -226,11 +227,6 @@ def _tariffs(t: Translator, config: UiConfig) -> None:
         _delete_buttons(t, config, draft)
 
 
-def _type_label(t: Translator, key: str) -> str:
-    kind, _, mtu = key.partition(":")
-    return f"{t.t(f'ui.kind.{kind}')} · {t.t(f'ui.mtu_short.{mtu}')}" if mtu else t.t(f"ui.kind.{kind}")
-
-
 def _all_or(t: Translator, value: str, label) -> str:
     return t.t("ui.filter_all") if value == ALL else label(value)
 
@@ -251,7 +247,7 @@ def _catalog_filters(t: Translator, config: UiConfig, entries: list[CatalogEntry
     narrowed = [e for e in entries if land_value in (None, e.land) and direction_value in (None, e.direction)]
     kinds = [ALL, *type_keys_of(narrowed)]
     kind = st.selectbox(
-        t.t("ui.filter_type"), kinds, format_func=lambda k: _all_or(t, k, lambda v: _type_label(t, v)),
+        t.t("ui.filter_type"), kinds, format_func=lambda k: _all_or(t, k, lambda v: overview.kind_label(t, v)),
         key=state.k(f"copy.type.{land}.{direction}"),
     )  # fmt: skip
     return land_value, direction_value, kind or None
@@ -354,7 +350,7 @@ def render_grid(t: Translator, config: UiConfig) -> None:
 
 
 def render_tools(t: Translator, config: UiConfig) -> None:
-    """The row above form and preview: my tariffs with new/delete, copy from catalog, import."""
+    """Above form and preview: the tariff overview, then my tariffs with new/delete, copy from catalog, import."""
     _leave_prompt(t, config)
     try:
         if config.host_house is None:
@@ -366,6 +362,10 @@ def render_tools(t: Translator, config: UiConfig) -> None:
             return
         st.error(t.error(err))
         return
+    try:
+        overview.render(t, config, _house_land(config), _house_region(config))
+    except EdibertError as err:  # e.g. an invalid catalog entry: shown, and the tools below stay usable
+        st.error(t.error(err))
     mine, catalog, imports = st.columns([3, 5, 3])
     with mine:
         _tariffs(t, config)
