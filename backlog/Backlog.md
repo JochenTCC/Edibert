@@ -40,10 +40,7 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
   - Publish P1: HA custom integration (sensor with `raw_today` / `raw_tomorrow` / `forecast`, action `get_rates(start, end, resolution)`), reading the same price series as the MQTT publisher
   - Clean up retained topics of tariffs removed from `publish.json`
   - Forecast keys: the key only guards plug-ins loaded through entry points; decide how keys are issued and checked. (Earnie's OLS model runs as an in-process forecaster object without a key since Earnie *Edibert P5*, 2026-10-27; it uses `api.Forecaster` and the free mirror, no Edibert change was needed.)
-- [ ] **0.1.c2 — Editor: tariff overview tables** `[feat]` *(decided 2026-11-11, concept "tariff overview" of that date; before 0.1.r)*: one overview with two tabs (import, export) listing all tariffs at hand (own, catalog, templates) with their parameters as columns; replaces the "my tariffs" button list and the two copy expanders. No cost calculation (that stays with the `0.+1` item "Simple tariff comparison", which later adds its result as a column)
-  - **Decided:** tabs instead of stacked tables; overview and edit are separate views (switch on top; open / new / copy change to edit, the unsaved-changes prompt stays); copying several tariffs saves the copies directly and opens none, copying one opens the unsaved copy as today; price columns on one basis, gross by default, switchable to net; at most five tariffs in the comparison (more selected: no chart and a message, never the first five silently); templates appear in the table after the existing opt-in and load
-  - Editor P4c: comparison (parameters as rows with differences marked, day curves of the selected tariffs in one chart with month and day type, computed like today's preview); templates in the table (the template expander keeps opt-in and load only); user manual EN + DE, README
-  - **Note:** Earnie gets the overview through `render_editor` without code of its own; its pin bump, help text, manual and tests are tracked in the Earnie backlog. Optional later: a host hook for a "used in" column
+- [ ] **Editor: "used in" column from the host** `[feat]` *(optional follow-up of `0.1.c2`, 2026-11-11)*: a host hook (for example in `UiConfig`) that names where an own tariff is used (Earnie: the scenarios), shown as a column of the tariff overview. Earnie side (the hook's data, a link from the scenario configurator) is tracked in the Earnie backlog
 - [ ] **0.1.r — Quality / release hardening** *(skill `quality-gate`; after 0.1.a–0.1.e)*
   - Coverage baseline, dead-code audit, simplification, KPI refactor, docs review, SonarCloud snapshot
 - [ ] **0.1.0 — Release** *(user decision; version bump only with approval)*
@@ -68,7 +65,7 @@ Mapping to the development document: T1 = `0.1.a`, T2 = `0.1.b`, T3 = `0.1.c`, T
   - **Privacy:** the meter file stays local; never part of a sharing payload or a use report
 
 - [ ] **Graphical comparison of multiple tariffs without consumption** *(scope extended by the dogfooding findings of 2026-10-28)*
-  - Selection: "My tariffs" become selectable, so several tariffs show in the price preview at once; only one tariff stays open for editing
+  - **Note:** selecting several tariffs and one chart of their day curves (month and day type selectable) came with `0.1.c2` (tariff overview, comparison of up to five); what stays open here is the time span, import and export together and the line styles below
   - Time span: tariffs that differ by weekday switch the preview to a time axis over the days instead of 0–24 h; when only workday, Saturday and Sunday differ, Friday to Sunday is enough, otherwise a whole week. A market-price tariff needs one day. With several tariffs the widest span of all wins. A tariff with a holiday rule gets a fictitious holiday appended after Sunday
   - Colours and lines: colours tell the tariffs apart, no longer the days; import prices solid, export prices dashed (as in the Earnie monitor)
 - [ ] Tiers and free allowances (class B)
