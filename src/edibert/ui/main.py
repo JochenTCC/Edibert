@@ -5,7 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from edibert.contribution import ShareDefault
-from edibert.ui import share, sidebar, state
+from edibert.ui import branding, share, sidebar, state
 from edibert.ui.config import config_from_env
 from edibert.ui.embed import render_body
 
@@ -15,7 +15,8 @@ def main() -> None:
     with state.scope(config.key_prefix):
         state.init(config)
         t = state.translator()
-        st.set_page_config(page_title=t.t("ui.title"), layout="wide")
+        st.set_page_config(page_title=t.t("ui.title"), page_icon=str(branding.PAGE_ICON), layout="wide")
+        branding.render_logo()
         sidebar.render(t, config)
         st.title(t.t("ui.title"))
         sidebar.render_grid(t, config)

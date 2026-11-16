@@ -36,6 +36,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "edibert.i18n" = ["catalogs/*.json"]
+"edibert.ui" = ["assets/*.png", "assets/*.svg"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
