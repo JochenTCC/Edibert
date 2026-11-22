@@ -1,25 +1,27 @@
 ---
 name: bugfix-regression-test
 description: >-
-  After each code bugfix, remind to add a regression test and propose a concrete
-  test (prefer a dedicated regression file; cite the GitHub issue when
-  available). Use when implementing a bugfix, fixing a GitHub issue, or when a
+  Hard rule: every code bugfix comes with at least one new regression test that
+  fails on the unfixed code and passes with the fix, in the same commit (prefer a
+  dedicated regression file; cite the GitHub issue when available). Use when implementing a bugfix, fixing a GitHub issue, or when a
   wrong tariff price, rule match, holiday handling, or price series is found.
 ---
 
 # Bugfix regression test
 
-Soft gate: for every **code** bugfix, remind and **propose** an appropriate regression test so the same failure cannot silently return. Do **not** block the fix if the user declines; record the skip reason briefly.
+**Hard gate** (decided 2026-11-22, same rule in Earnie and earnie-server, `earnie-workspace/ai/ECOSYSTEM.md` § Hard rules): a bug found outside the automated tests (by hand, in the browser, in a log, by a user or a review) is fixed **only together with** at least one new automated test that fails on the unfixed code and passes with the fix. Fix and test land in the **same commit**; a fix without its test is not committed and not moved to Verifications Pending.
 
-## Exceptions (no new test required)
+## Exceptions (the only ones)
 
-State the exception once; do not invent a worthless test.
+State the exception in chat **and** in the backlog entry; do not invent a worthless test.
 
 | Exception | Action |
 |-----------|--------|
 | Docs-only change | skip |
-| Pure config / environment mistake with **no** wrong code path | note in reply; skip |
-| User explicitly declines a regression test | note decline; continue |
+| Pure config / environment mistake with **no** wrong code path | reason in the backlog entry; skip |
+| No automated test can reach the failing path | reason in the backlog entry; test the nearest reachable unit instead if one exists |
+
+Anything else needs the user's explicit decision in chat to skip the test; note that decision in the backlog entry. Do not ask for it as a routine question.
 
 ## Workflow (remind + propose)
 
@@ -27,9 +29,9 @@ State the exception once; do not invent a worthless test.
 Bugfix regression:
 - [ ] 1. Identify the failure (symptom, wrong value, trigger inputs)
 - [ ] 2. Decide: new regression file vs extend an existing test module
-- [ ] 3. Propose the test to the user (name, assertion, fixture/inputs)
-- [ ] 4. If accepted: implement, run focused pytest
-- [ ] 5. If declined / exception: one-line reason in chat
+- [ ] 3. Write the test; show it red on the unfixed code (or an xfail(strict=True) that turns into XPASS with the fix)
+- [ ] 4. Fix; run the focused pytest green, then the suite
+- [ ] 5. Commit fix + test together; Verifications Pending names the test path
 ```
 
 ### Step details
@@ -37,7 +39,7 @@ Bugfix regression:
 1. **Reproduce in the test.** Use the smallest inputs that failed (a tariff JSON fragment, a few slots, one date). For tariff bugs the typical fixtures are: a rule window across midnight, a holiday, a DST change day (last Sunday in March/October), a missing market price, a 60-minute settlement tariff.
 2. **Where to put it.** Prefer `tests/test_<topic>_regression.py` for cross-module or fixture-driven cases; extend a focused `tests/test_*.py` only when the bug is local. Name the test after the bug, not the fix.
 3. **Reference.** In the docstring cite the GitHub issue (`https://github.com/JochenTCC/Edibert/issues/N`) or a one-line symptom.
-4. **Propose before writing (default).** In chat: target file, failure mode, key assertions, fixture source. Implement after acceptance, or if the user asked for fix **and** test in the same turn.
+4. **Write it, do not ask first.** The test is part of the fix. Say in chat which file, which failure mode and which assertions it locks in. When a bug is found but its fix is not wanted yet, commit the test as `xfail(strict=True)` with the reason, so it fails loudly once the fix lands.
 5. **Run:**
 
    ```powershell

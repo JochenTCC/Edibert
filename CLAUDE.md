@@ -20,7 +20,7 @@ Project rules live in `.cursor/rules/*.mdc` and `.cursor/skills/*/SKILL.md` (wri
 | `.cursor/rules/streamlit-ui-state.mdc` | Editor state: language-independent versioned keys, row uids, callbacks |
 | `.cursor/skills/streamlit-apptest/` | Headless AppTest tests of the editor |
 | `.cursor/skills/windows-unicode-console/` | UTF-8 env for Python on Windows |
-| `.cursor/skills/bugfix-regression-test/` | Propose a regression test after each bugfix |
+| `.cursor/skills/bugfix-regression-test/` | Hard rule: every bugfix comes with a new regression test in the same commit |
 | `.cursor/skills/doc-review-findings/` | Process `## Document Review Findings` |
 | `.cursor/skills/session-abschluss/` | End of session: backlog sync, commit, push, publish decision (lean) |
 | `.cursor/skills/quality-gate/` | `X.Y.r` release hardening incl. SonarCloud snapshot |

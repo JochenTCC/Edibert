@@ -31,7 +31,7 @@ Bugfixes go through three strict phases in `backlog/Backlog-Bugfixes.md`:
 2. **Verifications Pending:** The fix is implemented and committed → move the entry to `## Bugfix Verifications Pending` (**do not archive yet**). If verification fails, return it to its topic or create a follow-up item.
 3. **Done:** Only after successful acceptance (real tariff check, Home Assistant test, or the reporter confirms), remove from *Pending* and move to `backlog/Backlog-Erledigt.md`.
 
-For each code bugfix follow skill `bugfix-regression-test` (propose a regression test; note the test path when moving to Pending).
+For each code bugfix follow skill `bugfix-regression-test` (hard rule: a new regression test in the same commit as the fix; note the test path when moving to Pending, or the exception and its reason).
 
 ## 3b. Document Review Findings (2-step)
 

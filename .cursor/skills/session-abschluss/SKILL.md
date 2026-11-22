@@ -16,7 +16,7 @@ Commit and push approval is implied by the end-session request. Still: never com
 ```
 Session conclusion:
 - [ ] 1. Backlog sync (Backlog.md / Backlog-Bugfixes.md / Backlog-Erledigt.md) per backlog.mdc
-- [ ] 2. Bugfix in this session? → regression test proposed/added (bugfix-regression-test)
+- [ ] 2. Bugfix in this session? → new regression test committed with it, or exception noted in the backlog (bugfix-regression-test, hard rule)
 - [ ] 3. Anonymize user names in Backlog-Bugfixes.md / Backlog-Erledigt.md (backlog-anonymize-users.mdc)
 - [ ] 4. Tests green: PYTHONPATH=src python -m pytest -q (UTF-8 env, windows-unicode-console)
 - [ ] 5. Ask about local or possibly temporary files before staging
