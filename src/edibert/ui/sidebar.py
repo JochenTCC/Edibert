@@ -59,7 +59,12 @@ def _language(t: Translator) -> None:
 def _house(t: Translator, config: UiConfig) -> None:
     house = state.house()
     with st.expander(t.t("ui.house")):
-        house.timezone = st.selectbox(t.t("ui.timezone"), list(COMMON_TIMEZONES), index=_index(COMMON_TIMEZONES, house.timezone), accept_new_options=True, key=state.k("house.timezone"))
+        zones = _keep_saved(COMMON_TIMEZONES, house.timezone)
+        house.timezone = st.selectbox(t.t("ui.timezone"), zones, index=zones.index(house.timezone), accept_new_options=True, key=state.k("house.timezone"))
+        try:
+            house.context()  # an unknown timezone (typed in or from house.json) is shown, not replaced
+        except EdibertError as err:
+            st.error(t.error(err))
         house.land = st.selectbox(t.t("ui.land"), list(LANDS), index=LANDS.index(house.land), key=state.k("house.land"))
         regions = _regions(house.land)
         house.region = st.selectbox(
@@ -80,6 +85,11 @@ def _house(t: Translator, config: UiConfig) -> None:
                 st.error(t.error(err))
             else:
                 state.notify(t.t("ui.house_saved"))
+
+
+def _keep_saved(options, value: str) -> list[str]:
+    """The options plus the saved value when it is not among them, so it stays selected and can be checked."""
+    return [*options, value] if value not in options else list(options)
 
 
 def _index(options, value) -> int:

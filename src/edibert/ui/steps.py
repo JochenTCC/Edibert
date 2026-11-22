@@ -177,7 +177,7 @@ def render_steps(t: Translator, draft: TariffDraft) -> None:
     _db_ref_note(t, draft)
     step = st.radio(
         t.t("ui.step"), list(STEPS), index=state.step() - 1, format_func=lambda n: f"{n}. {t.t(STEPS[n][0])}",
-        horizontal=True, key=state.k("ui.step_radio"),
+        horizontal=True, key=state.k(state.STEP_RADIO),
     )  # fmt: skip
     state.set_step(step)
     STEPS[step][1](t, draft)

@@ -528,10 +528,6 @@ def test_new_tariff_after_rules_has_no_ghost_rows(data_dir):
     assert rule_keys(app, "label") == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="found by this suite: the step radio keeps its widget value, adopt() resets only state",
-)
 def test_new_tariff_starts_at_step_one(data_dir):
     app = start()
     create_fixed_tariff(app, "Alt")
@@ -625,10 +621,6 @@ def test_invoice_check_compares_the_total(data_dir):
 # --- house settings and grid fee -----------------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="found by this suite: sidebar index fallback silently replaces it with the first timezone",
-)
 def test_unknown_timezone_in_house_file_is_reported_not_thrown(data_dir):
     data_dir.mkdir(parents=True, exist_ok=True)
     (data_dir / "house.json").write_text(
