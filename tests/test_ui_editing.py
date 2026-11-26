@@ -562,6 +562,7 @@ def test_new_tariff_stays_at_step_one_when_the_browser_resends_the_old_step(data
             radio.set_value(4)  # the value the browser still holds for this widget
     app.text_input(key=widget_key(app, "label")).set_value("Neu").run()
     assert not app.exception
+    assert step_radio(app).id != old_id  # a new widget: the browser has no old step for it
     assert step_radio(app).value == 1
     assert app.text_input(key=widget_key(app, "label")).value == "Neu"
 
