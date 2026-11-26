@@ -175,9 +175,10 @@ def _db_ref_note(t: Translator, draft: TariffDraft) -> None:
 def render_steps(t: Translator, draft: TariffDraft) -> None:
     """Step selector (language-independent keys) and the form of the chosen step."""
     _db_ref_note(t, draft)
+    # Versioned key: a new draft gets a new widget, so the browser cannot send back the step of the old one.
     step = st.radio(
         t.t("ui.step"), list(STEPS), index=state.step() - 1, format_func=lambda n: f"{n}. {t.t(STEPS[n][0])}",
-        horizontal=True, key=state.k(state.STEP_RADIO),
+        horizontal=True, key=state.key("step_radio"),
     )  # fmt: skip
     state.set_step(step)
     STEPS[step][1](t, draft)

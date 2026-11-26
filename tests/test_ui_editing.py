@@ -42,8 +42,13 @@ def save(app: AppTest) -> None:
     assert not app.exception
 
 
+def step_radio(app: AppTest):
+    """The step radio; its key changes with the draft version."""
+    return next(radio for radio in app.radio if radio.key and radio.key.endswith("step_radio"))
+
+
 def step(app: AppTest, number: int) -> None:
-    app.radio(key="ui.step_radio").set_value(number).run()
+    step_radio(app).set_value(number).run()
 
 
 def new(app: AppTest, direction: str, label: str) -> None:
@@ -534,8 +539,31 @@ def test_new_tariff_starts_at_step_one(data_dir):
     save(app)
     step(app, 4)
     app.button(key="new.import").click().run()
-    assert app.radio(key="ui.step_radio").value == 1
+    assert step_radio(app).value == 1
     assert [box.key for box in app.text_input if box.key == widget_key(app, "label")]
+
+
+def test_new_tariff_stays_at_step_one_when_the_browser_resends_the_old_step(data_dir):
+    """Browser acceptance of 2026-11-25 (v0.1.16): after "New tariff" the step radio still showed 4, the next
+    rerun jumped back to step 4 and the typed name was lost.
+
+    The browser keeps a widget's value as long as the widget id stays the same and sends it back on every rerun;
+    dropping the value on the server does not reach it. AppTest does not keep it, so this test sends the old value
+    for the old widget id itself, as the browser does.
+    """
+    app = start()
+    create_fixed_tariff(app, "Alt")
+    save(app)
+    step(app, 4)
+    old_id = step_radio(app).id
+    app.button(key="new.import").click().run()
+    for radio in app.radio:
+        if radio.id == old_id:
+            radio.set_value(4)  # the value the browser still holds for this widget
+    app.text_input(key=widget_key(app, "label")).set_value("Neu").run()
+    assert not app.exception
+    assert step_radio(app).value == 1
+    assert app.text_input(key=widget_key(app, "label")).value == "Neu"
 
 
 # --- leaving and deleting ------------------------------------------------------------------------------------------

@@ -97,7 +97,7 @@ def save(app: AppTest, prefix: str = PREFIX) -> None:
 def test_every_editor_key_carries_the_prefix(tmp_path):
     app = start(tmp_path)
     create_fixed_tariff(app)
-    app.radio(key=f"{PREFIX}ui.step_radio").set_value(2).run()
+    app.radio(key=widget_key(app, "step_radio")).set_value(2).run()
     app.button(key=widget_key(app, "tpl.night")).click().run()
     save(app)
     assert not app.exception

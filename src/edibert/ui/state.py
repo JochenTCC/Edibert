@@ -29,7 +29,6 @@ LANG = "ui.lang"
 VER = "ui.ver"
 DRAFT = "ui.draft"
 STEP = "ui.step"
-STEP_RADIO = "ui.step_radio"
 HOUSE = "ui.house"
 NOTICE = "ui.notice"
 UID = "ui.uid"
@@ -172,7 +171,6 @@ def adopt(draft: TariffDraft | None, *, saved: bool = True) -> None:
     ss[k(DRAFT)] = draft
     ss[k(VER)] += 1
     ss[k(STEP)] = 1
-    ss.pop(k(STEP_RADIO), None)  # the step radio keeps its own value; dropped, it starts again at step 1
     ss[k(PENDING_DELETE)] = None
     ss[k(PENDING_LEAVE)] = None
     ss[k(BASELINE)] = draft.to_raw() if draft is not None and saved else None

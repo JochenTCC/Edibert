@@ -91,13 +91,13 @@ def test_language_switch_keeps_the_entered_values(data_dir):
     app.sidebar.selectbox(key="ui.lang").select("de").run()
     assert app.text_input(key=widget_key(app, "label")).value == "Nachttarif Test"
     assert app.number_input(key=widget_key(app, "price")).value == 31.5
-    assert app.radio(key="ui.step_radio").options[1] == "2. Zeitfenster"
+    assert app.radio(key=widget_key(app, "step_radio")).options[1] == "2. Zeitfenster"
 
 
 def test_template_adds_rule_rows_and_changes_the_preview(data_dir):
     app = start("de")
     create_fixed_tariff(app, "Tag Nacht", 30.0)
-    app.radio(key="ui.step_radio").set_value(2).run()
+    app.radio(key=widget_key(app, "step_radio")).set_value(2).run()
     app.button(key=widget_key(app, "tpl.night")).click().run()
     assert not app.exception
     labels = [field.value for field in app.text_input if field.label == "Name"]
@@ -113,7 +113,7 @@ def test_template_adds_rule_rows_and_changes_the_preview(data_dir):
 def test_rule_without_region_reports_a_holiday_hint_instead_of_crashing(data_dir):
     app = start("en")
     create_fixed_tariff(app)
-    app.radio(key="ui.step_radio").set_value(2).run()
+    app.radio(key=widget_key(app, "step_radio")).set_value(2).run()
     app.button(key=widget_key(app, "tpl.weekend")).click().run()
     assert not app.exception
     assert any("region" in error.value.lower() for error in app.error)  # weekday rule needs a region
@@ -122,7 +122,7 @@ def test_rule_without_region_reports_a_holiday_hint_instead_of_crashing(data_dir
 def test_house_region_removes_the_hint_and_is_saved(data_dir):
     app = start("en")
     create_fixed_tariff(app)
-    app.radio(key="ui.step_radio").set_value(2).run()
+    app.radio(key=widget_key(app, "step_radio")).set_value(2).run()
     app.button(key=widget_key(app, "tpl.weekend")).click().run()
     app.sidebar.selectbox(key="house.land").select("DE").run()
     app.sidebar.selectbox(key="house.region.DE").select("BY").run()
